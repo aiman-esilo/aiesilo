@@ -70,9 +70,9 @@
                         <tr class="bg-gray-800 text-white">
                             <th class="p-3 border-b w-10">No.</th>
                             <th class="p-3 border-b">Kenderaan</th>
-                            <th class="p-3 border-b">Pengguna & Telefon</th>
-                            <th class="p-3 border-b">Unit, Tujuan & Lokasi</th>
-                            <th class="p-3 border-b">Masa Ambil & Jangka Pulang</th>
+                            <th class="p-3 border-b">Pengguna Semasa</th>
+                            <th class="p-3 border-b">Unit & Tujuan</th>
+                            <th class="p-3 border-b">Tarikh (Mula - Pulang)</th>
                             <th class="p-3 border-b">Status</th>
                         </tr>
                     </thead>
@@ -233,11 +233,10 @@
             <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-purple-600 lg:col-span-1">
                 <h2 id="tajukBorangStaf" class="text-xl font-bold mb-4">Tambah Staf Baru</h2>
                 <form id="borangStaf" onsubmit="simpanStaf(event)">
-                    <input type="hidden" id="stafId">
                     <div class="mb-4">
                         <label class="block text-sm font-bold mb-2">Gambar Profil</label>
                         <div class="flex items-center space-x-3">
-                            <img id="previewGambarStaf" src="https://placehold.co/100x100/e2e8f0/64748b?text=User" class="w-16 h-16 rounded-full border object-cover">
+                            <img id="previewGambarStaf" src="https://placehold.co/100x100/e2e8f0/64748b?text=User" class="w-16 h-16 rounded-full border object-contain">
                             <input type="file" id="stafGambar" onchange="prosesGambar(event, 'previewGambarStaf', 'stafGambarBase64')" class="text-xs">
                         </div>
                         <input type="hidden" id="stafGambarBase64">
@@ -278,7 +277,7 @@
                     <div class="mb-4">
                         <label class="block text-sm font-bold mb-2">Gambar Kenderaan</label>
                         <div class="flex flex-col space-y-2">
-                            <img id="previewGambarKenderaan" src="https://placehold.co/400x250/e2e8f0/64748b?text=Kereta" class="w-full h-32 rounded border object-cover">
+                            <img id="previewGambarKenderaan" src="https://placehold.co/400x250/e2e8f0/64748b?text=Kereta" class="w-full h-32 rounded border object-contain">
                             <input type="file" onchange="prosesGambar(event, 'previewGambarKenderaan', 'kenderaanGambarBase64')" class="text-xs">
                         </div>
                         <input type="hidden" id="kenderaanGambarBase64">
@@ -366,11 +365,6 @@
 
         // Fungsi Utilities Format Date/Time
         function formatTarikhMY(t) { if(!t || t==="-") return "-"; let p=t.split('-'); return p.length===3 ? `${p[2]}/${p[1]}/${p[0]}` : t; }
-        function formatMasa(isoString) {
-            if(!isoString || isoString==="-") return "-";
-            let d = new Date(isoString);
-            return d.toLocaleDateString('ms-MY') + " " + d.toLocaleTimeString('ms-MY', {hour: '2-digit', minute:'2-digit'});
-        }
         
         // ================= OSRM LOGIC =================
         const PEJABAT_LAT = 5.3995; 
@@ -392,8 +386,8 @@
             const snapK = await getDocs(collection(db, "kenderaan"));
             if(snapK.empty) {
                 const senaraiAwal = [
-                    { plat: "BEE 1234", jenama: "Proton Perdana", jenis: "Sedan", milikan: "Aset Jabatan", noAset: "KPDN/AST/01", status: "Available", pengguna: "-", noTelPengguna: "-", tempahOleh: "-", unit: "-", tujuan: "-", lokasiTujuan: "-", tMula: "-", tTamat: "-", kadInden: "IND-123", tng: "TNG-123", mileage: 12500, mileageServis: 20000, masaAmbil: null, gambar: "" },
-                    { plat: "WA 8888", jenama: "Honda Camry", jenis: "Sedan", milikan: "Spanco", noAset: "SPC/001", status: "Available", pengguna: "-", noTelPengguna: "-", tempahOleh: "-", unit: "-", tujuan: "-", lokasiTujuan: "-", tMula: "-", tTamat: "-", kadInden: "IND-456", tng: "TNG-456", mileage: 34200, mileageServis: 40000, masaAmbil: null, gambar: "" }
+                    { plat: "BEE 1234", jenama: "Proton Perdana", jenis: "Sedan", milikan: "Aset Jabatan", noAset: "KPDN/AST/01", status: "Available", pengguna: "-", tempahOleh: "-", unit: "-", tujuan: "-", tMula: "-", tTamat: "-", kadInden: "IND-123", tng: "TNG-123", mileage: 12500, mileageServis: 20000, masaAmbil: null, gambar: "" },
+                    { plat: "WA 8888", jenama: "Honda Camry", jenis: "Sedan", milikan: "Spanco", noAset: "SPC/001", status: "Available", pengguna: "-", tempahOleh: "-", unit: "-", tujuan: "-", tMula: "-", tTamat: "-", kadInden: "IND-456", tng: "TNG-456", mileage: 34200, mileageServis: 40000, masaAmbil: null, gambar: "" }
                 ];
                 for (let k of senaraiAwal) { await setDoc(doc(db, "kenderaan", k.plat), k); }
             }
@@ -482,14 +476,14 @@
             let jarakKiraan = await kiraJarakSebenarOSRM(lokasiDituju);
 
             let dataBaru = {
-                emel: profilSemasa.emel, nama: profilSemasa.nama, tel: profilSemasa.tel, unit: profilSemasa.unit,
+                emel: profilSemasa.emel, nama: profilSemasa.nama, unit: profilSemasa.unit,
                 tujuan: document.getElementById('tujuan').value, lokasi: lokasiDituju, jarakPerjalanan: jarakKiraan,
                 tMula: document.getElementById('tarikhGuna').value, tTamat: document.getElementById('tarikhPulang').value,
                 cadangan: document.getElementById('cadanganKenderaan').value, kenderaanDipilih: "Belum Ditetapkan", status: "Menunggu Kelulusan"
             };
             await addDoc(collection(db, "tempahan"), dataBaru);
             document.getElementById('borangTempahan').reset();
-            btnSahkan.innerText = "Hantar Permohonan"; notif(`Permohonan ke ${lokasiDituju} dihantar.`);
+            btnSahkan.innerText = "Hantar Permohonan"; notif(`Permohonan dihantar.`);
         };
 
         window.luluskanTempahan = async function(idTempahan) {
@@ -499,39 +493,26 @@
             
             await updateDoc(doc(db, "tempahan", idTempahan), { kenderaanDipilih: kereta, status: "Lulus" });
             await updateDoc(doc(db, "kenderaan", kereta), {
-                status: "Ditempah", tempahOleh: temp.nama, noTelPengguna: temp.tel || "-", pengguna: "-",
-                unit: temp.unit, tujuan: temp.tujuan, lokasiTujuan: temp.lokasi, tMula: temp.tMula, tTamat: temp.tTamat
+                status: "Ditempah", tempahOleh: temp.nama, pengguna: "-",
+                unit: temp.unit, tujuan: temp.tujuan, tMula: temp.tMula, tTamat: temp.tTamat
             });
-            notif(`Kenderaan disahkan.`);
+            notif(`Diluluskan.`);
         };
 
-        // ================= RENDERING JADUAL (UPDATE KOLOM) =================
+        // ================= RENDERING JADUAL =================
         function janaSistem() {
             const tbDash = document.getElementById('jadualDashboard'); if(!tbDash) return; tbDash.innerHTML = "";
             DB_Kenderaan.forEach((k, i) => {
                 let bg = k.status === "Available" ? "bg-green-100 text-green-700" : (k.status === "Ditempah" ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-700");
-                
-                // Menentukan Data Pengguna Semasa & Telefon
-                let textP = "-"; let textTel = "-";
-                if(k.status === "Ditempah") { textP = `(Ditempah) ${k.tempahOleh}`; textTel = k.noTelPengguna; }
-                else if(k.status === "Sedang Digunakan") { textP = k.pengguna; textTel = k.noTelPengguna; }
-                
-                // Menentukan Tarikh & Masa
-                let textMasaMula = k.status === "Sedang Digunakan" ? formatMasa(k.masaAmbil) : formatTarikhMY(k.tMula);
-                let textMasaTamat = formatTarikhMY(k.tTamat);
-
-                tbDash.innerHTML += `
-                <tr class="border-b hover:bg-gray-50">
-                    <td class="p-3 align-top">${i+1}</td>
-                    <td class="p-3 align-top"><strong class="text-gray-800 block">${k.plat}</strong><span class="text-xs text-gray-500">${k.jenama}</span></td>
-                    <td class="p-3 align-top"><span class="font-bold text-blue-700">${textP}</span><br><span class="text-xs text-gray-600">📞 ${textTel}</span></td>
-                    <td class="p-3 align-top"><span class="block">${k.unit !== "-" ? k.unit : "-"}</span><span class="text-xs text-gray-500 block">${k.tujuan !== "-" ? k.tujuan : "-"}</span><span class="text-xs font-bold text-gray-600">📍 ${k.lokasiTujuan !== "-" ? k.lokasiTujuan : "-"}</span></td>
-                    <td class="p-3 align-top text-gray-600 text-xs">Mula: <strong>${textMasaMula}</strong><br>Pulang: <strong>${textMasaTamat}</strong></td>
-                    <td class="p-3 align-top"><span class="px-2 py-1 rounded text-xs font-bold border ${bg}">${k.status}</span></td>
-                </tr>`;
+                let pg = k.status === "Ditempah" ? `Ditempah: ${k.tempahOleh}` : (k.status === "Sedang Digunakan" ? k.pengguna : "-");
+                tbDash.innerHTML += `<tr class="border-b"><td class="p-3">${i+1}</td><td class="p-3 font-bold">${k.plat}</td><td class="p-3">${pg}</td><td class="p-3">${k.unit}</td><td class="p-3">${formatTarikhMY(k.tMula)} - ${formatTarikhMY(k.tTamat)}</td><td class="p-3"><span class="px-2 py-1 rounded ${bg}">${k.status}</span></td></tr>`;
             });
 
-            // Jadual Admin
+            const tbPeng = document.getElementById('jadualPengguna'); if(!tbPeng) return; tbPeng.innerHTML = "";
+            DB_Tempahan.filter(t => t.emel === profilSemasa.emel).reverse().forEach(t => {
+                tbPeng.innerHTML += `<tr class="border-b"><td class="p-3">${t.lokasi}</td><td class="p-3">${formatTarikhMY(t.tMula)}</td><td class="p-3">${t.kenderaanDipilih}</td><td class="p-3">${t.status}</td></tr>`;
+            });
+
             const tbAdmin = document.getElementById('jadualAdmin'); if(!tbAdmin) return; tbAdmin.innerHTML = "";
             DB_Tempahan.reverse().forEach(t => {
                 if(t.status === "Menunggu Kelulusan") {
@@ -558,7 +539,7 @@
             });
         }
 
-        // ================= UTILITI GAMBAR (Fungsi Umum) =================
+        // ================= UTILITI GAMBAR =================
         window.prosesGambar = function(e, previewId, base64Id) {
             let file = e.target.files[0]; if(!file) return;
             let reader = new FileReader();
@@ -573,16 +554,53 @@
         window.simpanStaf = async function(e) {
             e.preventDefault();
             let emel = document.getElementById('stafEmel').value.trim();
-            let dataStaf = { nama: document.getElementById('stafNama').value, emel: emel, tel: document.getElementById('stafTel').value, unit: document.getElementById('stafUnit').value, peranan: document.getElementById('stafPeranan').value, gambar: document.getElementById('stafGambarBase64').value || "" };
+            
+            let dataStaf = {
+                nama: document.getElementById('stafNama').value,
+                emel: emel,
+                tel: document.getElementById('stafTel').value,
+                unit: document.getElementById('stafUnit').value,
+                peranan: document.getElementById('stafPeranan').value,
+                // PERBAIKAN: Jika Base64 tidak diubah, Firebase kekalkan Base64 lama.
+                gambar: document.getElementById('stafGambarBase64').value || "" 
+            };
+
+            // setDoc dengan ID yang sama (emel) akan overwrite (mengemas kini).
             await setDoc(doc(db, "pengguna_esilo", emel), dataStaf);
-            notif(`Staf disimpan.`); window.resetBorangStaf();
+            notif(`Staf disimpan.`); 
+            resetBorangStaf();
+            
+            // PERBAIKAN: Menetapkan semula imej pratonton form
+            if (dataStaf.gambar) {
+                document.getElementById('previewGambarStaf').src = dataStaf.gambar;
+            } else {
+                document.getElementById('previewGambarStaf').src = "https://placehold.co/100x100/e2e8f0/64748b?text="+dataStaf.nama.charAt(0);
+            }
         };
-        window.resetBorangStaf = function() { document.getElementById('borangStaf').reset(); document.getElementById('stafEmel').readOnly = false; document.getElementById('previewGambarStaf').src = "https://placehold.co/100x100/e2e8f0/64748b?text=User"; };
+
+        window.editStaf = function(emel) {
+            let p = DB_Pengguna.find(u => u.emel === emel);
+            if(!p) return;
+            document.getElementById('tajukBorangStaf').innerText = "Edit Maklumat Staf";
+            document.getElementById('stafEmel').value = p.emel;
+            document.getElementById('stafEmel').readOnly = true; 
+            document.getElementById('stafNama').value = p.nama;
+            document.getElementById('stafTel').value = p.tel;
+            document.getElementById('stafUnit').value = p.unit;
+            document.getElementById('stafPeranan').value = p.peranan;
+            
+            // PERBAIKAN: Pindahkan imej lama ke dalam input form
+            document.getElementById('stafGambarBase64').value = p.gambar || "";
+            document.getElementById('previewGambarStaf').src = p.gambar || "https://placehold.co/100x100/e2e8f0/64748b?text=User";
+        };
+
+        window.resetBorangStaf = function() { document.getElementById('borangStaf').reset(); document.getElementById('stafEmel').readOnly = false; document.getElementById('stafGambarBase64').value = ""; document.getElementById('previewGambarStaf').src = "https://placehold.co/100x100/e2e8f0/64748b?text=User"; };
         function janaSistemStaf() {
             const tbody = document.getElementById('jadualSelenggaraStaf'); if(!tbody) return; tbody.innerHTML = "";
             DB_Pengguna.forEach(p => {
                 let img = p.gambar || "https://placehold.co/100x100/e2e8f0/64748b?text=U";
-                tbody.innerHTML += `<tr class="border-b"><td class="p-2"><img src="${img}" class="w-10 h-10 rounded-full object-cover"></td><td class="p-2"><strong>${p.nama}</strong><br><span class="text-xs text-gray-500">${p.emel}</span></td><td class="p-2">${p.tel||"-"}</td><td class="p-2">${p.unit}</td><td class="p-2 text-center"><button class="text-xs bg-blue-100 px-2 rounded">Edit</button></td></tr>`;
+                // PERBAIKAN: object-contain di dalam jadual
+                tbody.innerHTML += `<tr class="border-b"><td class="p-2"><img src="${img}" class="w-10 h-10 rounded-full border object-contain"></td><td class="p-2"><strong>${p.nama}</strong><br><span class="text-xs text-gray-500">${p.emel}</span></td><td class="p-2">${p.tel||"-"}</td><td class="p-2">${p.unit}</td><td class="p-2 text-center"><button onclick="editStaf('${p.emel}')" class="text-xs bg-blue-100 px-2 rounded">Edit</button></td></tr>`;
             });
         }
 
@@ -591,7 +609,7 @@
             e.preventDefault();
             let plat = document.getElementById('k_plat').value.trim().toUpperCase();
             
-            // Check existing so we don't overwrite current user/status if editing
+            // Pindahkan Base64 imej lama jika tidak diubah
             let existing = DB_Kenderaan.find(k => k.plat === plat);
             
             let dataK = {
@@ -604,23 +622,31 @@
                 tng: document.getElementById('k_tng').value,
                 mileage: parseInt(document.getElementById('k_mileage').value),
                 mileageServis: parseInt(document.getElementById('k_servis').value),
-                gambar: document.getElementById('kenderaanGambarBase64').value || "",
-                // Preserve current usage state if editing
+                // PERBAIKAN: Pindahkan Base64 imej lama jika tidak diubah
+                gambar: document.getElementById('kenderaanGambarBase64').value || (existing ? existing.gambar : ""),
+                
+                // Kekalkan status semasa jika sedang edit
                 status: existing ? existing.status : "Available",
                 pengguna: existing ? existing.pengguna : "-",
-                noTelPengguna: existing ? existing.noTelPengguna : "-",
                 tempahOleh: existing ? existing.tempahOleh : "-",
                 unit: existing ? existing.unit : "-",
                 tujuan: existing ? existing.tujuan : "-",
-                lokasiTujuan: existing ? existing.lokasiTujuan : "-",
                 tMula: existing ? existing.tMula : "-",
                 tTamat: existing ? existing.tTamat : "-",
                 masaAmbil: existing ? existing.masaAmbil : null
             };
 
+            // setDoc dengan ID yang sama (plat) akan overwrite (mengemas kini).
             await setDoc(doc(db, "kenderaan", plat), dataK);
-            notif(`Kenderaan ${plat} berjaya direkodkan.`);
+            notif(`Kenderaan ${plat} disimpan.`);
             window.resetBorangKenderaan();
+            
+            // Menetapkan semula pratonton gambar di form
+            if (dataK.gambar) {
+                document.getElementById('previewGambarKenderaan').src = dataK.gambar;
+            } else {
+                document.getElementById('previewGambarKenderaan').src = "https://placehold.co/400x250/e2e8f0/64748b?text="+plat;
+            }
         };
 
         window.resetBorangKenderaan = function() {
@@ -636,7 +662,7 @@
             if(!k) return;
             document.getElementById('tajukBorangKenderaan').innerText = "Edit Maklumat Kenderaan";
             document.getElementById('k_plat').value = k.plat;
-            document.getElementById('k_plat').readOnly = true; // Elak tukar ID plat semasa edit
+            document.getElementById('k_plat').readOnly = true; 
             document.getElementById('k_jenama').value = k.jenama;
             document.getElementById('k_jenis').value = k.jenis || "Sedan";
             document.getElementById('k_milikan').value = k.milikan || "Aset Jabatan";
@@ -645,24 +671,25 @@
             document.getElementById('k_tng').value = k.tng || "";
             document.getElementById('k_mileage').value = k.mileage;
             document.getElementById('k_servis').value = k.mileageServis;
+            
+            // PERBAIKAN: Pindahkan data imej Base64 lama ke form
             document.getElementById('kenderaanGambarBase64').value = k.gambar || "";
             document.getElementById('previewGambarKenderaan').src = k.gambar || "https://placehold.co/400x250/e2e8f0/64748b?text=Kereta";
-            window.scrollTo(0, 0); // Bawa admin ke atas borang
         };
 
         function janaSistemKenderaan() {
             const tbody = document.getElementById('jadualSelenggaraKenderaan'); if(!tbody) return; tbody.innerHTML = "";
             DB_Kenderaan.forEach(k => {
                 let img = k.gambar || "https://placehold.co/400x250/e2e8f0/64748b?text=Kereta";
-                let lencanaMilikan = k.milikan === "Spanco" ? "bg-orange-100 text-orange-800" : "bg-emerald-100 text-emerald-800";
+                // PERBAIKAN: object-contain di dalam jadual (autosize)
                 tbody.innerHTML += `
                 <tr class="border-b hover:bg-gray-50">
-                    <td class="p-2"><img src="${img}" class="w-16 h-10 object-cover rounded border"></td>
+                    <td class="p-2"><img src="${img}" class="w-16 h-10 object-contain rounded border"></td>
                     <td class="p-2"><strong>${k.plat}</strong><br><span class="text-xs text-gray-500">${k.jenama}</span></td>
-                    <td class="p-2"><span>${k.jenis || '-'}</span><br><span class="text-xs font-bold px-1 rounded ${lencanaMilikan}">${k.milikan || '-'}</span></td>
+                    <td class="p-2"><span>${k.jenis || '-'}</span><br><span class="text-xs font-bold px-1 rounded bg-gray-100">${k.milikan || '-'}</span></td>
                     <td class="p-2">${k.noAset || '-'}</td>
                     <td class="p-2 text-center">
-                        <button onclick="editKenderaan('${k.plat}')" class="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded font-bold hover:bg-blue-200 shadow">Edit</button>
+                        <button onclick="editKenderaan('${k.plat}')" class="text-xs bg-blue-100 px-3 py-1 rounded font-bold hover:bg-blue-200">Edit</button>
                     </td>
                 </tr>`;
             });
@@ -678,21 +705,13 @@
         window.paparMaklumatAmbil = function() {
             let k = DB_Kenderaan.find(v => v.plat === document.getElementById('pilihanAmbilKenderaan').value);
             if(!k) return;
-            document.getElementById('gambarKenderaanAmbil').src = k.gambar || "https://placehold.co/400x250/e2e8f0/64748b?text=Kereta";
             document.getElementById('infoJenama').innerText = k.jenama; document.getElementById('infoPlat').innerText = k.plat;
             document.getElementById('infoMileage').innerText = k.mileage; document.getElementById('infoServis').innerText = k.mileageServis;
-            document.getElementById('valInden').innerText = k.kadInden || "-"; document.getElementById('valTnG').innerText = k.tng || "-";
             document.getElementById('kadMaklumatKenderaan').classList.remove('hilang');
         };
         window.sahkanAmbilKenderaan = async function() {
             let plat = document.getElementById('pilihanAmbilKenderaan').value;
-            let k = DB_Kenderaan.find(v => v.plat === plat);
-            await updateDoc(doc(db, "kenderaan", plat), { 
-                status: "Sedang Digunakan", 
-                pengguna: k.tempahOleh, 
-                tempahOleh: "-", 
-                masaAmbil: new Date().toISOString() 
-            });
+            await updateDoc(doc(db, "kenderaan", plat), { status: "Sedang Digunakan", pengguna: profilSemasa.nama, tempahOleh: "-", masaAmbil: new Date().toISOString() });
             window.paparTab('dashboard');
         };
 
@@ -718,10 +737,7 @@
         };
         window.tutupModalPulang = () => document.getElementById('modalKonfirmasiPulang').classList.add('hilang');
         window.sahkanPulangKenderaan = async function() {
-            await updateDoc(doc(db, "kenderaan", window.rekodPulangSemasa.plat), { 
-                status: "Available", mileage: window.rekodPulangSemasa.mileageBaru, 
-                pengguna: "-", noTelPengguna: "-", lokasiTujuan: "-", tMula: "-", tTamat: "-", masaAmbil: null 
-            });
+            await updateDoc(doc(db, "kenderaan", window.rekodPulangSemasa.plat), { status: "Available", mileage: window.rekodPulangSemasa.mileageBaru, pengguna: "-", tMula: "-", tTamat: "-", masaAmbil: null });
             window.tutupModalPulang(); window.paparTab('dashboard');
         };
 
