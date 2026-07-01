@@ -432,12 +432,12 @@
             // LOGIK PAPARAN TAB MENGIKUT PERANAN
             if(profilSemasa.peranan === 'pengguna') {
                 // Sembunyikan untuk Pengguna biasa
-                document.getElementById('tabDashboard').classList.add('hilang');
                 document.getElementById('tabSelenggara').classList.add('hilang');
                 document.getElementById('tabSelenggaraKenderaan').classList.add('hilang');
                 document.getElementById('paparanAdmin').classList.add('hilang');
                 
                 // Paparkan untuk Pengguna biasa
+                document.getElementById('tabDashboard').classList.remove('hilang');
                 document.getElementById('tabOperasi').innerText = "Borang Tempahan";
                 document.getElementById('tabAmbil').classList.remove('hilang');
                 document.getElementById('tabPulang').classList.remove('hilang');
@@ -501,18 +501,26 @@
             e.preventDefault();
             let btnSahkan = document.getElementById('btnSahkan');
             btnSahkan.innerText = "⏳ Menghitung Jarak OSRM..."; btnSahkan.disabled = true;
-            let lokasiDituju = document.getElementById('lokasi').value;
-            let jarakKiraan = await kiraJarakSebenarOSRM(lokasiDituju);
+            
+            try {
+                let lokasiDituju = document.getElementById('lokasi').value;
+                let jarakKiraan = await kiraJarakSebenarOSRM(lokasiDituju);
 
-            let dataBaru = {
-                emel: profilSemasa.emel, nama: profilSemasa.nama, tel: profilSemasa.tel, unit: profilSemasa.unit,
-                tujuan: document.getElementById('tujuan').value, lokasi: lokasiDituju, jarakPerjalanan: jarakKiraan,
-                tMula: document.getElementById('tarikhGuna').value, tTamat: document.getElementById('tarikhPulang').value,
-                cadangan: document.getElementById('cadanganKenderaan').value, kenderaanDipilih: "Belum Ditetapkan", status: "Menunggu Kelulusan"
-            };
-            await addDoc(collection(db, "tempahan"), dataBaru);
-            document.getElementById('borangTempahan').reset();
-            btnSahkan.innerText = "Hantar Permohonan"; notif(`Permohonan dihantar.`);
+                let dataBaru = {
+                    emel: profilSemasa.emel, nama: profilSemasa.nama, tel: profilSemasa.tel || "-", unit: profilSemasa.unit || "-",
+                    tujuan: document.getElementById('tujuan').value, lokasi: lokasiDituju, jarakPerjalanan: jarakKiraan,
+                    tMula: document.getElementById('tarikhGuna').value, tTamat: document.getElementById('tarikhPulang').value,
+                    cadangan: document.getElementById('cadanganKenderaan').value, kenderaanDipilih: "Belum Ditetapkan", status: "Menunggu Kelulusan"
+                };
+                await addDoc(collection(db, "tempahan"), dataBaru);
+                document.getElementById('borangTempahan').reset();
+                btnSahkan.innerText = "Hantar Permohonan"; notif(`Permohonan dihantar.`);
+            } catch (err) {
+                console.error("Ralat hantar tempahan:", err);
+                alert("Sistem mengalami masalah. Sila pastikan maklumat lengkap dan cuba lagi.");
+                btnSahkan.innerText = "Hantar Permohonan";
+                btnSahkan.disabled = false;
+            }
         };
 
         window.luluskanTempahan = async function(idTempahan) {
@@ -531,7 +539,15 @@
         // ================= RENDERING JADUAL (LENGKAP DIKEMBALIKAN) =================
         function janaSistem() {
             const tbDash = document.getElementById('jadualDashboard'); if(!tbDash) return; tbDash.innerHTML = "";
-            DB_Kenderaan.forEach((k, i) => {
+            
+            // Tapis paparan kenderaan mengikut peranan
+            let kenderaanDipapar = DB_Kenderaan;
+            if (profilSemasa.peranan === 'pengguna') {
+                // Pengguna cuma nampak kenderaan yang telah diambil / ditempah
+                kenderaanDipapar = DB_Kenderaan.filter(k => k.status === 'Ditempah' || k.status === 'Sedang Digunakan');
+            }
+
+            kenderaanDipapar.forEach((k, i) => {
                 let bg = k.status === "Available" ? "bg-green-100 text-green-700" : (k.status === "Ditempah" ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-700");
                 
                 let textP = "-"; let textTel = "-";
@@ -702,8 +718,8 @@
         };
         window.tutupModalPulang = () => document.getElementById('modalKonfirmasiPulang').classList.add('hilang');
         window.sahkanPulangKenderaan = async function() {
-            await updateDoc(doc(db, "kenderaan", window.rekodPulangSemasa.plat), { status: "Available", mileage: window.rekodPulangSemasa.mileageBaru, pengguna: "-", noTelPengguna: "-", lokasiTujuan: "-", tMula: "-", tTamat: "-", masaAmbil: null });
-            window.tutupModalPulang(); window.paparTab('operasi'); notif(`Berjaya memulangkan kenderaan.`);
+            await updateDoc(doc(db, "kenderaan", window.rekodPulangSemasa.plat), { status: "Available", mileage: window.rekodPulangSemasa.mileageBaru, pengguna: "-", noTelPengguna: "-", unit: "-", tujuan: "-", lokasiTujuan: "-", tMula: "-", tTamat: "-", masaAmbil: null });
+            window.tutupModalPulang(); window.paparTab('dashboard'); notif(`Berjaya memulangkan kenderaan.`);
             document.getElementById('indenRM').value = ""; document.getElementById('indenLiter').value = ""; document.getElementById('gunaTNG').checked = false; document.getElementById('inputMileageSelepas').value = "";
         };
 
