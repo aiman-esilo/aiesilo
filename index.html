@@ -13,8 +13,7 @@
         }
         .emel-masuk { animation: slideIn 0.5s ease-out forwards; }
 
-        /* Animasi Pertukaran Tab (View Transitions) */
-        #viewDashboard, #viewOperasi, #viewAmbil, #viewPulang {
+        #viewDashboard, #viewOperasi, #viewAmbil, #viewPulang, #viewSelenggara {
             view-transition-name: paparan-esilo;
         }
         ::view-transition-old(paparan-esilo),
@@ -36,26 +35,23 @@
             </div>
             <div class="flex flex-col items-end">
                 <div class="text-sm mb-2 text-right">
-                    Log masuk sebagai: <strong id="profilEmel" class="text-yellow-300">siti@esilo.my</strong><br>
-                    Peranan: <span id="profilPeranan" class="bg-blue-600 px-2 py-0.5 rounded text-xs">Pengguna</span>
+                    Log masuk sebagai: <strong id="profilEmel" class="text-yellow-300">-</strong><br>
+                    Peranan: <span id="profilPeranan" class="bg-blue-600 px-2 py-0.5 rounded text-xs">-</span>
                 </div>
                 <div class="flex space-x-2 bg-blue-900 p-2 rounded-lg text-sm items-center border border-blue-700">
-                    <label class="text-xs text-blue-200 font-bold">Ujian Log Masuk:</label>
-                    <select id="pilihUjianUser" onchange="tukarPenggunaUjian(this.value)" class="text-black text-sm p-1 rounded font-bold cursor-pointer">
-                        <option value="siti@esilo.my">Siti (Pengguna)</option>
-                        <option value="ahmad@esilo.my">Ahmad (Pengguna)</option>
-                        <option value="kamal@esilo.my">Kamal (Pengguna)</option>
-                        <option value="admin@esilo.my">Admin (Pelulus)</option>
-                    </select>
+                    <label class="text-xs text-blue-200 font-bold">Akaun Semasa:</label>
+                    <select id="pilihUjianUser" onchange="tukarPenggunaAkaun(this.value)" class="text-black text-sm p-1 rounded font-bold cursor-pointer">
+                        </select>
                 </div>
             </div>
         </div>
     </nav>
 
     <div class="bg-white shadow border-b">
-        <div class="container mx-auto px-6 py-2 flex space-x-4">
+        <div class="container mx-auto px-6 py-2 flex flex-wrap gap-4">
             <button onclick="paparTab('dashboard')" id="tabDashboard" class="font-bold text-blue-600 border-b-2 border-blue-600 pb-1 transition">Paparan Utama</button>
             <button onclick="paparTab('operasi')" id="tabOperasi" class="text-gray-600 hover:text-blue-600 pb-1 transition">Operasi (Tempahan / Kelulusan)</button>
+            <button onclick="paparTab('selenggara')" id="tabSelenggara" class="text-gray-600 hover:text-blue-600 pb-1 transition flex items-center">⚙️ Selenggara Staf</button>
         </div>
     </div>
 
@@ -233,6 +229,79 @@
         </div>
     </div>
 
+    <div id="viewSelenggara" class="container mx-auto p-6 hilang">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-purple-600 lg:col-span-1">
+                <h2 id="tajukBorangStaf" class="text-xl font-bold mb-4 text-gray-800">Tambah Staf Baru</h2>
+                <form id="borangStaf" onsubmit="simpanStaf(event)">
+                    <input type="hidden" id="stafId">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Gambar Profil</label>
+                        <div class="flex items-center space-x-3">
+                            <img id="previewGambarStaf" src="https://placehold.co/100x100/e2e8f0/64748b?text=User" class="w-16 h-16 rounded-full border object-cover">
+                            <input type="file" id="stafGambar" onchange="prosesGambarStaf(event)" class="text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100">
+                        </div>
+                        <input type="hidden" id="stafGambarBase64">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Nama Penuh</label>
+                        <input type="text" id="stafNama" class="w-full p-2 border rounded" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Emel Rasmi</label>
+                        <input type="email" id="stafEmel" class="w-full p-2 border rounded" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">No. Telefon</label>
+                        <input type="text" id="stafTel" class="w-full p-2 border rounded" placeholder="Cth: 0123456789" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Unit / Jabatan</label>
+                        <input type="text" id="stafUnit" class="w-full p-2 border rounded" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Peranan Sistem</label>
+                        <select id="stafPeranan" class="w-full p-2 border rounded" required>
+                            <option value="pengguna">Pengguna (Pekerja)</option>
+                            <option value="admin">Admin (Pelulus)</option>
+                        </select>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button type="button" onclick="resetBorangStaf()" class="w-1/3 bg-gray-300 font-bold py-2 px-4 rounded hover:bg-gray-400">Batal</button>
+                        <button type="submit" class="w-2/3 bg-purple-600 text-white font-bold py-2 px-4 rounded hover:bg-purple-700">Simpan Rekod</button>
+                    </div>
+                </form>
+
+                <div class="mt-8 pt-6 border-t border-gray-200 bg-purple-50 p-4 rounded-lg border border-purple-200">
+                    <h3 class="font-bold text-purple-900 mb-2 flex items-center">📊 Upload Bundle (CSV/Excel)</h3>
+                    <p class="text-xs text-purple-700 mb-4">Muat naik senarai nama staf secara pukal menggunakan fail CSV.</p>
+                    <input type="file" id="excelFile" accept=".csv" class="w-full text-xs text-gray-500 mb-3 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700">
+                    <button onclick="muatNaikPukal()" class="w-full text-xs bg-white border border-purple-400 text-purple-700 py-2 rounded font-bold hover:bg-purple-100">PROSES MUAT NAIK BUNDLE</button>
+                    
+                    <button onclick="downloadTemplate()" class="w-full text-left text-xs text-blue-600 underline mt-3 block font-semibold">📥 Klik Di Sini Untuk Download Template CSV</button>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-gray-400 lg:col-span-2">
+                <h2 class="text-xl font-bold mb-4 text-gray-800">Senarai Pengguna E-SILO Berdaftar</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="bg-gray-800 text-white">
+                                <th class="p-3 border-b w-12">Profil</th>
+                                <th class="p-3 border-b">Nama & Emel</th>
+                                <th class="p-3 border-b">No. Telefon</th>
+                                <th class="p-3 border-b">Unit & Peranan</th>
+                                <th class="p-3 border-b text-center w-20">Tindakan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="jadualSelenggaraStaf"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="modalKonfirmasiPulang" class="fixed inset-0 bg-black bg-opacity-60 z-50 hilang flex justify-center items-center">
         <div class="bg-white p-6 rounded-lg shadow-2xl max-w-lg w-full mx-4">
             <h3 class="font-bold text-xl mb-4">Pengesahan Pemulangan</h3>
@@ -251,7 +320,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Konfigurasi Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyAjEvEA0MczAuwD3qKQAyP-finyiDmcIFM",
             authDomain: "esilo2026.firebaseapp.com",
@@ -266,29 +334,12 @@
 
         let DB_Kenderaan = [];
         let DB_Tempahan = [];
+        let DB_Pengguna = [];
+        let profilSemasa = {}; 
 
-        // Data Ujian
-        const senaraiPenggunaUjian = [
-            { emel: "siti@esilo.my", nama: "Siti Aminah", unit: "Pembangunan", peranan: "pengguna" },
-            { emel: "ahmad@esilo.my", nama: "Ahmad Albab", unit: "IT", peranan: "pengguna" },
-            { emel: "kamal@esilo.my", nama: "Kamal Hassan", unit: "Kewangan", peranan: "pengguna" },
-            { emel: "admin@esilo.my", nama: "Ketua Pengarah", unit: "Pentadbiran", peranan: "admin" }
-        ];
-        let profilSemasa = senaraiPenggunaUjian[0]; 
-
-        // Fungsi Format & Tempoh
+        // Format Tarikh & Masa
         function formatTarikhMY(t) { if(!t || t==="-") return "-"; let p=t.split('-'); return p.length===3 ? `${p[2]}/${p[1]}/${p[0]}` : t; }
-        function kiraTempoh(masaISO) {
-            if(!masaISO) return "-";
-            let bezaMs = new Date() - new Date(masaISO);
-            if(bezaMs < 0) bezaMs = 0;
-            let minitTotal = Math.floor(bezaMs / 60000);
-            let h = Math.floor(minitTotal / 1440), j = Math.floor((minitTotal % 1440) / 60), m = (minitTotal % 1440) % 60;
-            let teks = [];
-            if(h>0) teks.push(h+" hari"); if(j>0) teks.push(j+" jam"); if(m>0 || teks.length===0) teks.push(m+" minit");
-            return teks.join(" ");
-        }
-
+        
         // ================= OSRM LOGIC =================
         const PEJABAT_LAT = 5.3995; 
         const PEJABAT_LON = 100.3638;
@@ -299,20 +350,37 @@
                 let responGeo = await fetch(urlGeo);
                 let dataGeo = await responGeo.json();
                 if (dataGeo.length === 0) return 100; 
-
-                let destLat = dataGeo[0].lat; let destLon = dataGeo[0].lon;
-                let urlOSRM = `https://router.project-osrm.org/route/v1/driving/${PEJABAT_LON},${PEJABAT_LAT};${destLon},${destLat}?overview=false`;
+                let urlOSRM = `https://router.project-osrm.org/route/v1/driving/${PEJABAT_LON},${PEJABAT_LAT};${dataGeo[0].lon},${dataGeo[0].lat}?overview=false`;
                 let responOSRM = await fetch(urlOSRM);
                 let dataOSRM = await responOSRM.json();
-
-                if (dataOSRM.routes && dataOSRM.routes.length > 0) {
-                    return Math.round(dataOSRM.routes[0].distance / 1000) * 2;
-                }
-                return 100; 
+                return dataOSRM.routes && dataOSRM.routes.length > 0 ? Math.round(dataOSRM.routes[0].distance / 1000) * 2 : 100; 
             } catch (error) { return 100; }
         }
 
-        // ================= FIREBASE SYNC =================
+        // ================= SEED DATA AWAL (JIKA KOSONG) =================
+        async function semakDataAwal() {
+            const snapK = await getDocs(collection(db, "kenderaan"));
+            if(snapK.empty) {
+                const senaraiAwal = [
+                    { plat: "BEE 1234", jenama: "Proton Perdana", status: "Available", pengguna: "-", tempahOleh: "-", unit: "-", tujuan: "-", tMula: "-", tTamat: "-", kadInden: "IND-100456", tng: "TNG-889922", mileage: 12500, mileageServis: 20000, masaAmbil: null, gambar: "https://placehold.co/400x250/1e3a8a/white?text=Proton+Perdana" },
+                    { plat: "WA 8888", jenama: "Honda Camry", status: "Available", pengguna: "-", tempahOleh: "-", unit: "-", tujuan: "-", tMula: "-", tTamat: "-", kadInden: "IND-100457", tng: "TNG-889923", mileage: 34200, mileageServis: 40000, masaAmbil: null, gambar: "https://placehold.co/400x250/b91c1c/white?text=Honda+Camry" }
+                ];
+                for (let k of senaraiAwal) { await setDoc(doc(db, "kenderaan", k.plat), k); }
+            }
+
+            const snapP = await getDocs(collection(db, "pengguna_esilo"));
+            if(snapP.empty) {
+                const pekerjaAwal = [
+                    { emel: "siti@esilo.my", nama: "Siti Aminah", unit: "Unit Pembangunan", tel: "0134455667", peranan: "pengguna", gambar: "" },
+                    { emel: "ahmad@esilo.my", nama: "Ahmad Albab", unit: "Unit IT", tel: "0198877665", peranan: "pengguna", gambar: "" },
+                    { emel: "admin@esilo.my", nama: "Ketua Pengarah", unit: "Pentadbiran", tel: "0112233445", peranan: "admin", gambar: "" }
+                ];
+                for (let p of pekerjaAwal) { await setDoc(doc(db, "pengguna_esilo", p.emel), p); }
+            }
+        }
+        semakDataAwal();
+
+        // ================= DATABASE SYNC MASA NYATA =================
         onSnapshot(collection(db, "kenderaan"), (snapshot) => {
             DB_Kenderaan = []; snapshot.forEach((doc) => { DB_Kenderaan.push(doc.data()); });
             janaSistem();
@@ -321,10 +389,37 @@
             DB_Tempahan = []; snapshot.forEach((doc) => { DB_Tempahan.push({ idT: doc.id, ...doc.data() }); });
             janaSistem(); kemaskiniBorang();
         });
+        onSnapshot(collection(db, "pengguna_esilo"), (snapshot) => {
+            DB_Pengguna = [];
+            let selectUser = document.getElementById('pilihUjianUser');
+            let valLama = selectUser.value;
+            selectUser.innerHTML = "";
+            
+            snapshot.forEach((doc) => { 
+                let p = doc.data();
+                DB_Pengguna.push(p);
+                selectUser.innerHTML += `<option value="${p.emel}">${p.nama} (${p.peranan.toUpperCase()})</option>`;
+            });
 
-        // ================= UI BINDING =================
-        window.tukarPenggunaUjian = function(emel) {
-            profilSemasa = senaraiPenggunaUjian.find(u => u.emel === emel);
+            if(valLama && DB_Pengguna.find(u => u.emel === valLama)) {
+                selectUser.value = valLama;
+            } else if(DB_Pengguna.length > 0) {
+                selectUser.value = DB_Pengguna[0].emel;
+            }
+            
+            profilSemasa = DB_Pengguna.find(u => u.emel === selectUser.value) || {};
+            
+            document.getElementById('profilEmel').innerText = profilSemasa.emel || "-";
+            document.getElementById('profilPeranan').innerText = (profilSemasa.peranan || "-").toUpperCase();
+            
+            kemaskiniBorang();
+            janaSistemStaf();
+            janaSistem();
+        });
+
+        // ================= LOGIK AKAUN & TAB =================
+        window.tukarPenggunaAkaun = function(emel) {
+            profilSemasa = DB_Pengguna.find(u => u.emel === emel);
             document.getElementById('profilEmel').innerText = profilSemasa.emel;
             document.getElementById('profilPeranan').innerText = profilSemasa.peranan.toUpperCase();
             if(profilSemasa.peranan === 'pengguna') {
@@ -343,8 +438,8 @@
         };
 
         function tukarPaparan(tabId) {
-            ['viewDashboard', 'viewOperasi', 'viewAmbil', 'viewPulang'].forEach(id => document.getElementById(id).classList.add('hilang'));
-            ['tabDashboard', 'tabOperasi'].forEach(id => document.getElementById(id).className = "text-gray-600 hover:text-blue-600 pb-1 transition");
+            ['viewDashboard', 'viewOperasi', 'viewAmbil', 'viewPulang', 'viewSelenggara'].forEach(id => document.getElementById(id).classList.add('hilang'));
+            ['tabDashboard', 'tabOperasi', 'tabSelenggara'].forEach(id => document.getElementById(id).className = "text-gray-600 hover:text-blue-600 pb-1 transition");
             
             if(tabId === 'dashboard') {
                 document.getElementById('viewDashboard').classList.remove('hilang');
@@ -358,23 +453,29 @@
             } else if(tabId === 'pulang') {
                 document.getElementById('viewPulang').classList.remove('hilang');
                 window.janaBorangPulang();
+            } else if(tabId === 'selenggara') {
+                document.getElementById('viewSelenggara').classList.remove('hilang');
+                document.getElementById('tabSelenggara').className = "font-bold text-blue-600 border-b-2 border-blue-600 pb-1 transition flex items-center";
             }
             janaSistem();
         }
 
+        // PERBAIKAN UTAMA: Ambil maklumat terus secara dinamik mengikut profilSemasa
         function kemaskiniBorang() {
-            document.getElementById('nama').value = profilSemasa.nama;
-            document.getElementById('unit').value = profilSemasa.unit;
+            if(!profilSemasa) return;
+            document.getElementById('nama').value = profilSemasa.nama || "";
+            document.getElementById('unit').value = profilSemasa.unit || "";
             let ada = DB_Tempahan.find(t => t.emel === profilSemasa.emel && (t.status === "Menunggu Kelulusan" || t.status === "Lulus"));
             document.getElementById('btnSahkan').disabled = !!ada;
             document.getElementById('btnSahkan').className = ada ? "w-full mt-2 bg-gray-400 text-white font-bold py-3 px-4 rounded opacity-50 cursor-not-allowed" : "w-full mt-2 bg-blue-600 text-white font-bold py-3 px-4 rounded hover:bg-blue-700 transition";
             document.getElementById('amaranBorang').style.display = ada ? "block" : "none";
         }
 
+        // ================= PROSES BORANG OPERASI =================
         window.hantarTempahan = async function(e) {
             e.preventDefault();
             let btnSahkan = document.getElementById('btnSahkan');
-            btnSahkan.innerText = "⏳ Sedang Mengira Jarak OSRM & Menghantar...";
+            btnSahkan.innerText = "⏳ Menghitung Jarak OSRM...";
             btnSahkan.disabled = true;
 
             let lokasiDituju = document.getElementById('lokasi').value;
@@ -389,12 +490,12 @@
             await addDoc(collection(db, "tempahan"), dataBaru);
             document.getElementById('borangTempahan').reset();
             btnSahkan.innerText = "Hantar Permohonan";
-            notif(`Permohonan ke ${lokasiDituju} (${jarakKiraan}km) Dihantar!`);
+            notif(`Permohonan ke ${lokasiDituju} (${jarakKiraan}km) dihantar.`);
         };
 
         window.luluskanTempahan = async function(idTempahan) {
             const kereta = document.getElementById('pilih_kereta_'+idTempahan).value;
-            if(!kereta) return alert("Pilih kenderaan!");
+            if(!kereta) return alert("Sila tetapkan kenderaan!");
             const temp = DB_Tempahan.find(t => t.idT === idTempahan);
             
             await updateDoc(doc(db, "tempahan", idTempahan), { kenderaanDipilih: kereta, status: "Lulus" });
@@ -402,23 +503,24 @@
                 status: "Ditempah", tempahOleh: temp.nama, pengguna: "-",
                 unit: temp.unit, tujuan: temp.tujuan, tMula: temp.tMula, tTamat: temp.tTamat
             });
-            notif(`Diluluskan!`);
+            notif(`Kenderaan ${kereta} telah disahkan.`);
         };
 
+        // ================= RENDERING JADUAL UTAMA =================
         function janaSistem() {
-            const tbDash = document.getElementById('jadualDashboard'); tbDash.innerHTML = "";
+            const tbDash = document.getElementById('jadualDashboard'); if(!tbDash) return; tbDash.innerHTML = "";
             DB_Kenderaan.forEach((k, i) => {
                 let bg = k.status === "Available" ? "bg-green-100 text-green-700" : (k.status === "Ditempah" ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-700");
                 let pg = k.status === "Ditempah" ? `Ditempah: ${k.tempahOleh}` : (k.status === "Sedang Digunakan" ? k.pengguna : "-");
                 tbDash.innerHTML += `<tr class="border-b"><td class="p-3">${i+1}</td><td class="p-3 font-bold">${k.plat}</td><td class="p-3">${pg}</td><td class="p-3">${k.unit}</td><td class="p-3">${formatTarikhMY(k.tMula)} - ${formatTarikhMY(k.tTamat)}</td><td class="p-3"><span class="px-2 py-1 rounded ${bg}">${k.status}</span></td></tr>`;
             });
 
-            const tbPeng = document.getElementById('jadualPengguna'); tbPeng.innerHTML = "";
+            const tbPeng = document.getElementById('jadualPengguna'); if(!tbPeng) return; tbPeng.innerHTML = "";
             DB_Tempahan.filter(t => t.emel === profilSemasa.emel).reverse().forEach(t => {
                 tbPeng.innerHTML += `<tr class="border-b"><td class="p-3">${t.lokasi}</td><td class="p-3">${formatTarikhMY(t.tMula)}</td><td class="p-3">${t.kenderaanDipilih}</td><td class="p-3">${t.status}</td></tr>`;
             });
 
-            const tbAdmin = document.getElementById('jadualAdmin'); if(tbAdmin) tbAdmin.innerHTML = "";
+            const tbAdmin = document.getElementById('jadualAdmin'); if(!tbAdmin) return; tbAdmin.innerHTML = "";
             DB_Tempahan.reverse().forEach(t => {
                 if(t.status === "Menunggu Kelulusan") {
                     let jarak = t.jarakPerjalanan || 100;
@@ -426,25 +528,151 @@
                     DB_Kenderaan.filter(k => k.status === "Available").forEach(k => {
                         let baki = k.mileageServis - k.mileage;
                         if(baki >= jarak) opts += `<option value="${k.plat}">✅ ${k.plat} (Baki: ${baki}km)</option>`;
-                        else opts += `<option value="${k.plat}" disabled class="text-red-500">❌ ${k.plat} (Baki: ${baki}km - Jauh sangat)</option>`;
+                        else opts += `<option value="${k.plat}" disabled class="text-red-500">❌ ${k.plat} (Baki: ${baki}km - Jauh)</option>`;
                     });
                     tbAdmin.innerHTML += `
                     <tr class="border-b">
-                        <td class="p-3">${t.nama}</td><td class="p-3 font-bold">${t.lokasi}</td><td class="p-3">${t.cadangan}</td>
+                        <td class="p-3">${t.nama}<br><span class="text-xs text-gray-500">${t.unit}</span></td><td class="p-3 font-bold">${t.lokasi}</td><td class="p-3">${t.cadangan}</td>
                         <td class="p-3">
                             <div class="text-xs text-blue-700 mb-1">📍 Jarak OSM: ${jarak}km</div>
                             <select id="pilih_kereta_${t.idT}" onchange="document.getElementById('bx_${t.idT}').classList.remove('hilang')" class="w-full p-2 border rounded">${opts}</select>
                             <div id="bx_${t.idT}" class="hilang mt-1 mb-2 bg-red-50 p-2 border border-red-200">
-                                <label><input type="checkbox" onchange="let s=document.getElementById('pilih_kereta_${t.idT}'); for(let i=0;i<s.options.length;i++) s.options[i].disabled=false;"> Abaikan Servis</label>
+                                <label><input type="checkbox" onchange="let s=document.getElementById('pilih_kereta_${t.idT}'); for(let i=0;i<s.options.length;i++) s.options[i].disabled=false;"> Abaikan Amaran Servis</label>
                             </div>
-                            <button onclick="luluskanTempahan('${t.idT}')" class="bg-blue-600 text-white w-full py-2 rounded mt-1">Luluskan</button>
+                            <button onclick="luluskanTempahan('${t.idT}')" class="bg-blue-600 text-white w-full py-2 rounded mt-1 shadow hover:bg-blue-700">Sahkan Kelulusan</button>
                         </td>
                     </tr>`;
                 }
             });
         }
 
-        // ================= AMBIL & PULANG =================
+        // ================= SEKSYEN SELENGGARA STAF (CRUD + BASE64 IMAGES) =================
+        window.prosesGambarStaf = function(e) {
+            let file = e.target.files[0];
+            if(!file) return;
+            let reader = new FileReader();
+            reader.onloadend = function() {
+                document.getElementById('previewGambarStaf').src = reader.result;
+                document.getElementById('stafGambarBase64').value = reader.result;
+            }
+            reader.readAsDataURL(file);
+        };
+
+        window.simpanStaf = async function(e) {
+            e.preventDefault();
+            let id = document.getElementById('stafId').value;
+            let emel = document.getElementById('stafEmel').value.trim();
+            
+            let dataStaf = {
+                nama: document.getElementById('stafNama').value,
+                emel: emel,
+                tel: document.getElementById('stafTel').value,
+                unit: document.getElementById('stafUnit').value,
+                peranan: document.getElementById('stafPeranan').value,
+                gambar: document.getElementById('stafGambarBase64').value || ""
+            };
+
+            await setDoc(doc(db, "pengguna_esilo", emel), dataStaf);
+            notif(`Staf ${dataStaf.nama} berjaya disimpan.`);
+            resetBorangStaf();
+        };
+
+        window.editStaf = function(emel) {
+            let p = DB_Pengguna.find(u => u.emel === emel);
+            if(!p) return;
+            document.getElementById('tajukBorangStaf').innerText = "Edit Maklumat Staf";
+            document.getElementById('stafId').value = p.emel;
+            document.getElementById('stafEmel').value = p.emel;
+            document.getElementById('stafEmel').readOnly = true;
+            document.getElementById('stafNama').value = p.nama;
+            document.getElementById('stafTel').value = p.tel;
+            document.getElementById('stafUnit').value = p.unit;
+            document.getElementById('stafPeranan').value = p.peranan;
+            document.getElementById('stafGambarBase64').value = p.gambar || "";
+            document.getElementById('previewGambarStaf').src = p.gambar || "https://placehold.co/100x100/e2e8f0/64748b?text=User";
+        };
+
+        window.padamStaf = async function(emel) {
+            if(confirm(`Adakah anda pasti mahu memadam akaun ${emel}?`)) {
+                // Di alam nyata, gunakan deleteDoc. Buat masa ini kita boleh abaikan atau kemaskini peranan.
+                alert("Fungsi padam dilindungi. Anda boleh edit peranan staf.");
+            }
+        };
+
+        window.resetBorangStaf = function() {
+            document.getElementById('tajukBorangStaf').innerText = "Tambah Staf Baru";
+            document.getElementById('borangStaf').reset();
+            document.getElementById('stafId').value = "";
+            document.getElementById('stafEmel').readOnly = false;
+            document.getElementById('stafGambarBase64').value = "";
+            document.getElementById('previewGambarStaf').src = "https://placehold.co/100x100/e2e8f0/64748b?text=User";
+        };
+
+        function janaSistemStaf() {
+            const tbody = document.getElementById('jadualSelenggaraStaf');
+            if(!tbody) return;
+            tbody.innerHTML = "";
+            DB_Pengguna.forEach(p => {
+                let img = p.gambar || "https://placehold.co/100x100/e2e8f0/64748b?text="+p.nama.charAt(0);
+                tbody.innerHTML += `
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="p-2"><img src="${img}" class="w-10 h-10 rounded-full border object-cover"></td>
+                    <td class="p-2"><strong>${p.nama}</strong><br><span class="text-xs text-gray-500">${p.emel}</span></td>
+                    <td class="p-2">${p.tel || "-"}</td>
+                    <td class="p-2"><span>${p.unit}</span><br><span class="text-xs uppercase bg-purple-100 text-purple-800 px-1 rounded">${p.peranan}</span></td>
+                    <td class="p-2 text-center">
+                        <button onclick="editStaf('${p.emel}')" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-bold hover:bg-blue-200 mr-1">Edit</button>
+                    </td>
+                </tr>`;
+            });
+        }
+
+        // ================= MUAT NAIK PUKAL BUNDLE CSV (EXCEL SIMULATION) =================
+        window.muatNaikPukal = function() {
+            let fileInput = document.getElementById('excelFile');
+            if(fileInput.files.length === 0) return alert("Sila pilih fail CSV template terlebih dahulu!");
+            
+            let file = fileInput.files[0];
+            let reader = new FileReader();
+            reader.onload = async function(e) {
+                let t = e.target.result;
+                let baris = t.split("\n");
+                let kira = 0;
+                
+                // Mula indeks 1 untuk abaikan baris tajuk (header)
+                for(let i=1; i<baris.length; i++) {
+                    let lajur = baris[i].split(",");
+                    if(lajur.length >= 5 && lajur[0].trim() !== "") {
+                        let dataStaf = {
+                            nama: lajur[0].trim(),
+                            emel: lajur[1].trim(),
+                            tel: lajur[2].trim(),
+                            unit: lajur[3].trim(),
+                            peranan: lajur[4].trim().toLowerCase(),
+                            gambar: ""
+                        };
+                        await setDoc(doc(db, "pengguna_esilo", dataStaf.emel), dataStaf);
+                        kira++;
+                    }
+                }
+                notif(`${kira} staf berjaya dimuat naik secara pukal!`);
+                fileInput.value = "";
+            };
+            reader.readAsText(file);
+        };
+
+        window.downloadTemplate = function() {
+            let content = "Nama,Emel,No_Telefon,Unit,Peranan\nAli Bin Ahmad,ali@esilo.my,0123456789,Unit IT,pengguna\nZubair,zubair@esilo.my,0198882211,Pentadbiran,admin";
+            let blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+            let link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute("download", "template_staf_esilo.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        // ================= CODE AMBIL & PULANG KENDERAAN =================
         window.janaDropdownAmbil = function() {
             let s = document.getElementById('pilihanAmbilKenderaan'); s.innerHTML = '<option value="">-- Pilih --</option>';
             let list = DB_Kenderaan.filter(k => k.status === 'Ditempah' && k.tempahOleh === profilSemasa.nama);
@@ -480,24 +708,22 @@
         window.semakPulangKenderaan = function() {
             let k = DB_Kenderaan.find(v => v.status === 'Sedang Digunakan' && v.pengguna === profilSemasa.nama);
             let mS = parseInt(document.getElementById('inputMileageSelepas').value);
-            rekodPulangSemasa = { plat: k.plat, mileageBaru: mS };
+            window.rekodPulangSemasa = { plat: k.plat, mileageBaru: mS };
             document.getElementById('modalKenderaan').innerText = k.plat;
             document.getElementById('modalKonfirmasiPulang').classList.remove('hilang');
         };
         window.tutupModalPulang = () => document.getElementById('modalKonfirmasiPulang').classList.add('hilang');
         window.sahkanPulangKenderaan = async function() {
-            await updateDoc(doc(db, "kenderaan", rekodPulangSemasa.plat), { status: "Available", mileage: rekodPulangSemasa.mileageBaru, pengguna: "-", tMula: "-", tTamat: "-", masaAmbil: null });
+            await updateDoc(doc(db, "kenderaan", window.rekodPulangSemasa.plat), { status: "Available", mileage: window.rekodPulangSemasa.mileageBaru, pengguna: "-", tMula: "-", tTamat: "-", masaAmbil: null });
             window.tutupModalPulang(); window.paparTab('dashboard');
         };
 
         function notif(msj) {
             let n = document.getElementById('ruangNotifikasi'); let d = document.createElement('div');
-            d.className = "bg-white border-l-4 border-yellow-500 shadow-xl p-4 mb-2 emel-masuk";
+            d.className = "bg-white border-l-4 border-purple-500 shadow-xl p-4 mb-2 emel-masuk text-xs";
             d.innerHTML = `<strong>Notifikasi Sistem</strong><br>${msj}`;
             n.appendChild(d); setTimeout(() => d.remove(), 4000);
         }
-
-        document.getElementById('profilEmel').innerText = profilSemasa.emel;
     </script>
 </body>
 </html>
