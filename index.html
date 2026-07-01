@@ -61,14 +61,13 @@
         </div>
     </nav>
 
-    <!-- Menu Tab Navigasi Dinamik (Telah Dikemaskini: Bentuk Kotak Bersempadan) -->
+    <!-- Menu Tab Navigasi Dinamik (Bentuk Kotak Bersempadan) -->
     <div class="bg-white shadow border-b">
         <div class="container mx-auto px-6 py-3 flex flex-wrap gap-2" id="menuTabs">
             <button onclick="paparTab('dashboard')" id="tabDashboard" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">🏠 Utama</button>
             
             <button onclick="paparTab('operasi')" id="tabOperasi" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center relative">
                 <span id="teksTabOperasi">📝 Tempahan</span>
-                <!-- Badge Notifikasi Angka (Akan dikawal oleh JavaScript) -->
                 <span id="badgeTempahan" class="ml-2 bg-red-500 text-white rounded-full px-2 py-0.5 text-xs font-bold hilang">0</span>
             </button>
             
@@ -128,7 +127,8 @@
                             </select>
                         </div>
                     </div>
-                    <div id="amaranBorang" class="text-red-600 font-bold mb-2 hilang">Anda sudah mempunyai tempahan yang aktif.</div>
+                    <!-- Mesej Amaran Pintar -->
+                    <div id="amaranBorang" class="text-red-600 font-bold mb-2 hilang p-3 bg-red-50 rounded border border-red-200"></div>
                     <button type="submit" id="btnSahkan" class="w-full mt-2 bg-blue-600 text-white font-bold py-3 px-4 rounded hover:bg-blue-700 transition shadow">Hantar Permohonan</button>
                 </form>
             </div>
@@ -169,10 +169,16 @@
     <div id="viewAmbil" class="container mx-auto p-6 hilang">
         <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-yellow-500 max-w-4xl mx-auto">
             <h2 class="text-xl font-bold text-gray-800 mb-6">Proses Pengambilan Kenderaan</h2>
-            <div class="mb-6 bg-yellow-50 p-4 border border-yellow-200 rounded">
+            
+            <div id="tiadaKenderaanAmbil" class="bg-yellow-50 p-6 border rounded text-center hilang">
+                <p class="text-gray-700 font-bold text-lg">Tiada permohonan tempahan diluluskan buat masa ini.</p>
+            </div>
+
+            <div id="ruanganPilihAmbil" class="mb-6 bg-yellow-50 p-4 border border-yellow-200 rounded">
                 <label class="block text-gray-800 font-semibold mb-2">Pilih Kenderaan (Berdasarkan Kelulusan)</label>
                 <select id="pilihanAmbilKenderaan" onchange="paparMaklumatAmbil()" class="w-full p-3 border rounded"></select>
             </div>
+
             <div id="kadMaklumatKenderaan" class="hilang">
                 <div class="flex flex-col md:flex-row gap-8">
                     <div class="w-full md:w-1/3 flex flex-col items-center">
@@ -194,7 +200,7 @@
         </div>
     </div>
 
-    <!-- TAB 4: PULANG KENDERAAN (DIKEMBALIKAN BUTIRAN LENGKAP) -->
+    <!-- TAB 4: PULANG KENDERAAN (DIKEMASKINI DENGAN PENUMPANG & STESEN MINYAK) -->
     <div id="viewPulang" class="container mx-auto p-6 hilang">
         <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-indigo-500 max-w-4xl mx-auto">
             <h2 class="text-xl font-bold text-gray-800 mb-6">Proses Pemulangan Kenderaan</h2>
@@ -209,12 +215,29 @@
                     <div><span class="block text-gray-500 text-xs font-bold">Tempoh Penggunaan</span><strong id="pulangTempohMasa" class="text-xl text-purple-700">-</strong></div>
                     <div><span class="block text-gray-500 text-xs font-bold">Mileage Sebelum</span><strong id="pulangMileageSebelum" class="text-xl">-</strong> km</div>
                     
+                    <!-- F1 Tambahan: Maklumat Penumpang -->
                     <div class="md:col-span-3 border-t pt-4">
+                        <h3 class="font-bold text-gray-800 mb-4">Maklumat Penumpang (Sila Cari Di Bawah)</h3>
+                        <div class="flex items-end space-x-2">
+                            <div class="flex-grow">
+                                <label class="block text-sm font-bold mb-2">Nama Penumpang</label>
+                                <input type="text" id="namaPenumpang" list="listPenumpang" class="w-full p-2 border rounded" placeholder="Mula menaip untuk cari penumpang...">
+                                <datalist id="listPenumpang"></datalist>
+                            </div>
+                            <button onclick="cariPenumpang()" type="button" class="bg-blue-600 text-white font-bold py-2 px-6 rounded hover:bg-blue-700 shadow h-10">Cari</button>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-3 border-t pt-4 mt-2">
                         <h3 class="font-bold text-gray-800 mb-4">Penggunaan Kad Inden (Minyak) & Touch 'n Go</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+                            <div><label class="block text-sm font-bold mb-2">Jenama Stesen Minyak</label><input type="text" id="indenStesen" class="w-full p-2 border rounded" placeholder="Contoh: Petronas"></div>
+                            <div><label class="block text-sm font-bold mb-2">No. Invoice / Resit</label><input type="text" id="indenInvoice" class="w-full p-2 border rounded" placeholder="Contoh: INV-12345"></div>
                             <div><label class="block text-sm font-bold mb-2">Nilai Isian Minyak (RM)</label><input type="number" id="indenRM" class="w-full p-2 border rounded" placeholder="Contoh: 50"></div>
                             <div><label class="block text-sm font-bold mb-2">Isipadu Minyak (Liter)</label><input type="number" id="indenLiter" class="w-full p-2 border rounded" placeholder="Contoh: 25.5"></div>
                         </div>
+                        <p class="text-xs text-red-500 italic font-semibold mb-4">* Kosongkan jika tiada penggunaan kad inden</p>
+
                         <div class="mb-4 p-3 bg-gray-200 rounded">
                             <label class="flex items-center space-x-2 font-bold cursor-pointer">
                                 <input type="checkbox" id="gunaTNG" class="w-5 h-5">
@@ -262,7 +285,8 @@
                     <div class="mb-4">
                         <label class="block text-sm font-bold mb-2">Peranan (Tahap Akses)</label>
                         <select id="stafPeranan" class="w-full p-2 border rounded bg-purple-50 font-bold text-purple-800" required>
-                            <option value="pengguna">Pengguna Biasa</option>
+                            <option value="pengguna">Pengguna (Kuasa Memandu)</option>
+                            <option value="penumpang">Pengguna Biasa (Penumpang)</option>
                             <option value="admin">Admin (Pelulus)</option>
                             <option value="superadmin">Super Admin (Pengurus Sistem)</option>
                         </select>
@@ -272,6 +296,15 @@
                         <button type="submit" class="w-2/3 bg-purple-600 text-white font-bold py-2 rounded shadow">Simpan Data</button>
                     </div>
                 </form>
+
+                <!-- F1 Tambahan: Upload Pukal CSV -->
+                <div class="mt-8 pt-6 border-t border-gray-200 bg-purple-50 p-4 rounded-lg border border-purple-200">
+                    <h3 class="font-bold text-purple-900 mb-2 flex items-center">📊 Upload Bundle (CSV)</h3>
+                    <p class="text-xs text-purple-700 mb-4">Muat naik senarai nama staf secara pukal menggunakan fail CSV.</p>
+                    <input type="file" id="excelFile" accept=".csv" class="w-full text-xs text-gray-500 mb-3 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700">
+                    <button onclick="muatNaikPukal()" class="w-full text-xs bg-white border border-purple-400 text-purple-700 py-2 rounded font-bold hover:bg-purple-100 shadow">PROSES MUAT NAIK BUNDLE</button>
+                    <button onclick="downloadTemplate()" class="w-full text-left text-xs text-blue-600 underline mt-3 block font-semibold">📥 Klik Di Sini Untuk Download Template CSV</button>
+                </div>
             </div>
             <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-gray-400 lg:col-span-2">
                 <h2 class="text-xl font-bold mb-4">Senarai Pengguna E-SILO</h2>
@@ -358,7 +391,10 @@
                 <p class="mb-1 text-base">Tempoh Digunakan: <strong id="modalTempoh" class="text-purple-700">-</strong></p>
                 <p class="mb-1 text-base">Jarak Perjalanan: <strong id="modalJarak" class="text-indigo-700">-</strong> km</p>
                 <hr class="my-2 border-gray-300">
-                <p class="mb-1">Pengisian Minyak: <strong id="modalMinyak">-</strong></p>
+                <p class="mb-1">Penumpang: <strong id="modalPenumpangModal" class="text-gray-900">-</strong></p>
+                <p class="mb-1">Stesen Minyak: <strong id="modalStesen">-</strong></p>
+                <p class="mb-1">No. Invoice: <strong id="modalInvoice">-</strong></p>
+                <p class="mb-1">Nilai / Liter: <strong id="modalMinyak">-</strong></p>
                 <p>Touch 'n Go: <strong id="modalTNG">-</strong></p>
             </div>
             
@@ -393,7 +429,6 @@
         let DB_Pengguna = [];
         let profilSemasa = {}; 
 
-        // Fungsi Utilities Format
         function formatTarikhMY(t) { if(!t || t==="-") return "-"; let p=t.split('-'); return p.length===3 ? `${p[2]}/${p[1]}/${p[0]}` : t; }
         function formatMasa(isoString) {
             if(!isoString || isoString==="-") return "-";
@@ -410,7 +445,6 @@
             return teks.join(" ");
         }
         
-        // ================= OSRM LOGIC =================
         const PEJABAT_LAT = 5.3995; 
         const PEJABAT_LON = 100.3638;
         async function kiraJarakSebenarOSRM(lokasi) {
@@ -438,16 +472,19 @@
             let selectUser = document.getElementById('pilihUjianUser');
             let valLama = selectUser.value; selectUser.innerHTML = "";
             
-            // Tambah Super Admin lalai jika tiada dalam pangkalan data untuk membolehkan ujian
+            // Datalist Penumpang
+            let dtList = document.getElementById('listPenumpang');
+            if (dtList) dtList.innerHTML = "";
+
             let adaSuperAdmin = false;
 
             snapshot.forEach((doc) => { 
                 let p = doc.data(); DB_Pengguna.push(p);
                 selectUser.innerHTML += `<option value="${p.emel}">${p.nama} (${p.peranan.toUpperCase()})</option>`;
+                if (dtList) dtList.innerHTML += `<option value="${p.nama} (${p.unit})">`;
                 if(p.peranan === 'superadmin') adaSuperAdmin = true;
             });
             
-            // Suntik Super Admin sementara ke dalam dropdown jika pangkalan data belum mempunyainya
             if(!adaSuperAdmin) {
                  selectUser.innerHTML += `<option value="superadmin@esilo.my">Sistem (SUPERADMIN)</option>`;
                  DB_Pengguna.push({ emel: "superadmin@esilo.my", nama: "Sistem Pengurus", unit: "Ibu Pejabat", peranan: "superadmin", tel: "0100000000" });
@@ -456,17 +493,16 @@
             if(valLama && DB_Pengguna.find(u => u.emel === valLama)) selectUser.value = valLama;
             else if(DB_Pengguna.length > 0) selectUser.value = DB_Pengguna[0].emel;
             tukarPenggunaAkaun(selectUser.value);
-            janaSistemStaf(); // PENAMBAHBAIKAN: Memaksa jadual staf di-render serta merta
+            janaSistemStaf(); 
         });
 
-        // ================= LOGIK AKAUN & TAB (BERDASARKAN PERANAN BARU) =================
+        // ================= LOGIK AKAUN & TAB =================
         window.tukarPenggunaAkaun = function(emel) {
             profilSemasa = DB_Pengguna.find(u => u.emel === emel) || {};
             document.getElementById('profilEmel').innerText = profilSemasa.emel || "-";
             document.getElementById('profilPeranan').innerText = (profilSemasa.peranan || "-").toUpperCase();
             
-            // PERBAIKAN: Kawalan Tab Berdasarkan 3 Peranan
-            if(profilSemasa.peranan === 'pengguna') {
+            if(profilSemasa.peranan === 'pengguna' || profilSemasa.peranan === 'penumpang') {
                 document.getElementById('tabDashboard').classList.add('hilang');
                 document.getElementById('tabSelenggara').classList.add('hilang');
                 document.getElementById('tabSelenggaraKenderaan').classList.add('hilang');
@@ -486,7 +522,6 @@
                 document.getElementById('paparanAdmin').classList.remove('hilang');
                 document.getElementById('teksTabOperasi').innerText = "📋 Kelulusan";
                 
-                // Admin biasa tidak boleh melihat tab Selenggara Staf (Hanya untuk Super Admin)
                 document.getElementById('tabSelenggara').classList.add('hilang');
                 document.getElementById('tabAmbil').classList.add('hilang');
                 document.getElementById('tabPulang').classList.add('hilang');
@@ -494,7 +529,6 @@
                 
                 window.paparTab('dashboard'); 
             } else if (profilSemasa.peranan === 'superadmin') {
-                // Super Admin mempunyai akses kepada semuanya (kecuali permohonan yang dikhususkan untuk pengguna)
                 document.getElementById('tabDashboard').classList.remove('hilang');
                 document.getElementById('tabOperasi').classList.remove('hilang');
                 document.getElementById('tabSelenggara').classList.remove('hilang');
@@ -509,8 +543,8 @@
                 window.paparTab('dashboard'); 
             }
             kemaskiniBorang();
-            janaSistem(); // Supaya badge notifikasi juga dirender
-            janaSistemStaf(); // PENAMBAHBAIKAN: Memastikan jadual dipaparkan mengikut akaun
+            janaSistem(); 
+            janaSistemStaf(); 
         };
 
         window.paparTab = function(tabId) {
@@ -521,11 +555,7 @@
             ['viewDashboard', 'viewOperasi', 'viewAmbil', 'viewPulang', 'viewSelenggara', 'viewSelenggaraKenderaan'].forEach(id => document.getElementById(id).classList.add('hilang'));
             ['tabDashboard', 'tabOperasi', 'tabAmbil', 'tabPulang', 'tabSelenggara', 'tabSelenggaraKenderaan'].forEach(id => {
                 let el = document.getElementById(id);
-                // Tukar kelas dari aktif ke pasif
-                if(el) {
-                    el.classList.remove('tab-aktif');
-                    el.classList.add('tab-pasif');
-                }
+                if(el) { el.classList.remove('tab-aktif'); el.classList.add('tab-pasif'); }
             });
             
             let idAktif = "";
@@ -536,23 +566,38 @@
             else if(tabId === 'selenggara') { document.getElementById('viewSelenggara').classList.remove('hilang'); idAktif = 'tabSelenggara'; } 
             else if(tabId === 'selenggaraKenderaan') { document.getElementById('viewSelenggaraKenderaan').classList.remove('hilang'); idAktif = 'tabSelenggaraKenderaan'; }
             
-            // Tukar kelas pasif kepada aktif
             let elAktif = document.getElementById(idAktif);
-            if(elAktif) {
-                elAktif.classList.remove('tab-pasif');
-                elAktif.classList.add('tab-aktif');
-            }
-            
+            if(elAktif) { elAktif.classList.remove('tab-pasif'); elAktif.classList.add('tab-aktif'); }
             janaSistem();
         }
 
         function kemaskiniBorang() {
             if(!profilSemasa) return;
-            document.getElementById('nama').value = profilSemasa.nama || ""; document.getElementById('unit').value = profilSemasa.unit || "";
-            let ada = DB_Tempahan.find(t => t.emel === profilSemasa.emel && (t.status === "Menunggu Kelulusan" || t.status === "Lulus"));
-            document.getElementById('btnSahkan').disabled = !!ada;
-            document.getElementById('btnSahkan').className = ada ? "w-full mt-2 bg-gray-400 text-white font-bold py-3 px-4 rounded opacity-50 cursor-not-allowed" : "w-full mt-2 bg-blue-600 text-white font-bold py-3 px-4 rounded hover:bg-blue-700 transition shadow";
-            document.getElementById('amaranBorang').style.display = ada ? "block" : "none";
+            document.getElementById('nama').value = profilSemasa.nama || ""; 
+            document.getElementById('unit').value = profilSemasa.unit || "";
+            
+            // F1 Tambahan: Logik Pintar Sekatan Tempahan
+            let adaPending = DB_Tempahan.find(t => t.emel === profilSemasa.emel && t.status === "Menunggu Kelulusan");
+            let adaSedangGuna = DB_Kenderaan.find(k => k.pengguna === profilSemasa.nama && k.status === "Sedang Digunakan");
+            
+            let btnSahkan = document.getElementById('btnSahkan');
+            let amaran = document.getElementById('amaranBorang');
+            
+            if (adaPending) {
+                btnSahkan.disabled = true;
+                btnSahkan.className = "w-full mt-2 bg-gray-400 text-white font-bold py-3 px-4 rounded opacity-50 cursor-not-allowed";
+                amaran.innerText = "Anda masih mempunyai tempahan yang sedang menunggu kelulusan. Sila tunggu tindakan admin sebelum membuat tempahan baharu.";
+                amaran.classList.remove('hilang');
+            } else if (adaSedangGuna) {
+                btnSahkan.disabled = true;
+                btnSahkan.className = "w-full mt-2 bg-gray-400 text-white font-bold py-3 px-4 rounded opacity-50 cursor-not-allowed";
+                amaran.innerText = "Sila pulangkan kenderaan yang sedang digunakan sekarang sebelum membuat tempahan baharu.";
+                amaran.classList.remove('hilang');
+            } else {
+                btnSahkan.disabled = false;
+                btnSahkan.className = "w-full mt-2 bg-blue-600 text-white font-bold py-3 px-4 rounded hover:bg-blue-700 transition shadow";
+                amaran.classList.add('hilang');
+            }
         }
 
         // ================= PROSES BORANG OPERASI =================
@@ -565,7 +610,6 @@
                 let lokasiDituju = document.getElementById('lokasi').value;
                 let jarakKiraan = await kiraJarakSebenarOSRM(lokasiDituju);
 
-                // PERBAIKAN: Menetapkan fallback (|| "-") supaya Firestore tidak reject data null/undefined
                 let dataBaru = {
                     emel: profilSemasa.emel || "tiada@emel.com", 
                     nama: profilSemasa.nama || "Tanpa Nama", 
@@ -604,9 +648,8 @@
             notif(`Kelulusan berjaya.`);
         };
 
-        // ================= RENDERING JADUAL & BADGE (LENGKAP) =================
+        // ================= RENDERING JADUAL & BADGE =================
         function janaSistem() {
-            // PERBAIKAN: Kemaskini Badge Notifikasi Merah untuk Admin/Superadmin
             let pendingCount = DB_Tempahan.filter(t => t.status === "Menunggu Kelulusan").length;
             let badge = document.getElementById('badgeTempahan');
             if (badge) {
@@ -680,7 +723,7 @@
             reader.readAsDataURL(file);
         };
 
-        // ================= CRUD STAF (DIBaIKI DENGAN TRY-CATCH) =================
+        // ================= CRUD STAF =================
         window.simpanStaf = async function(e) {
             e.preventDefault();
             try {
@@ -719,7 +762,50 @@
             });
         }
 
-        // ================= CRUD KENDERAAN (DIBAIKI DENGAN TRY-CATCH) =================
+        // ================= F1 TAMBAHAN: BULK UPLOAD STAF =================
+        window.muatNaikPukal = function() {
+            let fileInput = document.getElementById('excelFile');
+            if(fileInput.files.length === 0) return alert("Sila pilih fail CSV template terlebih dahulu!");
+            
+            let file = fileInput.files[0];
+            let reader = new FileReader();
+            reader.onload = async function(e) {
+                let t = e.target.result;
+                let baris = t.split("\n");
+                let kira = 0;
+                for(let i=1; i<baris.length; i++) {
+                    let lajur = baris[i].split(",");
+                    if(lajur.length >= 5 && lajur[0].trim() !== "") {
+                        let dataStaf = {
+                            nama: lajur[0].trim(),
+                            emel: lajur[1].trim(),
+                            tel: lajur[2].trim(),
+                            unit: lajur[3].trim(),
+                            peranan: lajur[4].trim().toLowerCase(),
+                            gambar: ""
+                        };
+                        await setDoc(doc(db, "pengguna_esilo", dataStaf.emel), dataStaf);
+                        kira++;
+                    }
+                }
+                notif(`${kira} staf berjaya dimuat naik secara pukal!`);
+                fileInput.value = "";
+            };
+            reader.readAsText(file);
+        };
+
+        window.downloadTemplate = function() {
+            let content = "Nama,Emel,No_Telefon,Unit,Peranan\nAli Bin Ahmad,ali@esilo.my,0123456789,Unit IT,pengguna\nZubair,zubair@esilo.my,0198882211,Pentadbiran,admin\nAbu,abu@esilo.my,011223344,Pembangunan,penumpang";
+            let blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+            let link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute("download", "template_staf_esilo.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        // ================= CRUD KENDERAAN =================
         window.simpanKenderaan = async function(e) {
             e.preventDefault();
             try {
@@ -757,7 +843,16 @@
         window.janaDropdownAmbil = function() {
             let s = document.getElementById('pilihanAmbilKenderaan'); s.innerHTML = '<option value="">-- Pilih --</option>';
             let list = DB_Kenderaan.filter(k => k.status === 'Ditempah' && k.tempahOleh === profilSemasa.nama);
-            list.forEach(k => s.innerHTML += `<option value="${k.plat}">${k.jenama} (${k.plat})</option>`);
+            
+            // F1 Tambahan: Logik Tiada Permohonan di Ambil
+            if(list.length === 0) {
+                document.getElementById('tiadaKenderaanAmbil').classList.remove('hilang');
+                document.getElementById('ruanganPilihAmbil').classList.add('hilang');
+            } else {
+                document.getElementById('tiadaKenderaanAmbil').classList.add('hilang');
+                document.getElementById('ruanganPilihAmbil').classList.remove('hilang');
+                list.forEach(k => s.innerHTML += `<option value="${k.plat}">${k.jenama} (${k.plat})</option>`);
+            }
             document.getElementById('kadMaklumatKenderaan').classList.add('hilang');
         };
         window.paparMaklumatAmbil = function() {
@@ -771,7 +866,7 @@
         window.sahkanAmbilKenderaan = async function() {
             let plat = document.getElementById('pilihanAmbilKenderaan').value; let k = DB_Kenderaan.find(v => v.plat === plat);
             await updateDoc(doc(db, "kenderaan", plat), { status: "Sedang Digunakan", pengguna: k.tempahOleh, tempahOleh: "-", masaAmbil: new Date().toISOString() });
-            window.paparTab('dashboard'); notif(`Berjaya ambil kenderaan ${plat}`);
+            window.paparTab('operasi'); notif(`Berjaya ambil kenderaan ${plat}`);
         };
 
         window.janaBorangPulang = function() {
@@ -788,33 +883,53 @@
             let mS = parseInt(document.getElementById('inputMileageSelepas').value); let mA = parseInt(document.getElementById('pulangMileageSebelum').dataset.nilaiAsal);
             document.getElementById('paparMileageGuna').value = (!isNaN(mS) && mS >= mA) ? (mS - mA) : "0";
         };
+        
+        // F1 Tambahan: Logik Carian Penumpang
+        window.cariPenumpang = function() {
+            let inputVal = document.getElementById('namaPenumpang').value;
+            if(!inputVal) return alert("Sila taip nama penumpang di dalam kotak untuk membuat carian pangkalan data.");
+            let wujud = DB_Pengguna.find(p => p.nama.toLowerCase().includes(inputVal.split(' ')[0].toLowerCase()));
+            if(wujud) alert("Maklumat Penumpang Disahkan: " + wujud.nama + " (" + wujud.unit + ")");
+            else alert("Sistem tidak menjumpai nama di dalam pangkalan data. Anda boleh teruskan menaip nama secara manual jika penumpang ini adalah kakitangan luar.");
+        };
+
         window.semakPulangKenderaan = function() {
             let k = DB_Kenderaan.find(v => v.status === 'Sedang Digunakan' && v.pengguna === profilSemasa.nama);
             let mS = parseInt(document.getElementById('inputMileageSelepas').value); let mA = parseInt(document.getElementById('pulangMileageSebelum').dataset.nilaiAsal);
             if(isNaN(mS) || mS < mA) return alert("Ralat: Sila masukkan Mileage Selepas yang betul.");
 
+            let stesen = document.getElementById('indenStesen').value || "-";
+            let inv = document.getElementById('indenInvoice').value || "-";
             let rm = document.getElementById('indenRM').value; let liter = document.getElementById('indenLiter').value;
             let infoMinyak = (rm || liter) ? `RM ${rm || '0'} / ${liter || '0'} Liter` : "Tiada pengisian";
             let tng = document.getElementById('gunaTNG').checked ? "Digunakan" : "Tidak Digunakan";
             let jarakGuna = mS - mA;
             let tempohDigunakan = document.getElementById('pulangTempohMasa').dataset.tempoh;
+            let pnum = document.getElementById('namaPenumpang').value || "Tiada Penumpang Rekod";
 
             window.rekodPulangSemasa = { plat: k.plat, mileageBaru: mS };
             
             document.getElementById('modalKenderaan').innerText = `${k.jenama} (${k.plat})`;
             document.getElementById('modalTempoh').innerText = tempohDigunakan;
             document.getElementById('modalJarak').innerText = jarakGuna.toLocaleString();
+            
+            // Mengemaskini UI Modal Pulang
+            document.getElementById('modalStesen').innerText = stesen;
+            document.getElementById('modalInvoice').innerText = inv;
             document.getElementById('modalMinyak').innerText = infoMinyak;
+            document.getElementById('modalPenumpangModal').innerText = pnum;
             document.getElementById('modalTNG').innerText = tng;
+            
             document.getElementById('modalKonfirmasiPulang').classList.remove('hilang');
         };
         window.tutupModalPulang = () => document.getElementById('modalKonfirmasiPulang').classList.add('hilang');
         window.sahkanPulangKenderaan = async function() {
             await updateDoc(doc(db, "kenderaan", window.rekodPulangSemasa.plat), { status: "Available", mileage: window.rekodPulangSemasa.mileageBaru, pengguna: "-", noTelPengguna: "-", unit: "-", tujuan: "-", lokasiTujuan: "-", tMula: "-", tTamat: "-", masaAmbil: null });
             window.tutupModalPulang(); 
-            // Halakan pengguna terus ke tab Operasi(Tempahan) selepas memulangkan kereta
             window.paparTab('operasi'); 
             notif(`Berjaya memulangkan kenderaan.`);
+            // Pembersihan Borang Pulang
+            document.getElementById('indenStesen').value = ""; document.getElementById('indenInvoice').value = ""; document.getElementById('namaPenumpang').value = "";
             document.getElementById('indenRM').value = ""; document.getElementById('indenLiter').value = ""; document.getElementById('gunaTNG').checked = false; document.getElementById('inputMileageSelepas').value = "";
         };
 
