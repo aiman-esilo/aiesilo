@@ -20,6 +20,21 @@
             animation-duration: 0.3s;
             animation-timing-function: ease-in-out;
         }
+        /* Style untuk Tab Menu Kotak */
+        .tab-aktif {
+            background-color: #2563eb !important; /* blue-600 */
+            color: #ffffff !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+        }
+        .tab-pasif {
+            background-color: #e5e7eb; /* gray-200 */
+            color: #4b5563; /* gray-600 */
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+        .tab-pasif:hover {
+            background-color: #d1d5db; /* gray-300 */
+            color: #2563eb; /* blue-600 */
+        }
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
@@ -46,22 +61,28 @@
         </div>
     </nav>
 
-    <!-- Menu Tab Navigasi Dinamik -->
+    <!-- Menu Tab Navigasi Dinamik (Telah Dikemaskini: Bentuk Kotak Bersempadan) -->
     <div class="bg-white shadow border-b">
-        <div class="container mx-auto px-6 py-2 flex flex-wrap gap-4" id="menuTabs">
-            <button onclick="paparTab('dashboard')" id="tabDashboard" class="font-bold text-blue-600 border-b-2 border-blue-600 pb-1 transition">Paparan Utama</button>
-            <button onclick="paparTab('operasi')" id="tabOperasi" class="text-gray-600 hover:text-blue-600 pb-1 transition">Tempahan / Kelulusan</button>
-            <button onclick="paparTab('ambil')" id="tabAmbil" class="text-gray-600 hover:text-blue-600 pb-1 transition flex items-center">🔑 Ambil Kenderaan</button>
-            <button onclick="paparTab('pulang')" id="tabPulang" class="text-gray-600 hover:text-blue-600 pb-1 transition flex items-center">↩️ Pulang Kenderaan</button>
-            <button onclick="paparTab('selenggara')" id="tabSelenggara" class="text-gray-600 hover:text-blue-600 pb-1 transition flex items-center">⚙️ Selenggara Staf</button>
-            <button onclick="paparTab('selenggaraKenderaan')" id="tabSelenggaraKenderaan" class="text-gray-600 hover:text-blue-600 pb-1 transition flex items-center">🚘 Selenggara Kenderaan</button>
+        <div class="container mx-auto px-6 py-3 flex flex-wrap gap-2" id="menuTabs">
+            <button onclick="paparTab('dashboard')" id="tabDashboard" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">🏠 Utama</button>
+            
+            <button onclick="paparTab('operasi')" id="tabOperasi" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center relative">
+                <span id="teksTabOperasi">📝 Tempahan</span>
+                <!-- Badge Notifikasi Angka (Akan dikawal oleh JavaScript) -->
+                <span id="badgeTempahan" class="ml-2 bg-red-500 text-white rounded-full px-2 py-0.5 text-xs font-bold hilang">0</span>
+            </button>
+            
+            <button onclick="paparTab('ambil')" id="tabAmbil" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">🔑 Ambil</button>
+            <button onclick="paparTab('pulang')" id="tabPulang" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">↩️ Pulang</button>
+            <button onclick="paparTab('selenggara')" id="tabSelenggara" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">👥 Staf</button>
+            <button onclick="paparTab('selenggaraKenderaan')" id="tabSelenggaraKenderaan" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">🚘 Kenderaan</button>
         </div>
     </div>
 
     <!-- PANGKALAN DATA SIMULASI (Notifikasi Emel) -->
     <div id="ruangNotifikasi" class="fixed top-20 right-4 z-50 flex flex-col space-y-2 w-80"></div>
 
-    <!-- TAB 1: DASHBOARD (ADMIN SAHAJA) -->
+    <!-- TAB 1: DASHBOARD (ADMIN & SUPER ADMIN SAHAJA) -->
     <div id="viewDashboard" class="container mx-auto p-6 block">
         <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-indigo-600">
             <h2 class="text-xl font-bold mb-4 text-gray-800">Status Semasa Semua Kenderaan</h2>
@@ -83,7 +104,7 @@
         </div>
     </div>
 
-    <!-- TAB 2: OPERASI (BORANG TEMPAHAN ATAU KELULUSAN ADMIN) -->
+    <!-- TAB 2: OPERASI (BORANG TEMPAHAN ATAU KELULUSAN) -->
     <div id="viewOperasi" class="hilang">
         <!-- PAPARAN PENGGUNA -->
         <div id="paparanPengguna" class="container mx-auto p-6 grid grid-cols-1 gap-6 block">
@@ -126,7 +147,7 @@
             </div>
         </div>
 
-        <!-- PAPARAN ADMIN -->
+        <!-- PAPARAN ADMIN & SUPER ADMIN -->
         <div id="paparanAdmin" class="container mx-auto p-6 grid grid-cols-1 gap-6 hilang">
             <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-red-600">
                 <h2 class="text-xl font-bold text-gray-800 mb-4">Panel Pengurusan Tempahan (Admin)</h2>
@@ -220,7 +241,7 @@
         </div>
     </div>
 
-    <!-- TAB 5: SELENGGARA STAF -->
+    <!-- TAB 5: SELENGGARA STAF (KHAS UNTUK SUPER ADMIN SAHAJA) -->
     <div id="viewSelenggara" class="container mx-auto p-6 hilang">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-purple-600 lg:col-span-1">
@@ -239,14 +260,16 @@
                     <div class="mb-4"><label class="block text-sm font-bold mb-2">No. Telefon</label><input type="text" id="stafTel" class="w-full p-2 border rounded" required></div>
                     <div class="mb-4"><label class="block text-sm font-bold mb-2">Unit / Jabatan</label><input type="text" id="stafUnit" class="w-full p-2 border rounded" required></div>
                     <div class="mb-4">
-                        <label class="block text-sm font-bold mb-2">Peranan</label>
-                        <select id="stafPeranan" class="w-full p-2 border rounded" required>
-                            <option value="pengguna">Pengguna</option><option value="admin">Admin</option>
+                        <label class="block text-sm font-bold mb-2">Peranan (Tahap Akses)</label>
+                        <select id="stafPeranan" class="w-full p-2 border rounded bg-purple-50 font-bold text-purple-800" required>
+                            <option value="pengguna">Pengguna Biasa</option>
+                            <option value="admin">Admin (Pelulus)</option>
+                            <option value="superadmin">Super Admin (Pengurus Sistem)</option>
                         </select>
                     </div>
                     <div class="flex space-x-2">
                         <button type="button" onclick="resetBorangStaf()" class="w-1/3 bg-gray-300 font-bold py-2 rounded">Batal</button>
-                        <button type="submit" class="w-2/3 bg-purple-600 text-white font-bold py-2 rounded shadow">Simpan</button>
+                        <button type="submit" class="w-2/3 bg-purple-600 text-white font-bold py-2 rounded shadow">Simpan Data</button>
                     </div>
                 </form>
             </div>
@@ -262,7 +285,7 @@
         </div>
     </div>
 
-    <!-- TAB 6: SELENGGARA KENDERAAN -->
+    <!-- TAB 6: SELENGGARA KENDERAAN (ADMIN & SUPER ADMIN) -->
     <div id="viewSelenggaraKenderaan" class="container mx-auto p-6 hilang">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-emerald-600 lg:col-span-1">
@@ -306,7 +329,7 @@
                     
                     <div class="flex space-x-2">
                         <button type="button" onclick="resetBorangKenderaan()" class="w-1/3 bg-gray-300 font-bold py-2 rounded">Batal</button>
-                        <button type="submit" class="w-2/3 bg-emerald-600 text-white font-bold py-2 rounded shadow">Simpan</button>
+                        <button type="submit" class="w-2/3 bg-emerald-600 text-white font-bold py-2 rounded shadow">Simpan Data</button>
                     </div>
                 </form>
             </div>
@@ -414,52 +437,80 @@
             DB_Pengguna = [];
             let selectUser = document.getElementById('pilihUjianUser');
             let valLama = selectUser.value; selectUser.innerHTML = "";
+            
+            // Tambah Super Admin lalai jika tiada dalam pangkalan data untuk membolehkan ujian
+            let adaSuperAdmin = false;
+
             snapshot.forEach((doc) => { 
                 let p = doc.data(); DB_Pengguna.push(p);
                 selectUser.innerHTML += `<option value="${p.emel}">${p.nama} (${p.peranan.toUpperCase()})</option>`;
+                if(p.peranan === 'superadmin') adaSuperAdmin = true;
             });
+            
+            // Suntik Super Admin sementara ke dalam dropdown jika pangkalan data belum mempunyainya
+            if(!adaSuperAdmin) {
+                 selectUser.innerHTML += `<option value="superadmin@esilo.my">Sistem (SUPERADMIN)</option>`;
+                 DB_Pengguna.push({ emel: "superadmin@esilo.my", nama: "Sistem Pengurus", unit: "Ibu Pejabat", peranan: "superadmin", tel: "0100000000" });
+            }
+
             if(valLama && DB_Pengguna.find(u => u.emel === valLama)) selectUser.value = valLama;
             else if(DB_Pengguna.length > 0) selectUser.value = DB_Pengguna[0].emel;
             tukarPenggunaAkaun(selectUser.value);
+            janaSistemStaf(); // PENAMBAHBAIKAN: Memaksa jadual staf di-render serta merta
         });
 
-        // ================= LOGIK AKAUN & TAB (BERDASARKAN PERANAN) =================
+        // ================= LOGIK AKAUN & TAB (BERDASARKAN PERANAN BARU) =================
         window.tukarPenggunaAkaun = function(emel) {
             profilSemasa = DB_Pengguna.find(u => u.emel === emel) || {};
             document.getElementById('profilEmel').innerText = profilSemasa.emel || "-";
             document.getElementById('profilPeranan').innerText = (profilSemasa.peranan || "-").toUpperCase();
             
-            // LOGIK PAPARAN TAB MENGIKUT PERANAN
+            // PERBAIKAN: Kawalan Tab Berdasarkan 3 Peranan
             if(profilSemasa.peranan === 'pengguna') {
-                // Sembunyikan untuk Pengguna biasa
+                document.getElementById('tabDashboard').classList.add('hilang');
                 document.getElementById('tabSelenggara').classList.add('hilang');
                 document.getElementById('tabSelenggaraKenderaan').classList.add('hilang');
                 document.getElementById('paparanAdmin').classList.add('hilang');
                 
-                // Paparkan untuk Pengguna biasa
-                document.getElementById('tabDashboard').classList.remove('hilang');
-                document.getElementById('tabOperasi').innerText = "Borang Tempahan";
+                document.getElementById('tabOperasi').classList.remove('hilang');
+                document.getElementById('teksTabOperasi').innerText = "📝 Tempahan";
                 document.getElementById('tabAmbil').classList.remove('hilang');
                 document.getElementById('tabPulang').classList.remove('hilang');
                 document.getElementById('paparanPengguna').classList.remove('hilang');
                 
-                window.paparTab('operasi'); // Default tab for user
-            } else {
-                // Paparkan untuk Admin
+                window.paparTab('operasi');
+            } else if (profilSemasa.peranan === 'admin') {
                 document.getElementById('tabDashboard').classList.remove('hilang');
-                document.getElementById('tabSelenggara').classList.remove('hilang');
+                document.getElementById('tabOperasi').classList.remove('hilang');
                 document.getElementById('tabSelenggaraKenderaan').classList.remove('hilang');
                 document.getElementById('paparanAdmin').classList.remove('hilang');
-                document.getElementById('tabOperasi').innerText = "Kelulusan Tempahan";
+                document.getElementById('teksTabOperasi').innerText = "📋 Kelulusan";
                 
-                // Sembunyikan untuk Admin (Fokus selenggara)
+                // Admin biasa tidak boleh melihat tab Selenggara Staf (Hanya untuk Super Admin)
+                document.getElementById('tabSelenggara').classList.add('hilang');
                 document.getElementById('tabAmbil').classList.add('hilang');
                 document.getElementById('tabPulang').classList.add('hilang');
                 document.getElementById('paparanPengguna').classList.add('hilang');
                 
-                window.paparTab('dashboard'); // Default tab for admin
+                window.paparTab('dashboard'); 
+            } else if (profilSemasa.peranan === 'superadmin') {
+                // Super Admin mempunyai akses kepada semuanya (kecuali permohonan yang dikhususkan untuk pengguna)
+                document.getElementById('tabDashboard').classList.remove('hilang');
+                document.getElementById('tabOperasi').classList.remove('hilang');
+                document.getElementById('tabSelenggara').classList.remove('hilang');
+                document.getElementById('tabSelenggaraKenderaan').classList.remove('hilang');
+                document.getElementById('paparanAdmin').classList.remove('hilang');
+                document.getElementById('teksTabOperasi').innerText = "📋 Kelulusan";
+                
+                document.getElementById('tabAmbil').classList.add('hilang');
+                document.getElementById('tabPulang').classList.add('hilang');
+                document.getElementById('paparanPengguna').classList.add('hilang');
+                
+                window.paparTab('dashboard'); 
             }
             kemaskiniBorang();
+            janaSistem(); // Supaya badge notifikasi juga dirender
+            janaSistemStaf(); // PENAMBAHBAIKAN: Memastikan jadual dipaparkan mengikut akaun
         };
 
         window.paparTab = function(tabId) {
@@ -470,7 +521,11 @@
             ['viewDashboard', 'viewOperasi', 'viewAmbil', 'viewPulang', 'viewSelenggara', 'viewSelenggaraKenderaan'].forEach(id => document.getElementById(id).classList.add('hilang'));
             ['tabDashboard', 'tabOperasi', 'tabAmbil', 'tabPulang', 'tabSelenggara', 'tabSelenggaraKenderaan'].forEach(id => {
                 let el = document.getElementById(id);
-                if(el) el.className = el.className.replace("font-bold text-blue-600 border-b-2 border-blue-600", "text-gray-600 hover:text-blue-600");
+                // Tukar kelas dari aktif ke pasif
+                if(el) {
+                    el.classList.remove('tab-aktif');
+                    el.classList.add('tab-pasif');
+                }
             });
             
             let idAktif = "";
@@ -481,8 +536,12 @@
             else if(tabId === 'selenggara') { document.getElementById('viewSelenggara').classList.remove('hilang'); idAktif = 'tabSelenggara'; } 
             else if(tabId === 'selenggaraKenderaan') { document.getElementById('viewSelenggaraKenderaan').classList.remove('hilang'); idAktif = 'tabSelenggaraKenderaan'; }
             
+            // Tukar kelas pasif kepada aktif
             let elAktif = document.getElementById(idAktif);
-            if(elAktif) elAktif.className = elAktif.className.replace("text-gray-600 hover:text-blue-600", "font-bold text-blue-600 border-b-2 border-blue-600");
+            if(elAktif) {
+                elAktif.classList.remove('tab-pasif');
+                elAktif.classList.add('tab-aktif');
+            }
             
             janaSistem();
         }
@@ -506,19 +565,28 @@
                 let lokasiDituju = document.getElementById('lokasi').value;
                 let jarakKiraan = await kiraJarakSebenarOSRM(lokasiDituju);
 
+                // PERBAIKAN: Menetapkan fallback (|| "-") supaya Firestore tidak reject data null/undefined
                 let dataBaru = {
-                    emel: profilSemasa.emel, nama: profilSemasa.nama, tel: profilSemasa.tel || "-", unit: profilSemasa.unit || "-",
-                    tujuan: document.getElementById('tujuan').value, lokasi: lokasiDituju, jarakPerjalanan: jarakKiraan,
-                    tMula: document.getElementById('tarikhGuna').value, tTamat: document.getElementById('tarikhPulang').value,
-                    cadangan: document.getElementById('cadanganKenderaan').value, kenderaanDipilih: "Belum Ditetapkan", status: "Menunggu Kelulusan"
+                    emel: profilSemasa.emel || "tiada@emel.com", 
+                    nama: profilSemasa.nama || "Tanpa Nama", 
+                    tel: profilSemasa.tel || "-", 
+                    unit: profilSemasa.unit || "-",
+                    tujuan: document.getElementById('tujuan').value || "-", 
+                    lokasi: lokasiDituju || "-", 
+                    jarakPerjalanan: Number(jarakKiraan) || 100,
+                    tMula: document.getElementById('tarikhGuna').value || "-", 
+                    tTamat: document.getElementById('tarikhPulang').value || "-",
+                    cadangan: document.getElementById('cadanganKenderaan').value || "Sedan", 
+                    kenderaanDipilih: "Belum Ditetapkan", 
+                    status: "Menunggu Kelulusan"
                 };
                 await addDoc(collection(db, "tempahan"), dataBaru);
                 document.getElementById('borangTempahan').reset();
                 btnSahkan.innerText = "Hantar Permohonan"; notif(`Permohonan dihantar.`);
             } catch (err) {
-                console.error("Ralat hantar tempahan:", err);
-                alert("Sistem mengalami masalah. Sila pastikan maklumat lengkap dan cuba lagi.");
-                btnSahkan.innerText = "Hantar Permohonan";
+                console.error("Ralat Hantar Tempahan:", err);
+                alert("Sistem mengalami sedikit masalah. Sila pastikan ruangan borang diisi dengan lengkap dan cuba lagi.");
+                btnSahkan.innerText = "Hantar Permohonan"; 
                 btnSahkan.disabled = false;
             }
         };
@@ -536,20 +604,23 @@
             notif(`Kelulusan berjaya.`);
         };
 
-        // ================= RENDERING JADUAL (LENGKAP DIKEMBALIKAN) =================
+        // ================= RENDERING JADUAL & BADGE (LENGKAP) =================
         function janaSistem() {
-            const tbDash = document.getElementById('jadualDashboard'); if(!tbDash) return; tbDash.innerHTML = "";
-            
-            // Tapis paparan kenderaan mengikut peranan
-            let kenderaanDipapar = DB_Kenderaan;
-            if (profilSemasa.peranan === 'pengguna') {
-                // Pengguna cuma nampak kenderaan yang telah diambil / ditempah
-                kenderaanDipapar = DB_Kenderaan.filter(k => k.status === 'Ditempah' || k.status === 'Sedang Digunakan');
+            // PERBAIKAN: Kemaskini Badge Notifikasi Merah untuk Admin/Superadmin
+            let pendingCount = DB_Tempahan.filter(t => t.status === "Menunggu Kelulusan").length;
+            let badge = document.getElementById('badgeTempahan');
+            if (badge) {
+                if (pendingCount > 0 && (profilSemasa.peranan === 'admin' || profilSemasa.peranan === 'superadmin')) {
+                    badge.innerText = pendingCount;
+                    badge.classList.remove('hilang');
+                } else {
+                    badge.classList.add('hilang');
+                }
             }
 
-            kenderaanDipapar.forEach((k, i) => {
+            const tbDash = document.getElementById('jadualDashboard'); if(!tbDash) return; tbDash.innerHTML = "";
+            DB_Kenderaan.forEach((k, i) => {
                 let bg = k.status === "Available" ? "bg-green-100 text-green-700" : (k.status === "Ditempah" ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-700");
-                
                 let textP = "-"; let textTel = "-";
                 if(k.status === "Ditempah") { textP = `(Ditempah) ${k.tempahOleh}`; textTel = k.noTelPengguna; }
                 else if(k.status === "Sedang Digunakan") { textP = k.pengguna; textTel = k.noTelPengguna; }
@@ -609,13 +680,26 @@
             reader.readAsDataURL(file);
         };
 
-        // ================= CRUD STAF =================
+        // ================= CRUD STAF (DIBaIKI DENGAN TRY-CATCH) =================
         window.simpanStaf = async function(e) {
             e.preventDefault();
-            let emel = document.getElementById('stafEmel').value.trim();
-            let dataStaf = { nama: document.getElementById('stafNama').value, emel: emel, tel: document.getElementById('stafTel').value, unit: document.getElementById('stafUnit').value, peranan: document.getElementById('stafPeranan').value, gambar: document.getElementById('stafGambarBase64').value || "" };
-            await setDoc(doc(db, "pengguna_esilo", emel), dataStaf);
-            notif(`Staf disimpan.`); resetBorangStaf();
+            try {
+                let emel = document.getElementById('stafEmel').value.trim();
+                let dataStaf = { 
+                    nama: document.getElementById('stafNama').value || "-", 
+                    emel: emel, 
+                    tel: document.getElementById('stafTel').value || "-", 
+                    unit: document.getElementById('stafUnit').value || "-", 
+                    peranan: document.getElementById('stafPeranan').value || "pengguna", 
+                    gambar: document.getElementById('stafGambarBase64').value || "" 
+                };
+                await setDoc(doc(db, "pengguna_esilo", emel), dataStaf);
+                notif(`Maklumat staf berjaya disimpan.`); 
+                resetBorangStaf();
+            } catch (err) {
+                console.error("Ralat Simpan Staf:", err);
+                alert("Gagal menyimpan rekod staf. Sila cuba lagi.");
+            }
         };
         window.editStaf = function(emel) {
             let p = DB_Pengguna.find(u => u.emel === emel); if(!p) return;
@@ -623,27 +707,34 @@
             document.getElementById('stafEmel').value = p.emel; document.getElementById('stafEmel').readOnly = true; 
             document.getElementById('stafNama').value = p.nama; document.getElementById('stafTel').value = p.tel; document.getElementById('stafUnit').value = p.unit; document.getElementById('stafPeranan').value = p.peranan;
             document.getElementById('stafGambarBase64').value = p.gambar || ""; document.getElementById('previewGambarStaf').src = p.gambar || "https://placehold.co/100x100/e2e8f0/64748b?text=User";
+            window.scrollTo(0, 0);
         };
         window.resetBorangStaf = function() { document.getElementById('borangStaf').reset(); document.getElementById('stafEmel').readOnly = false; document.getElementById('stafGambarBase64').value = ""; document.getElementById('previewGambarStaf').src = "https://placehold.co/100x100/e2e8f0/64748b?text=User"; document.getElementById('tajukBorangStaf').innerText = "Tambah Staf Baru"; };
         function janaSistemStaf() {
             const tbody = document.getElementById('jadualSelenggaraStaf'); if(!tbody) return; tbody.innerHTML = "";
             DB_Pengguna.forEach(p => {
                 let img = p.gambar || "https://placehold.co/100x100/e2e8f0/64748b?text=U";
-                tbody.innerHTML += `<tr class="border-b"><td class="p-2"><img src="${img}" class="w-10 h-10 rounded-full border object-contain bg-white"></td><td class="p-2"><strong>${p.nama}</strong><br><span class="text-xs text-gray-500">${p.emel}</span></td><td class="p-2">${p.tel||"-"}</td><td class="p-2"><span>${p.unit}</span><br><span class="text-xs uppercase font-bold text-purple-700">${p.peranan}</span></td><td class="p-2 text-center"><button onclick="editStaf('${p.emel}')" class="text-xs bg-blue-100 px-3 py-1 rounded font-bold hover:bg-blue-200">Edit</button></td></tr>`;
+                let perananColor = p.peranan === 'superadmin' ? 'text-red-700 bg-red-100' : 'text-purple-700 bg-purple-100';
+                tbody.innerHTML += `<tr class="border-b"><td class="p-2"><img src="${img}" class="w-10 h-10 rounded-full border object-contain bg-white"></td><td class="p-2"><strong>${p.nama}</strong><br><span class="text-xs text-gray-500">${p.emel}</span></td><td class="p-2">${p.tel||"-"}</td><td class="p-2"><span>${p.unit}</span><br><span class="text-xs uppercase font-bold px-2 rounded ${perananColor}">${p.peranan}</span></td><td class="p-2 text-center"><button onclick="editStaf('${p.emel}')" class="text-xs bg-blue-100 px-3 py-1 rounded font-bold hover:bg-blue-200 shadow">Edit</button></td></tr>`;
             });
         }
 
-        // ================= CRUD KENDERAAN =================
+        // ================= CRUD KENDERAAN (DIBAIKI DENGAN TRY-CATCH) =================
         window.simpanKenderaan = async function(e) {
             e.preventDefault();
-            let plat = document.getElementById('k_plat').value.trim().toUpperCase();
-            let existing = DB_Kenderaan.find(k => k.plat === plat);
-            let dataK = {
-                plat: plat, jenama: document.getElementById('k_jenama').value, jenis: document.getElementById('k_jenis').value, milikan: document.getElementById('k_milikan').value, noAset: document.getElementById('k_noAset').value, kadInden: document.getElementById('k_inden').value, tng: document.getElementById('k_tng').value, mileage: parseInt(document.getElementById('k_mileage').value), mileageServis: parseInt(document.getElementById('k_servis').value), gambar: document.getElementById('kenderaanGambarBase64').value || (existing ? existing.gambar : ""),
-                status: existing ? existing.status : "Available", pengguna: existing ? existing.pengguna : "-", noTelPengguna: existing ? existing.noTelPengguna : "-", tempahOleh: existing ? existing.tempahOleh : "-", unit: existing ? existing.unit : "-", tujuan: existing ? existing.tujuan : "-", lokasiTujuan: existing ? existing.lokasiTujuan : "-", tMula: existing ? existing.tMula : "-", tTamat: existing ? existing.tTamat : "-", masaAmbil: existing ? existing.masaAmbil : null
-            };
-            await setDoc(doc(db, "kenderaan", plat), dataK);
-            notif(`Kenderaan ${plat} disimpan.`); window.resetBorangKenderaan();
+            try {
+                let plat = document.getElementById('k_plat').value.trim().toUpperCase();
+                let existing = DB_Kenderaan.find(k => k.plat === plat);
+                let dataK = {
+                    plat: plat, jenama: document.getElementById('k_jenama').value || "-", jenis: document.getElementById('k_jenis').value || "Sedan", milikan: document.getElementById('k_milikan').value || "Aset Jabatan", noAset: document.getElementById('k_noAset').value || "-", kadInden: document.getElementById('k_inden').value || "-", tng: document.getElementById('k_tng').value || "-", mileage: parseInt(document.getElementById('k_mileage').value) || 0, mileageServis: parseInt(document.getElementById('k_servis').value) || 0, gambar: document.getElementById('kenderaanGambarBase64').value || (existing ? existing.gambar : ""),
+                    status: existing ? existing.status : "Available", pengguna: existing ? existing.pengguna : "-", noTelPengguna: existing ? existing.noTelPengguna : "-", tempahOleh: existing ? existing.tempahOleh : "-", unit: existing ? existing.unit : "-", tujuan: existing ? existing.tujuan : "-", lokasiTujuan: existing ? existing.lokasiTujuan : "-", tMula: existing ? existing.tMula : "-", tTamat: existing ? existing.tTamat : "-", masaAmbil: existing ? existing.masaAmbil : null
+                };
+                await setDoc(doc(db, "kenderaan", plat), dataK);
+                notif(`Kenderaan ${plat} berjaya disimpan.`); window.resetBorangKenderaan();
+            } catch (err) {
+                console.error("Ralat Simpan Kenderaan:", err);
+                alert("Gagal menyimpan rekod kenderaan. Sila cuba lagi.");
+            }
         };
         window.editKenderaan = function(plat) {
             let k = DB_Kenderaan.find(v => v.plat === plat); if(!k) return;
@@ -651,6 +742,7 @@
             document.getElementById('k_plat').value = k.plat; document.getElementById('k_plat').readOnly = true; 
             document.getElementById('k_jenama').value = k.jenama; document.getElementById('k_jenis').value = k.jenis || "Sedan"; document.getElementById('k_milikan').value = k.milikan || "Aset Jabatan"; document.getElementById('k_noAset').value = k.noAset || ""; document.getElementById('k_inden').value = k.kadInden || ""; document.getElementById('k_tng').value = k.tng || ""; document.getElementById('k_mileage').value = k.mileage; document.getElementById('k_servis').value = k.mileageServis;
             document.getElementById('kenderaanGambarBase64').value = k.gambar || ""; document.getElementById('previewGambarKenderaan').src = k.gambar || "https://placehold.co/400x250/e2e8f0/64748b?text=Kereta";
+            window.scrollTo(0, 0);
         };
         window.resetBorangKenderaan = function() { document.getElementById('borangKenderaan').reset(); document.getElementById('k_plat').readOnly = false; document.getElementById('kenderaanGambarBase64').value = ""; document.getElementById('previewGambarKenderaan').src = "https://placehold.co/400x250/e2e8f0/64748b?text=Kereta"; document.getElementById('tajukBorangKenderaan').innerText = "Daftar Kenderaan Baru"; };
         function janaSistemKenderaan() {
@@ -719,7 +811,10 @@
         window.tutupModalPulang = () => document.getElementById('modalKonfirmasiPulang').classList.add('hilang');
         window.sahkanPulangKenderaan = async function() {
             await updateDoc(doc(db, "kenderaan", window.rekodPulangSemasa.plat), { status: "Available", mileage: window.rekodPulangSemasa.mileageBaru, pengguna: "-", noTelPengguna: "-", unit: "-", tujuan: "-", lokasiTujuan: "-", tMula: "-", tTamat: "-", masaAmbil: null });
-            window.tutupModalPulang(); window.paparTab('dashboard'); notif(`Berjaya memulangkan kenderaan.`);
+            window.tutupModalPulang(); 
+            // Halakan pengguna terus ke tab Operasi(Tempahan) selepas memulangkan kereta
+            window.paparTab('operasi'); 
+            notif(`Berjaya memulangkan kenderaan.`);
             document.getElementById('indenRM').value = ""; document.getElementById('indenLiter').value = ""; document.getElementById('gunaTNG').checked = false; document.getElementById('inputMileageSelepas').value = "";
         };
 
