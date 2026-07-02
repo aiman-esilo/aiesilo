@@ -53,6 +53,7 @@
                     Log masuk sebagai: <strong id="profilEmel" class="text-yellow-300">-</strong><br>
                     Peranan: <span id="profilPeranan" class="bg-blue-600 px-2 py-0.5 rounded text-xs uppercase font-bold">-</span>
                 </div>
+                <!-- Dropdown Simulasi Log Masuk -->
                 <div class="flex space-x-2 bg-blue-900 p-2 rounded-lg text-sm items-center border border-blue-700">
                     <label class="text-xs text-blue-200 font-bold">Akaun Semasa:</label>
                     <select id="pilihUjianUser" onchange="tukarPenggunaAkaun(this.value)" class="text-black text-sm p-1 rounded font-bold cursor-pointer"></select>
@@ -81,10 +82,19 @@
     <!-- PANGKALAN DATA SIMULASI (Notifikasi Emel) -->
     <div id="ruangNotifikasi" class="fixed top-20 right-4 z-50 flex flex-col space-y-2 w-80"></div>
 
-    <!-- TAB 1: DASHBOARD (ADMIN & SUPER ADMIN SAHAJA) -->
+    <!-- TAB 1: DASHBOARD (ADMIN, SUPER ADMIN & PENGGUNA) -->
     <div id="viewDashboard" class="container mx-auto p-6 block">
+        
+        <!-- F1 Tambahan: Kotak Summary (Hanya papar untuk Admin/Super Admin) -->
+        <div id="dashboardSummary" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 hilang">
+            <div class="bg-blue-100 p-4 rounded-lg border border-blue-200 shadow-sm"><h3 class="text-blue-800 text-sm font-bold uppercase">Jumlah Kenderaan</h3><p id="sumTotal" class="text-3xl font-black text-blue-900 mt-1">0</p></div>
+            <div class="bg-emerald-100 p-4 rounded-lg border border-emerald-200 shadow-sm"><h3 class="text-emerald-800 text-sm font-bold uppercase">Available</h3><p id="sumAvailable" class="text-3xl font-black text-emerald-900 mt-1">0</p></div>
+            <div class="bg-amber-100 p-4 rounded-lg border border-amber-200 shadow-sm"><h3 class="text-amber-800 text-sm font-bold uppercase">Telah Ditempah</h3><p id="sumDitempah" class="text-3xl font-black text-amber-900 mt-1">0</p></div>
+            <div class="bg-rose-100 p-4 rounded-lg border border-rose-200 shadow-sm"><h3 class="text-rose-800 text-sm font-bold uppercase">Sedang Digunakan</h3><p id="sumSedangGuna" class="text-3xl font-black text-rose-900 mt-1">0</p></div>
+        </div>
+
         <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-indigo-600">
-            <h2 class="text-xl font-bold mb-4 text-gray-800">Status Semasa Semua Kenderaan</h2>
+            <h2 id="tajukDashboard" class="text-xl font-bold mb-4 text-gray-800">Status Semasa Semua Kenderaan</h2>
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse text-sm">
                     <thead>
@@ -161,6 +171,31 @@
                         <tbody id="jadualAdmin"></tbody>
                     </table>
                 </div>
+                
+                <!-- F1 Tambahan: Sejarah Kelulusan -->
+                <div class="mt-8 pt-6 border-t-2 border-gray-200">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-gray-800">Sejarah Kelulusan Tempahan</h3>
+                        <button onclick="janaLaporanKelulusan()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded text-sm font-bold shadow transition flex items-center">
+                            <span>📊 Jana Laporan (CSV)</span>
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto bg-gray-50 rounded-lg border border-gray-200">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-gray-200 text-gray-700">
+                                    <th class="p-3 border-b">Pemohon</th>
+                                    <th class="p-3 border-b">Destinasi</th>
+                                    <th class="p-3 border-b">Kenderaan Diberi</th>
+                                    <th class="p-3 border-b">Tarikh Kelulusan</th>
+                                    <th class="p-3 border-b">Diluluskan Oleh</th>
+                                </tr>
+                            </thead>
+                            <tbody id="jadualSejarahKelulusan"></tbody>
+                        </table>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -193,14 +228,16 @@
                         <div><span class="block text-gray-500 text-xs">Mileage Servis</span><strong id="infoServis" class="text-red-600">-</strong> km</div>
                     </div>
                 </div>
-                <div class="mt-8 pt-6 border-t flex justify-end">
-                    <button onclick="sahkanAmbilKenderaan()" class="bg-green-600 text-white font-bold py-3 px-8 rounded hover:bg-green-700 shadow">SAHKAN PENGAMBILAN</button>
+                <!-- F1 Tambahan: Butang Batal Ambilan -->
+                <div class="mt-8 pt-6 border-t flex flex-col sm:flex-row justify-between items-center space-y-3 sm:space-y-0">
+                    <button onclick="batalAmbilKenderaan()" class="w-full sm:w-auto bg-white hover:bg-red-50 text-red-600 font-bold py-3 px-6 rounded shadow-sm border-2 border-red-200 transition">❌ BATAL PENGAMBILAN</button>
+                    <button onclick="sahkanAmbilKenderaan()" class="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded shadow transition">✅ SAHKAN PENGAMBILAN</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- TAB 4: PULANG KENDERAAN (DIKEMASKINI DENGAN PENUMPANG & STESEN MINYAK) -->
+    <!-- TAB 4: PULANG KENDERAAN -->
     <div id="viewPulang" class="container mx-auto p-6 hilang">
         <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-indigo-500 max-w-4xl mx-auto">
             <h2 class="text-xl font-bold text-gray-800 mb-6">Proses Pemulangan Kenderaan</h2>
@@ -215,7 +252,7 @@
                     <div><span class="block text-gray-500 text-xs font-bold">Tempoh Penggunaan</span><strong id="pulangTempohMasa" class="text-xl text-purple-700">-</strong></div>
                     <div><span class="block text-gray-500 text-xs font-bold">Mileage Sebelum</span><strong id="pulangMileageSebelum" class="text-xl">-</strong> km</div>
                     
-                    <!-- F1 Tambahan: Maklumat Penumpang -->
+                    <!-- Maklumat Penumpang -->
                     <div class="md:col-span-3 border-t pt-4">
                         <h3 class="font-bold text-gray-800 mb-4">Maklumat Penumpang (Sila Cari Di Bawah)</h3>
                         <div class="flex items-end space-x-2">
@@ -262,121 +299,120 @@
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- TAB 5: SELENGGARA STAF (KHAS UNTUK SUPER ADMIN SAHAJA) -->
-    <div id="viewSelenggara" class="container mx-auto p-6 hilang">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-purple-600 lg:col-span-1">
-                <h2 id="tajukBorangStaf" class="text-xl font-bold mb-4">Tambah Staf Baru</h2>
-                <form id="borangStaf" onsubmit="simpanStaf(event)">
-                    <div class="mb-4">
-                        <label class="block text-sm font-bold mb-2">Gambar Profil</label>
-                        <div class="flex items-center space-x-3">
-                            <img id="previewGambarStaf" src="https://placehold.co/100x100/e2e8f0/64748b?text=User" class="w-16 h-16 rounded-full border object-contain bg-white">
-                            <input type="file" id="stafGambar" onchange="prosesGambar(event, 'previewGambarStaf', 'stafGambarBase64')" class="text-xs">
+        <!-- TAB 5: SELENGGARA STAF -->
+        <div id="viewSelenggara" class="container mx-auto p-6 hilang">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-purple-600 lg:col-span-1">
+                    <h2 id="tajukBorangStaf" class="text-xl font-bold mb-4">Tambah Staf Baru</h2>
+                    <form id="borangStaf" onsubmit="simpanStaf(event)">
+                        <div class="mb-4">
+                            <label class="block text-sm font-bold mb-2">Gambar Profil</label>
+                            <div class="flex items-center space-x-3">
+                                <img id="previewGambarStaf" src="https://placehold.co/100x100/e2e8f0/64748b?text=User" class="w-16 h-16 rounded-full border object-contain bg-white">
+                                <input type="file" id="stafGambar" onchange="prosesGambar(event, 'previewGambarStaf', 'stafGambarBase64')" class="text-xs">
+                            </div>
+                            <input type="hidden" id="stafGambarBase64">
                         </div>
-                        <input type="hidden" id="stafGambarBase64">
-                    </div>
-                    <div class="mb-4"><label class="block text-sm font-bold mb-2">Nama Penuh</label><input type="text" id="stafNama" class="w-full p-2 border rounded" required></div>
-                    <div class="mb-4"><label class="block text-sm font-bold mb-2">Emel Rasmi</label><input type="email" id="stafEmel" class="w-full p-2 border rounded" required></div>
-                    <div class="mb-4"><label class="block text-sm font-bold mb-2">No. Telefon</label><input type="text" id="stafTel" class="w-full p-2 border rounded" required></div>
-                    <div class="mb-4"><label class="block text-sm font-bold mb-2">Unit / Jabatan</label><input type="text" id="stafUnit" class="w-full p-2 border rounded" required></div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-bold mb-2">Peranan (Tahap Akses)</label>
-                        <select id="stafPeranan" class="w-full p-2 border rounded bg-purple-50 font-bold text-purple-800" required>
-                            <option value="pengguna">Pengguna (Kuasa Memandu)</option>
-                            <option value="penumpang">Pengguna Biasa (Penumpang)</option>
-                            <option value="admin">Admin (Pelulus)</option>
-                            <option value="superadmin">Super Admin (Pengurus Sistem)</option>
-                        </select>
-                    </div>
-                    <div class="flex space-x-2">
-                        <button type="button" onclick="resetBorangStaf()" class="w-1/3 bg-gray-300 font-bold py-2 rounded">Batal</button>
-                        <button type="submit" class="w-2/3 bg-purple-600 text-white font-bold py-2 rounded shadow">Simpan Data</button>
-                    </div>
-                </form>
+                        <div class="mb-4"><label class="block text-sm font-bold mb-2">Nama Penuh</label><input type="text" id="stafNama" class="w-full p-2 border rounded" required></div>
+                        <div class="mb-4"><label class="block text-sm font-bold mb-2">Emel Rasmi (Sistem)</label><input type="email" id="stafEmel" class="w-full p-2 border rounded" required placeholder="Contoh: abu@esilo.my"></div>
+                        <div class="mb-4"><label class="block text-sm font-bold mb-2">No. Telefon</label><input type="text" id="stafTel" class="w-full p-2 border rounded" required></div>
+                        <div class="mb-4"><label class="block text-sm font-bold mb-2">Unit / Jabatan</label><input type="text" id="stafUnit" class="w-full p-2 border rounded" required></div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-bold mb-2">Peranan (Tahap Akses)</label>
+                            <select id="stafPeranan" class="w-full p-2 border rounded bg-purple-50 font-bold text-purple-800" required>
+                                <option value="pengguna">Pengguna (Kuasa Memandu)</option>
+                                <option value="penumpang">Pengguna Biasa (Penumpang)</option>
+                                <option value="admin">Admin (Pelulus)</option>
+                                <option value="superadmin">Super Admin (Pengurus Sistem)</option>
+                            </select>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button type="button" onclick="resetBorangStaf()" class="w-1/3 bg-gray-300 font-bold py-2 rounded">Batal</button>
+                            <button type="submit" class="w-2/3 bg-purple-600 text-white font-bold py-2 rounded shadow">Simpan Data</button>
+                        </div>
+                    </form>
 
-                <!-- F1 Tambahan: Upload Pukal CSV -->
-                <div class="mt-8 pt-6 border-t border-gray-200 bg-purple-50 p-4 rounded-lg border border-purple-200">
-                    <h3 class="font-bold text-purple-900 mb-2 flex items-center">📊 Upload Bundle (CSV)</h3>
-                    <p class="text-xs text-purple-700 mb-4">Muat naik senarai nama staf secara pukal menggunakan fail CSV.</p>
-                    <input type="file" id="excelFile" accept=".csv" class="w-full text-xs text-gray-500 mb-3 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700">
-                    <button onclick="muatNaikPukal()" class="w-full text-xs bg-white border border-purple-400 text-purple-700 py-2 rounded font-bold hover:bg-purple-100 shadow">PROSES MUAT NAIK BUNDLE</button>
-                    <button onclick="downloadTemplate()" class="w-full text-left text-xs text-blue-600 underline mt-3 block font-semibold">📥 Klik Di Sini Untuk Download Template CSV</button>
+                    <!-- Upload Pukal CSV -->
+                    <div class="mt-8 pt-6 border-t border-gray-200 bg-purple-50 p-4 rounded-lg border border-purple-200">
+                        <h3 class="font-bold text-purple-900 mb-2 flex items-center">📊 Upload Bundle (CSV)</h3>
+                        <p class="text-xs text-purple-700 mb-4">Muat naik senarai nama staf secara pukal menggunakan fail CSV.</p>
+                        <input type="file" id="excelFile" accept=".csv" class="w-full text-xs text-gray-500 mb-3 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700">
+                        <button onclick="muatNaikPukal()" class="w-full text-xs bg-white border border-purple-400 text-purple-700 py-2 rounded font-bold hover:bg-purple-100 shadow">PROSES MUAT NAIK BUNDLE</button>
+                        <button onclick="downloadTemplate()" class="w-full text-left text-xs text-blue-600 underline mt-3 block font-semibold">📥 Klik Di Sini Untuk Download Template CSV</button>
+                    </div>
                 </div>
-            </div>
-            <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-gray-400 lg:col-span-2">
-                <h2 class="text-xl font-bold mb-4">Senarai Pengguna E-SILO</h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-sm">
-                        <thead class="bg-gray-800 text-white"><tr><th class="p-3">Profil</th><th class="p-3">Nama & Emel</th><th class="p-3">Telefon</th><th class="p-3">Unit & Peranan</th><th class="p-3">Tindakan</th></tr></thead>
-                        <tbody id="jadualSelenggaraStaf"></tbody>
-                    </table>
+                <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-gray-400 lg:col-span-2">
+                    <h2 class="text-xl font-bold mb-4">Senarai Pengguna E-SILO</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead class="bg-gray-800 text-white"><tr><th class="p-3">Profil</th><th class="p-3">Nama & Emel</th><th class="p-3">Telefon</th><th class="p-3">Unit & Peranan</th><th class="p-3">Tindakan</th></tr></thead>
+                            <tbody id="jadualSelenggaraStaf"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- TAB 6: SELENGGARA KENDERAAN (ADMIN & SUPER ADMIN) -->
-    <div id="viewSelenggaraKenderaan" class="container mx-auto p-6 hilang">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-emerald-600 lg:col-span-1">
-                <h2 id="tajukBorangKenderaan" class="text-xl font-bold mb-4 text-gray-800">Daftar Kenderaan Baru</h2>
-                <form id="borangKenderaan" onsubmit="simpanKenderaan(event)">
-                    <div class="mb-4">
-                        <label class="block text-sm font-bold mb-2">Gambar Kenderaan</label>
-                        <div class="flex flex-col space-y-2">
-                            <img id="previewGambarKenderaan" src="https://placehold.co/400x250/e2e8f0/64748b?text=Kereta" class="w-full h-32 rounded border object-contain bg-white">
-                            <input type="file" onchange="prosesGambar(event, 'previewGambarKenderaan', 'kenderaanGambarBase64')" class="text-xs">
+        <!-- TAB 6: SELENGGARA KENDERAAN -->
+        <div id="viewSelenggaraKenderaan" class="container mx-auto p-6 hilang">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-emerald-600 lg:col-span-1">
+                    <h2 id="tajukBorangKenderaan" class="text-xl font-bold mb-4 text-gray-800">Daftar Kenderaan Baru</h2>
+                    <form id="borangKenderaan" onsubmit="simpanKenderaan(event)">
+                        <div class="mb-4">
+                            <label class="block text-sm font-bold mb-2">Gambar Kenderaan</label>
+                            <div class="flex flex-col space-y-2">
+                                <img id="previewGambarKenderaan" src="https://placehold.co/400x250/e2e8f0/64748b?text=Kereta" class="w-full h-32 rounded border object-contain bg-white">
+                                <input type="file" onchange="prosesGambar(event, 'previewGambarKenderaan', 'kenderaanGambarBase64')" class="text-xs">
+                            </div>
+                            <input type="hidden" id="kenderaanGambarBase64">
                         </div>
-                        <input type="hidden" id="kenderaanGambarBase64">
+                        <div class="mb-4"><label class="block text-sm font-bold mb-2">No. Plat</label><input type="text" id="k_plat" class="w-full p-2 border rounded font-bold uppercase" required placeholder="Cth: VEE 1234"></div>
+                        <div class="mb-4"><label class="block text-sm font-bold mb-2">Jenama & Model</label><input type="text" id="k_jenama" class="w-full p-2 border rounded" required placeholder="Cth: Toyota Hilux"></div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-bold mb-2">Jenis Kenderaan</label>
+                            <select id="k_jenis" class="w-full p-2 border rounded" required>
+                                <option value="Sedan">Sedan (Kereta Penumpang)</option>
+                                <option value="4x4">4x4 (Pacuan 4 Roda)</option>
+                                <option value="Van">Van</option>
+                                <option value="Lori">Lori / Lain-lain</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-bold mb-2">Milikan Aset</label>
+                            <select id="k_milikan" class="w-full p-2 border rounded" required>
+                                <option value="Aset Jabatan">Aset Hak Milik Jabatan</option>
+                                <option value="Spanco">Sewa Beli (Spanco)</option>
+                            </select>
+                        </div>
+                        <div class="mb-4"><label class="block text-sm font-bold mb-2">No. Pendaftaran Aset / Rujukan</label><input type="text" id="k_noAset" class="w-full p-2 border rounded" placeholder="Cth: KPDN/AST/001"></div>
+                        <div class="grid grid-cols-2 gap-2 mb-4">
+                            <div><label class="block text-sm font-bold mb-2">Kad Inden</label><input type="text" id="k_inden" class="w-full p-2 border rounded"></div>
+                            <div><label class="block text-sm font-bold mb-2">Touch n Go</label><input type="text" id="k_tng" class="w-full p-2 border rounded"></div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 mb-4">
+                            <div><label class="block text-sm font-bold mb-2">Mileage Mula</label><input type="number" id="k_mileage" class="w-full p-2 border rounded" required></div>
+                            <div><label class="block text-sm font-bold mb-2">Servis Seterusnya</label><input type="number" id="k_servis" class="w-full p-2 border rounded" required></div>
+                        </div>
+                        
+                        <div class="flex space-x-2">
+                            <button type="button" onclick="resetBorangKenderaan()" class="w-1/3 bg-gray-300 font-bold py-2 rounded">Batal</button>
+                            <button type="submit" class="w-2/3 bg-emerald-600 text-white font-bold py-2 rounded shadow">Simpan Data</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-gray-400 lg:col-span-2">
+                    <h2 class="text-xl font-bold mb-4">Pangkalan Data Aset Kenderaan</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead class="bg-gray-800 text-white"><tr><th class="p-3 w-16">Gambar</th><th class="p-3">No. Plat & Model</th><th class="p-3">Jenis & Milikan</th><th class="p-3">No. Aset</th><th class="p-3 text-center">Tindakan</th></tr></thead>
+                            <tbody id="jadualSelenggaraKenderaan"></tbody>
+                        </table>
                     </div>
-                    <div class="mb-4"><label class="block text-sm font-bold mb-2">No. Plat</label><input type="text" id="k_plat" class="w-full p-2 border rounded font-bold uppercase" required placeholder="Cth: VEE 1234"></div>
-                    <div class="mb-4"><label class="block text-sm font-bold mb-2">Jenama & Model</label><input type="text" id="k_jenama" class="w-full p-2 border rounded" required placeholder="Cth: Toyota Hilux"></div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-bold mb-2">Jenis Kenderaan</label>
-                        <select id="k_jenis" class="w-full p-2 border rounded" required>
-                            <option value="Sedan">Sedan (Kereta Penumpang)</option>
-                            <option value="4x4">4x4 (Pacuan 4 Roda)</option>
-                            <option value="Van">Van</option>
-                            <option value="Lori">Lori / Lain-lain</option>
-                        </select>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-bold mb-2">Milikan Aset</label>
-                        <select id="k_milikan" class="w-full p-2 border rounded" required>
-                            <option value="Aset Jabatan">Aset Hak Milik Jabatan</option>
-                            <option value="Spanco">Sewa Beli (Spanco)</option>
-                        </select>
-                    </div>
-                    <div class="mb-4"><label class="block text-sm font-bold mb-2">No. Pendaftaran Aset / Rujukan</label><input type="text" id="k_noAset" class="w-full p-2 border rounded" placeholder="Cth: KPDN/AST/001"></div>
-                    <div class="grid grid-cols-2 gap-2 mb-4">
-                        <div><label class="block text-sm font-bold mb-2">Kad Inden</label><input type="text" id="k_inden" class="w-full p-2 border rounded"></div>
-                        <div><label class="block text-sm font-bold mb-2">Touch n Go</label><input type="text" id="k_tng" class="w-full p-2 border rounded"></div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2 mb-4">
-                        <div><label class="block text-sm font-bold mb-2">Mileage Mula</label><input type="number" id="k_mileage" class="w-full p-2 border rounded" required></div>
-                        <div><label class="block text-sm font-bold mb-2">Servis Seterusnya</label><input type="number" id="k_servis" class="w-full p-2 border rounded" required></div>
-                    </div>
-                    
-                    <div class="flex space-x-2">
-                        <button type="button" onclick="resetBorangKenderaan()" class="w-1/3 bg-gray-300 font-bold py-2 rounded">Batal</button>
-                        <button type="submit" class="w-2/3 bg-emerald-600 text-white font-bold py-2 rounded shadow">Simpan Data</button>
-                    </div>
-                </form>
-            </div>
-            <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-gray-400 lg:col-span-2">
-                <h2 class="text-xl font-bold mb-4">Pangkalan Data Aset Kenderaan</h2>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-sm">
-                        <thead class="bg-gray-800 text-white"><tr><th class="p-3 w-16">Gambar</th><th class="p-3">No. Plat & Model</th><th class="p-3">Jenis & Milikan</th><th class="p-3">No. Aset</th><th class="p-3 text-center">Tindakan</th></tr></thead>
-                        <tbody id="jadualSelenggaraKenderaan"></tbody>
-                    </table>
                 </div>
             </div>
         </div>
-    </div>
 
     <!-- MODAL PENGESAHAN PULANG TERPERINCI -->
     <div id="modalKonfirmasiPulang" class="fixed inset-0 bg-black bg-opacity-60 z-50 hilang flex justify-center items-center">
@@ -410,7 +446,7 @@
     <!-- SKRIP FIREBASE & LOGIK SISTEM -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, setDoc, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAjEvEA0MczAuwD3qKQAyP-finyiDmcIFM",
@@ -429,7 +465,36 @@
         let DB_Pengguna = [];
         let profilSemasa = {}; 
 
+        // ================= SEED DATA AWAL (JIKA PANGKALAN DATA KOSONG) =================
+        async function semakDataAwal() {
+            const snapK = await getDocs(collection(db, "kenderaan"));
+            if(snapK.empty) {
+                const senaraiAwal = [
+                    { plat: "BEE 1234", jenama: "Proton Perdana", jenis: "Sedan", milikan: "Aset Jabatan", noAset: "KPDN/AST/01", status: "Available", pengguna: "-", noTelPengguna: "-", tempahOleh: "-", unit: "-", tujuan: "-", lokasiTujuan: "-", tMula: "-", tTamat: "-", kadInden: "IND-123", tng: "TNG-123", mileage: 12500, mileageServis: 20000, masaAmbil: null, gambar: "" },
+                    { plat: "WA 8888", jenama: "Honda Camry", jenis: "Sedan", milikan: "Spanco", noAset: "SPC/001", status: "Available", pengguna: "-", noTelPengguna: "-", tempahOleh: "-", unit: "-", tujuan: "-", lokasiTujuan: "-", tMula: "-", tTamat: "-", kadInden: "IND-456", tng: "TNG-456", mileage: 34200, mileageServis: 40000, masaAmbil: null, gambar: "" }
+                ];
+                for (let k of senaraiAwal) { await setDoc(doc(db, "kenderaan", k.plat), k); }
+            }
+
+            const snapP = await getDocs(collection(db, "pengguna_esilo"));
+            if(snapP.empty) {
+                const pekerjaAwal = [
+                    { emel: "siti@esilo.my", nama: "Siti Aminah", unit: "Unit Pembangunan", tel: "0134455667", peranan: "pengguna", gambar: "" },
+                    { emel: "ahmad@esilo.my", nama: "Ahmad Albab", unit: "Unit IT", tel: "0198877665", peranan: "admin", gambar: "" },
+                    { emel: "abu@esilo.my", nama: "Abu Bakar", unit: "Unit Logistik", tel: "0123344556", peranan: "penumpang", gambar: "" },
+                    { emel: "superadmin@esilo.my", nama: "Sistem Pengurus", unit: "Ibu Pejabat", tel: "0100000000", peranan: "superadmin", gambar: "" }
+                ];
+                for (let p of pekerjaAwal) { await setDoc(doc(db, "pengguna_esilo", p.emel), p); }
+            }
+        }
+        semakDataAwal();
+
         function formatTarikhMY(t) { if(!t || t==="-") return "-"; let p=t.split('-'); return p.length===3 ? `${p[2]}/${p[1]}/${p[0]}` : t; }
+        function formatTarikhTimeMY(iso) { 
+            if(!iso || iso==="-") return "-"; 
+            let d = new Date(iso); 
+            return d.toLocaleDateString('ms-MY') + " " + d.toLocaleTimeString('ms-MY', {hour: '2-digit', minute:'2-digit'}); 
+        }
         function formatMasa(isoString) {
             if(!isoString || isoString==="-") return "-";
             let d = new Date(isoString);
@@ -469,41 +534,43 @@
         });
         onSnapshot(collection(db, "pengguna_esilo"), (snapshot) => {
             DB_Pengguna = [];
-            let selectUser = document.getElementById('pilihUjianUser');
-            let valLama = selectUser.value; selectUser.innerHTML = "";
-            
-            // Datalist Penumpang
             let dtList = document.getElementById('listPenumpang');
             if (dtList) dtList.innerHTML = "";
-
+            let selectUser = document.getElementById('pilihUjianUser');
+            let valLama = selectUser ? selectUser.value : null; 
+            if(selectUser) selectUser.innerHTML = "";
             let adaSuperAdmin = false;
 
             snapshot.forEach((doc) => { 
                 let p = doc.data(); DB_Pengguna.push(p);
-                selectUser.innerHTML += `<option value="${p.emel}">${p.nama} (${p.peranan.toUpperCase()})</option>`;
                 if (dtList) dtList.innerHTML += `<option value="${p.nama} (${p.unit})">`;
+                if(selectUser) selectUser.innerHTML += `<option value="${p.emel}">${p.nama} (${p.peranan.toUpperCase()})</option>`;
                 if(p.peranan === 'superadmin') adaSuperAdmin = true;
             });
             
             if(!adaSuperAdmin) {
-                 selectUser.innerHTML += `<option value="superadmin@esilo.my">Sistem (SUPERADMIN)</option>`;
                  DB_Pengguna.push({ emel: "superadmin@esilo.my", nama: "Sistem Pengurus", unit: "Ibu Pejabat", peranan: "superadmin", tel: "0100000000" });
+                 if(selectUser) selectUser.innerHTML += `<option value="superadmin@esilo.my">Sistem Pengurus (SUPERADMIN)</option>`;
             }
 
-            if(valLama && DB_Pengguna.find(u => u.emel === valLama)) selectUser.value = valLama;
-            else if(DB_Pengguna.length > 0) selectUser.value = DB_Pengguna[0].emel;
-            tukarPenggunaAkaun(selectUser.value);
+            if(selectUser) {
+                if(valLama && DB_Pengguna.find(u => u.emel === valLama)) selectUser.value = valLama;
+                else if(DB_Pengguna.length > 0) selectUser.value = DB_Pengguna[0].emel;
+                tukarPenggunaAkaun(selectUser.value);
+            }
             janaSistemStaf(); 
         });
 
         // ================= LOGIK AKAUN & TAB =================
+
         window.tukarPenggunaAkaun = function(emel) {
             profilSemasa = DB_Pengguna.find(u => u.emel === emel) || {};
             document.getElementById('profilEmel').innerText = profilSemasa.emel || "-";
             document.getElementById('profilPeranan').innerText = (profilSemasa.peranan || "-").toUpperCase();
             
             if(profilSemasa.peranan === 'pengguna' || profilSemasa.peranan === 'penumpang') {
-                document.getElementById('tabDashboard').classList.add('hilang');
+                // F1 Tambahan: Pengguna boleh lihat Dashboard (tetapi ditapis di janaSistem)
+                document.getElementById('tabDashboard').classList.remove('hilang');
                 document.getElementById('tabSelenggara').classList.add('hilang');
                 document.getElementById('tabSelenggaraKenderaan').classList.add('hilang');
                 document.getElementById('paparanAdmin').classList.add('hilang');
@@ -514,6 +581,11 @@
                 document.getElementById('tabPulang').classList.remove('hilang');
                 document.getElementById('paparanPengguna').classList.remove('hilang');
                 
+                if(profilSemasa.peranan === 'penumpang') {
+                     document.getElementById('tabAmbil').classList.add('hilang');
+                     document.getElementById('tabPulang').classList.add('hilang');
+                }
+
                 window.paparTab('operasi');
             } else if (profilSemasa.peranan === 'admin') {
                 document.getElementById('tabDashboard').classList.remove('hilang');
@@ -576,7 +648,6 @@
             document.getElementById('nama').value = profilSemasa.nama || ""; 
             document.getElementById('unit').value = profilSemasa.unit || "";
             
-            // F1 Tambahan: Logik Pintar Sekatan Tempahan
             let adaPending = DB_Tempahan.find(t => t.emel === profilSemasa.emel && t.status === "Menunggu Kelulusan");
             let adaSedangGuna = DB_Kenderaan.find(k => k.pengguna === profilSemasa.nama && k.status === "Sedang Digunakan");
             
@@ -640,7 +711,13 @@
             if(!kereta) return alert("Sila tetapkan kenderaan!");
             const temp = DB_Tempahan.find(t => t.idT === idTempahan);
             
-            await updateDoc(doc(db, "tempahan", idTempahan), { kenderaanDipilih: kereta, status: "Lulus" });
+            // F1 Tambahan: Masukkan rekod kelulusan
+            await updateDoc(doc(db, "tempahan", idTempahan), { 
+                kenderaanDipilih: kereta, 
+                status: "Lulus",
+                lulusOleh: profilSemasa.emel,
+                tLulus: new Date().toISOString()
+            });
             await updateDoc(doc(db, "kenderaan", kereta), {
                 status: "Ditempah", tempahOleh: temp.nama, noTelPengguna: temp.tel || "-", pengguna: "-",
                 unit: temp.unit, tujuan: temp.tujuan, lokasiTujuan: temp.lokasi, tMula: temp.tMula, tTamat: temp.tTamat
@@ -662,7 +739,24 @@
             }
 
             const tbDash = document.getElementById('jadualDashboard'); if(!tbDash) return; tbDash.innerHTML = "";
-            DB_Kenderaan.forEach((k, i) => {
+            
+            // F1 Tambahan: Logik Tapisan Kotak Summary dan Jadual
+            let kenderaanDipapar = DB_Kenderaan;
+            
+            if(profilSemasa.peranan === 'pengguna' || profilSemasa.peranan === 'penumpang') {
+                document.getElementById('dashboardSummary').classList.add('hilang');
+                document.getElementById('tajukDashboard').innerText = "Kenderaan Anda (Sedang Ditempah / Digunakan)";
+                kenderaanDipapar = DB_Kenderaan.filter(k => (k.status === 'Ditempah' && k.tempahOleh === profilSemasa.nama) || (k.status === 'Sedang Digunakan' && k.pengguna === profilSemasa.nama));
+            } else {
+                document.getElementById('dashboardSummary').classList.remove('hilang');
+                document.getElementById('tajukDashboard').innerText = "Status Semasa Semua Kenderaan";
+                document.getElementById('sumTotal').innerText = DB_Kenderaan.length;
+                document.getElementById('sumAvailable').innerText = DB_Kenderaan.filter(k => k.status === 'Available').length;
+                document.getElementById('sumDitempah').innerText = DB_Kenderaan.filter(k => k.status === 'Ditempah').length;
+                document.getElementById('sumSedangGuna').innerText = DB_Kenderaan.filter(k => k.status === 'Sedang Digunakan').length;
+            }
+
+            kenderaanDipapar.forEach((k, i) => {
                 let bg = k.status === "Available" ? "bg-green-100 text-green-700" : (k.status === "Ditempah" ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-700");
                 let textP = "-"; let textTel = "-";
                 if(k.status === "Ditempah") { textP = `(Ditempah) ${k.tempahOleh}`; textTel = k.noTelPengguna; }
@@ -682,11 +776,13 @@
                 </tr>`;
             });
 
+            // Jadual Pengguna (Tab Operasi)
             const tbPeng = document.getElementById('jadualPengguna'); if(!tbPeng) return; tbPeng.innerHTML = "";
             DB_Tempahan.filter(t => t.emel === profilSemasa.emel).reverse().forEach(t => {
                 tbPeng.innerHTML += `<tr class="border-b"><td class="p-3">${t.lokasi}</td><td class="p-3">${formatTarikhMY(t.tMula)}</td><td class="p-3 font-bold">${t.kenderaanDipilih}</td><td class="p-3">${t.status}</td></tr>`;
             });
 
+            // Jadual Kelulusan Admin (Tab Operasi)
             const tbAdmin = document.getElementById('jadualAdmin'); if(!tbAdmin) return; tbAdmin.innerHTML = "";
             DB_Tempahan.reverse().forEach(t => {
                 if(t.status === "Menunggu Kelulusan") {
@@ -711,7 +807,38 @@
                     </tr>`;
                 }
             });
+
+            // F1 Tambahan: Sejarah Kelulusan Admin
+            const tbSejarah = document.getElementById('jadualSejarahKelulusan'); if(tbSejarah) tbSejarah.innerHTML = "";
+            DB_Tempahan.forEach(t => {
+                if(t.status === "Lulus" || t.status === "Selesai" || t.status === "Dibatalkan oleh Pengguna") {
+                    let sWarna = t.status.includes('Batal') ? 'text-red-600' : 'text-green-600';
+                    tbSejarah.innerHTML += `
+                    <tr class="border-b hover:bg-gray-100">
+                        <td class="p-3 font-semibold">${t.nama}</td>
+                        <td class="p-3 text-gray-700">${t.lokasi}</td>
+                        <td class="p-3 font-bold ${sWarna}">${t.kenderaanDipilih} <br><span class="text-xs text-gray-500 font-normal">(${t.status})</span></td>
+                        <td class="p-3 text-xs">${formatTarikhTimeMY(t.tLulus) || "-"}</td>
+                        <td class="p-3 text-xs text-blue-700 font-bold">${t.lulusOleh || "-"}</td>
+                    </tr>`;
+                }
+            });
         }
+
+        // F1 Tambahan: Laporan Kelulusan CSV
+        window.janaLaporanKelulusan = function() {
+            let content = "Pemohon,Unit,Destinasi,Kenderaan,Status,Tkh_Permohonan,Tkh_Lulus,Diluluskan_Oleh\n";
+            DB_Tempahan.forEach(t => {
+                if(t.status !== "Menunggu Kelulusan") {
+                    content += `"${t.nama}","${t.unit}","${t.lokasi}","${t.kenderaanDipilih}","${t.status}","${t.tMula}","${t.tLulus || "-"}","${t.lulusOleh || "-"}"\n`;
+                }
+            });
+            let blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+            let link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute("download", "Laporan_Kelulusan_ESILO.csv");
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        };
 
         // ================= UTILITI GAMBAR =================
         window.prosesGambar = function(e, previewId, base64Id) {
@@ -762,7 +889,7 @@
             });
         }
 
-        // ================= F1 TAMBAHAN: BULK UPLOAD STAF =================
+        // ================= UPLOAD PUKAL CSV =================
         window.muatNaikPukal = function() {
             let fileInput = document.getElementById('excelFile');
             if(fileInput.files.length === 0) return alert("Sila pilih fail CSV template terlebih dahulu!");
@@ -844,7 +971,6 @@
             let s = document.getElementById('pilihanAmbilKenderaan'); s.innerHTML = '<option value="">-- Pilih --</option>';
             let list = DB_Kenderaan.filter(k => k.status === 'Ditempah' && k.tempahOleh === profilSemasa.nama);
             
-            // F1 Tambahan: Logik Tiada Permohonan di Ambil
             if(list.length === 0) {
                 document.getElementById('tiadaKenderaanAmbil').classList.remove('hilang');
                 document.getElementById('ruanganPilihAmbil').classList.add('hilang');
@@ -869,6 +995,29 @@
             window.paparTab('operasi'); notif(`Berjaya ambil kenderaan ${plat}`);
         };
 
+        // F1 Tambahan: Fungsi Batal Pengambilan
+        window.batalAmbilKenderaan = async function() {
+            let plat = document.getElementById('pilihanAmbilKenderaan').value;
+            if(!plat) return;
+            if(confirm("Adakah anda pasti mahu membatalkan tempahan dan pengambilan kenderaan ini? Kenderaan akan dikembalikan kepada status Available untuk kegunaan pengguna lain.")) {
+                
+                await updateDoc(doc(db, "kenderaan", plat), { 
+                    status: "Available", pengguna: "-", noTelPengguna: "-", tempahOleh: "-", 
+                    unit: "-", tujuan: "-", lokasiTujuan: "-", tMula: "-", tTamat: "-", masaAmbil: null 
+                });
+                
+                let tempahanAktif = DB_Tempahan.find(t => t.kenderaanDipilih === plat && t.status === "Lulus" && t.emel === profilSemasa.emel);
+                if(tempahanAktif) {
+                    await updateDoc(doc(db, "tempahan", tempahanAktif.idT), { 
+                        status: "Dibatalkan oleh Pengguna"
+                    });
+                }
+                
+                window.paparTab('operasi'); 
+                notif(`Tempahan dan pengambilan kenderaan ${plat} telah dibatalkan.`);
+            }
+        };
+
         window.janaBorangPulang = function() {
             let k = DB_Kenderaan.find(v => v.status === 'Sedang Digunakan' && v.pengguna === profilSemasa.nama);
             if(!k) { document.getElementById('borangPulangKenderaan').classList.add('hilang'); document.getElementById('tiadaKenderaanPulang').classList.remove('hilang'); return; }
@@ -884,7 +1033,6 @@
             document.getElementById('paparMileageGuna').value = (!isNaN(mS) && mS >= mA) ? (mS - mA) : "0";
         };
         
-        // F1 Tambahan: Logik Carian Penumpang
         window.cariPenumpang = function() {
             let inputVal = document.getElementById('namaPenumpang').value;
             if(!inputVal) return alert("Sila taip nama penumpang di dalam kotak untuk membuat carian pangkalan data.");
@@ -913,7 +1061,6 @@
             document.getElementById('modalTempoh').innerText = tempohDigunakan;
             document.getElementById('modalJarak').innerText = jarakGuna.toLocaleString();
             
-            // Mengemaskini UI Modal Pulang
             document.getElementById('modalStesen').innerText = stesen;
             document.getElementById('modalInvoice').innerText = inv;
             document.getElementById('modalMinyak').innerText = infoMinyak;
@@ -924,11 +1071,18 @@
         };
         window.tutupModalPulang = () => document.getElementById('modalKonfirmasiPulang').classList.add('hilang');
         window.sahkanPulangKenderaan = async function() {
+            let k = DB_Kenderaan.find(v => v.plat === window.rekodPulangSemasa.plat);
             await updateDoc(doc(db, "kenderaan", window.rekodPulangSemasa.plat), { status: "Available", mileage: window.rekodPulangSemasa.mileageBaru, pengguna: "-", noTelPengguna: "-", unit: "-", tujuan: "-", lokasiTujuan: "-", tMula: "-", tTamat: "-", masaAmbil: null });
+            
+            // Tandakan tempahan sebagai Selesai
+            let tempahanSelesai = DB_Tempahan.find(t => t.kenderaanDipilih === k.plat && t.status === "Lulus" && t.emel === profilSemasa.emel);
+            if(tempahanSelesai) {
+                await updateDoc(doc(db, "tempahan", tempahanSelesai.idT), { status: "Selesai" });
+            }
+
             window.tutupModalPulang(); 
             window.paparTab('operasi'); 
             notif(`Berjaya memulangkan kenderaan.`);
-            // Pembersihan Borang Pulang
             document.getElementById('indenStesen').value = ""; document.getElementById('indenInvoice').value = ""; document.getElementById('namaPenumpang').value = "";
             document.getElementById('indenRM').value = ""; document.getElementById('indenLiter').value = ""; document.getElementById('gunaTNG').checked = false; document.getElementById('inputMileageSelepas').value = "";
         };
