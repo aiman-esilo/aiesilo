@@ -39,366 +39,344 @@
 </head>
 <body class="bg-gray-100 font-sans">
 
-    <!-- SKRIN LOG MASUK -->
-    <div id="viewLogin" class="fixed inset-0 bg-blue-900 flex items-center justify-center z-50 transition-opacity duration-300">
-        <div class="bg-white p-10 rounded-2xl shadow-2xl max-w-md w-full text-center mx-4 border-t-8 border-blue-500">
-            <h1 class="text-4xl font-extrabold text-blue-800 mb-2 tracking-tight">E-SILO</h1>
-            <h2 class="text-xl font-bold text-gray-700 mb-2">Sistem Pengurusan Kenderaan & Aset</h2>
-            <p class="text-sm text-gray-500 mb-8 px-4">Sila log masuk menggunakan emel rasmi yang telah didaftarkan oleh Admin.</p>
+    <!-- Navigasi & Profil -->
+    <nav class="bg-blue-800 text-white p-4 shadow-md">
+        <div class="container mx-auto flex flex-col md:flex-row justify-between items-center">
+            <div class="flex items-center mb-4 md:mb-0">
+                <div>
+                    <h1 class="text-2xl font-bold">E-SILO Ultimate</h1>
+                    <p class="text-sm text-blue-200">Sistem Pengurusan Kenderaan & Aset</p>
+                </div>
+            </div>
+            <div class="flex flex-col items-end">
+                <div class="text-sm mb-2 text-right">
+                    Log masuk sebagai: <strong id="profilEmel" class="text-yellow-300">-</strong><br>
+                    Peranan: <span id="profilPeranan" class="bg-blue-600 px-2 py-0.5 rounded text-xs uppercase font-bold">-</span>
+                </div>
+                <div class="flex space-x-2 bg-blue-900 p-2 rounded-lg text-sm items-center border border-blue-700">
+                    <label class="text-xs text-blue-200 font-bold">Akaun Semasa:</label>
+                    <select id="pilihUjianUser" onchange="tukarPenggunaAkaun(this.value)" class="text-black text-sm p-1 rounded font-bold cursor-pointer"></select>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Menu Tab Navigasi Dinamik (Bentuk Kotak Bersempadan) -->
+    <div class="bg-white shadow border-b">
+        <div class="container mx-auto px-6 py-3 flex flex-wrap gap-2" id="menuTabs">
+            <button onclick="paparTab('dashboard')" id="tabDashboard" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">🏠 Utama</button>
             
-            <button onclick="logMasukGoogle()" id="btnGoogleLogin" class="w-full bg-white border-2 border-gray-200 text-gray-700 font-bold py-3 px-4 rounded-lg shadow hover:bg-gray-50 flex items-center justify-center space-x-3 transition hover:border-blue-300">
-                <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-6 h-6" alt="Google">
-                <span>Log Masuk dengan Google</span>
+            <button onclick="paparTab('operasi')" id="tabOperasi" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center relative">
+                <span id="teksTabOperasi">📝 Tempahan</span>
+                <span id="badgeTempahan" class="ml-2 bg-red-500 text-white rounded-full px-2 py-0.5 text-xs font-bold hilang">0</span>
             </button>
             
-            <div id="loginError" class="mt-6 p-4 bg-red-50 border border-red-200 text-red-700 text-sm font-semibold rounded-lg text-left hilang"></div>
+            <button onclick="paparTab('ambil')" id="tabAmbil" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">🔑 Ambil</button>
+            <button onclick="paparTab('pulang')" id="tabPulang" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">↩️ Pulang</button>
+            <button onclick="paparTab('selenggara')" id="tabSelenggara" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">👥 Staf</button>
+            <button onclick="paparTab('selenggaraKenderaan')" id="tabSelenggaraKenderaan" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">🚘 Kenderaan</button>
         </div>
     </div>
 
-    <!-- WRAPPER UTAMA APLIKASI -->
-    <div id="mainApp" class="hilang">
-        
-        <!-- Navigasi & Profil -->
-        <nav class="bg-blue-800 text-white p-4 shadow-md">
-            <div class="container mx-auto flex flex-col md:flex-row justify-between items-center">
-                <div class="flex items-center mb-4 md:mb-0">
-                    <div>
-                        <h1 class="text-2xl font-bold">E-SILO Ultimate</h1>
-                        <p class="text-sm text-blue-200">Sistem Pengurusan Kenderaan & Aset</p>
-                    </div>
-                </div>
-                <div class="flex flex-col items-end">
-                    <div class="text-sm mb-2 text-right">
-                        Log masuk sebagai: <strong id="profilEmel" class="text-yellow-300">-</strong><br>
-                        Peranan: <span id="profilPeranan" class="bg-blue-600 px-2 py-0.5 rounded text-xs uppercase font-bold">-</span>
-                    </div>
-                    <div class="flex space-x-2 bg-blue-900 p-2 rounded-lg text-sm items-center border border-blue-700">
-                        <button onclick="logKeluar()" class="text-white bg-red-600 hover:bg-red-700 px-4 py-1.5 rounded font-bold shadow transition flex items-center space-x-1">
-                            <span>Log Keluar Sesi</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </nav>
+    <!-- PANGKALAN DATA SIMULASI (Notifikasi Emel) -->
+    <div id="ruangNotifikasi" class="fixed top-20 right-4 z-50 flex flex-col space-y-2 w-80"></div>
 
-        <!-- Menu Tab Navigasi Dinamik (Bentuk Kotak Bersempadan) -->
-        <div class="bg-white shadow border-b">
-            <div class="container mx-auto px-6 py-3 flex flex-wrap gap-2" id="menuTabs">
-                <button onclick="paparTab('dashboard')" id="tabDashboard" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">🏠 Utama</button>
-                
-                <button onclick="paparTab('operasi')" id="tabOperasi" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center relative">
-                    <span id="teksTabOperasi">📝 Tempahan</span>
-                    <span id="badgeTempahan" class="ml-2 bg-red-500 text-white rounded-full px-2 py-0.5 text-xs font-bold hilang">0</span>
-                </button>
-                
-                <button onclick="paparTab('ambil')" id="tabAmbil" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">🔑 Ambil</button>
-                <button onclick="paparTab('pulang')" id="tabPulang" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">↩️ Pulang</button>
-                <button onclick="paparTab('selenggara')" id="tabSelenggara" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">👥 Staf</button>
-                <button onclick="paparTab('selenggaraKenderaan')" id="tabSelenggaraKenderaan" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">🚘 Kenderaan</button>
+    <!-- TAB 1: DASHBOARD (ADMIN & SUPER ADMIN SAHAJA) -->
+    <div id="viewDashboard" class="container mx-auto p-6 block">
+        <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-indigo-600">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Status Semasa Semua Kenderaan</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-sm">
+                    <thead>
+                        <tr class="bg-gray-800 text-white">
+                            <th class="p-3 border-b w-10">No.</th>
+                            <th class="p-3 border-b">No. Plat & Model</th>
+                            <th class="p-3 border-b">Pengguna & Telefon</th>
+                            <th class="p-3 border-b">Unit, Tujuan & Lokasi</th>
+                            <th class="p-3 border-b">Masa Ambil & Jangka Pulang</th>
+                            <th class="p-3 border-b">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="jadualDashboard"></tbody>
+                </table>
             </div>
         </div>
+    </div>
 
-        <!-- PANGKALAN DATA SIMULASI (Notifikasi Emel) -->
-        <div id="ruangNotifikasi" class="fixed top-20 right-4 z-50 flex flex-col space-y-2 w-80"></div>
-
-        <!-- TAB 1: DASHBOARD (ADMIN & SUPER ADMIN SAHAJA) -->
-        <div id="viewDashboard" class="container mx-auto p-6 block">
-            <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-indigo-600">
-                <h2 class="text-xl font-bold mb-4 text-gray-800">Status Semasa Semua Kenderaan</h2>
+    <!-- TAB 2: OPERASI (BORANG TEMPAHAN ATAU KELULUSAN) -->
+    <div id="viewOperasi" class="hilang">
+        <!-- PAPARAN PENGGUNA -->
+        <div id="paparanPengguna" class="container mx-auto p-6 grid grid-cols-1 gap-6 block">
+            <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-blue-600">
+                <h2 class="text-xl font-bold mb-4 text-gray-800">Borang Permohonan Kenderaan</h2>
+                <form id="borangTempahan" onsubmit="hantarTempahan(event)">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="mb-4"><label class="block text-gray-700 font-semibold mb-2">Nama Pengguna</label><input type="text" id="nama" class="w-full p-2 border bg-gray-100 rounded" readonly></div>
+                        <div class="mb-4"><label class="block text-gray-700 font-semibold mb-2">Unit / Jabatan</label><input type="text" id="unit" class="w-full p-2 border bg-gray-100 rounded" readonly></div>
+                        <div class="mb-4"><label class="block text-gray-700 font-semibold mb-2">Tarikh Guna</label><input type="date" id="tarikhGuna" class="w-full p-2 border rounded" required></div>
+                        <div class="mb-4"><label class="block text-gray-700 font-semibold mb-2">Tarikh Jangka Pulang</label><input type="date" id="tarikhPulang" class="w-full p-2 border rounded" required></div>
+                        <div class="mb-4"><label class="block text-gray-700 font-semibold mb-2">Tempat Lokasi Tujuan</label><input type="text" id="lokasi" class="w-full p-2 border rounded" required placeholder="Contoh: Kuala Lumpur"></div>
+                        <div class="mb-4"><label class="block text-gray-700 font-semibold mb-2">Tujuan Penggunaan</label><input type="text" id="tujuan" class="w-full p-2 border rounded" required placeholder="Contoh: Mesyuarat Projek"></div>
+                        <div class="mb-4 md:col-span-2">
+                            <label class="block text-gray-700 font-semibold mb-2">Cadangan Kenderaan</label>
+                            <select id="cadanganKenderaan" class="w-full p-2 border rounded" required>
+                                <option value="">-- Sila Pilih --</option>
+                                <option value="Sedan">Kenderaan Penumpang (Sedan)</option>
+                                <option value="4x4">Pacuan 4 Roda (4x4)</option>
+                                <option value="Van">Van Penumpang</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Mesej Amaran Pintar -->
+                    <div id="amaranBorang" class="text-red-600 font-bold mb-2 hilang p-3 bg-red-50 rounded border border-red-200"></div>
+                    <button type="submit" id="btnSahkan" class="w-full mt-2 bg-blue-600 text-white font-bold py-3 px-4 rounded hover:bg-blue-700 transition shadow">Hantar Permohonan</button>
+                </form>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-gray-400">
+                <h2 class="text-xl font-bold mb-4 text-gray-800">Status Permohonan Saya</h2>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-sm">
+                    <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="bg-gray-800 text-white">
-                                <th class="p-3 border-b w-10">No.</th>
-                                <th class="p-3 border-b">No. Plat & Model</th>
-                                <th class="p-3 border-b">Pengguna & Telefon</th>
-                                <th class="p-3 border-b">Unit, Tujuan & Lokasi</th>
-                                <th class="p-3 border-b">Masa Ambil & Jangka Pulang</th>
-                                <th class="p-3 border-b">Status</th>
+                            <tr class="bg-gray-200 text-sm">
+                                <th class="p-3 border-b">Tujuan</th><th class="p-3 border-b">Tarikh</th><th class="p-3 border-b">Kenderaan</th><th class="p-3 border-b">Status</th>
                             </tr>
                         </thead>
-                        <tbody id="jadualDashboard"></tbody>
+                        <tbody id="jadualPengguna"></tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 2: OPERASI (BORANG TEMPAHAN ATAU KELULUSAN) -->
-        <div id="viewOperasi" class="hilang">
-            <!-- PAPARAN PENGGUNA -->
-            <div id="paparanPengguna" class="container mx-auto p-6 grid grid-cols-1 gap-6 block">
-                <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-blue-600">
-                    <h2 class="text-xl font-bold mb-4 text-gray-800">Borang Permohonan Kenderaan</h2>
-                    <form id="borangTempahan" onsubmit="hantarTempahan(event)">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="mb-4"><label class="block text-gray-700 font-semibold mb-2">Nama Pengguna</label><input type="text" id="nama" class="w-full p-2 border bg-gray-100 rounded" readonly></div>
-                            <div class="mb-4"><label class="block text-gray-700 font-semibold mb-2">Unit / Jabatan</label><input type="text" id="unit" class="w-full p-2 border bg-gray-100 rounded" readonly></div>
-                            <div class="mb-4"><label class="block text-gray-700 font-semibold mb-2">Tarikh Guna</label><input type="date" id="tarikhGuna" class="w-full p-2 border rounded" required></div>
-                            <div class="mb-4"><label class="block text-gray-700 font-semibold mb-2">Tarikh Jangka Pulang</label><input type="date" id="tarikhPulang" class="w-full p-2 border rounded" required></div>
-                            <div class="mb-4"><label class="block text-gray-700 font-semibold mb-2">Tempat Lokasi Tujuan</label><input type="text" id="lokasi" class="w-full p-2 border rounded" required placeholder="Contoh: Kuala Lumpur"></div>
-                            <div class="mb-4"><label class="block text-gray-700 font-semibold mb-2">Tujuan Penggunaan</label><input type="text" id="tujuan" class="w-full p-2 border rounded" required placeholder="Contoh: Mesyuarat Projek"></div>
-                            <div class="mb-4 md:col-span-2">
-                                <label class="block text-gray-700 font-semibold mb-2">Cadangan Kenderaan</label>
-                                <select id="cadanganKenderaan" class="w-full p-2 border rounded" required>
-                                    <option value="">-- Sila Pilih --</option>
-                                    <option value="Sedan">Kenderaan Penumpang (Sedan)</option>
-                                    <option value="4x4">Pacuan 4 Roda (4x4)</option>
-                                    <option value="Van">Van Penumpang</option>
-                                </select>
-                            </div>
-                        </div>
-                        <!-- Mesej Amaran Pintar -->
-                        <div id="amaranBorang" class="text-red-600 font-bold mb-2 hilang p-3 bg-red-50 rounded border border-red-200"></div>
-                        <button type="submit" id="btnSahkan" class="w-full mt-2 bg-blue-600 text-white font-bold py-3 px-4 rounded hover:bg-blue-700 transition shadow">Hantar Permohonan</button>
-                    </form>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-gray-400">
-                    <h2 class="text-xl font-bold mb-4 text-gray-800">Status Permohonan Saya</h2>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-gray-200 text-sm">
-                                    <th class="p-3 border-b">Tujuan</th><th class="p-3 border-b">Tarikh</th><th class="p-3 border-b">Kenderaan</th><th class="p-3 border-b">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="jadualPengguna"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- PAPARAN ADMIN & SUPER ADMIN -->
-            <div id="paparanAdmin" class="container mx-auto p-6 grid grid-cols-1 gap-6 hilang">
-                <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-red-600">
-                    <h2 class="text-xl font-bold text-gray-800 mb-4">Panel Pengurusan Tempahan (Admin)</h2>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-gray-800 text-white text-sm">
-                                    <th class="p-3 border-b">Pemohon</th><th class="p-3 border-b">Maklumat Perjalanan</th><th class="p-3 border-b">Permintaan</th><th class="p-3 border-b w-1/3">Tindakan Kelulusan</th>
-                                </tr>
-                            </thead>
-                            <tbody id="jadualAdmin"></tbody>
-                        </table>
-                    </div>
+        <!-- PAPARAN ADMIN & SUPER ADMIN -->
+        <div id="paparanAdmin" class="container mx-auto p-6 grid grid-cols-1 gap-6 hilang">
+            <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-red-600">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Panel Pengurusan Tempahan (Admin)</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-800 text-white text-sm">
+                                <th class="p-3 border-b">Pemohon</th><th class="p-3 border-b">Maklumat Perjalanan</th><th class="p-3 border-b">Permintaan</th><th class="p-3 border-b w-1/3">Tindakan Kelulusan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="jadualAdmin"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- TAB 3: AMBIL KENDERAAN -->
-        <div id="viewAmbil" class="container mx-auto p-6 hilang">
-            <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-yellow-500 max-w-4xl mx-auto">
-                <h2 class="text-xl font-bold text-gray-800 mb-6">Proses Pengambilan Kenderaan</h2>
-                
-                <div id="tiadaKenderaanAmbil" class="bg-yellow-50 p-6 border rounded text-center hilang">
-                    <p class="text-gray-700 font-bold text-lg">Tiada permohonan tempahan diluluskan buat masa ini.</p>
-                </div>
+    <!-- TAB 3: AMBIL KENDERAAN -->
+    <div id="viewAmbil" class="container mx-auto p-6 hilang">
+        <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-yellow-500 max-w-4xl mx-auto">
+            <h2 class="text-xl font-bold text-gray-800 mb-6">Proses Pengambilan Kenderaan</h2>
+            
+            <div id="tiadaKenderaanAmbil" class="bg-yellow-50 p-6 border rounded text-center hilang">
+                <p class="text-gray-700 font-bold text-lg">Tiada permohonan tempahan diluluskan buat masa ini.</p>
+            </div>
 
-                <div id="ruanganPilihAmbil" class="mb-6 bg-yellow-50 p-4 border border-yellow-200 rounded">
-                    <label class="block text-gray-800 font-semibold mb-2">Pilih Kenderaan (Berdasarkan Kelulusan)</label>
-                    <select id="pilihanAmbilKenderaan" onchange="paparMaklumatAmbil()" class="w-full p-3 border rounded"></select>
-                </div>
+            <div id="ruanganPilihAmbil" class="mb-6 bg-yellow-50 p-4 border border-yellow-200 rounded">
+                <label class="block text-gray-800 font-semibold mb-2">Pilih Kenderaan (Berdasarkan Kelulusan)</label>
+                <select id="pilihanAmbilKenderaan" onchange="paparMaklumatAmbil()" class="w-full p-3 border rounded"></select>
+            </div>
 
-                <div id="kadMaklumatKenderaan" class="hilang">
-                    <div class="flex flex-col md:flex-row gap-8">
-                        <div class="w-full md:w-1/3 flex flex-col items-center">
-                            <img id="gambarKenderaanAmbil" src="" class="w-full h-auto object-contain bg-white rounded border-2 mb-2">
-                        </div>
-                        <div class="w-full md:w-2/3 grid grid-cols-2 gap-4 text-sm bg-gray-50 p-6 rounded border">
-                            <div><span class="block text-gray-500 text-xs">Jenama</span><strong id="infoJenama">-</strong></div>
-                            <div><span class="block text-gray-500 text-xs">No Plat</span><strong id="infoPlat" class="text-xl text-blue-700 bg-blue-100 px-2 py-1 rounded">-</strong></div>
-                            <div><span class="block text-gray-500 text-xs">Kad Inden</span><strong id="valInden">-</strong></div>
-                            <div><span class="block text-gray-500 text-xs">Touch n Go</span><strong id="valTnG">-</strong></div>
-                            <div><span class="block text-gray-500 text-xs">Mileage Semasa</span><strong id="infoMileage">-</strong> km</div>
-                            <div><span class="block text-gray-500 text-xs">Mileage Servis</span><strong id="infoServis" class="text-red-600">-</strong> km</div>
-                        </div>
+            <div id="kadMaklumatKenderaan" class="hilang">
+                <div class="flex flex-col md:flex-row gap-8">
+                    <div class="w-full md:w-1/3 flex flex-col items-center">
+                        <img id="gambarKenderaanAmbil" src="" class="w-full h-auto object-contain bg-white rounded border-2 mb-2">
                     </div>
-                    <div class="mt-8 pt-6 border-t flex justify-end">
-                        <button onclick="sahkanAmbilKenderaan()" class="bg-green-600 text-white font-bold py-3 px-8 rounded hover:bg-green-700 shadow">SAHKAN PENGAMBILAN</button>
+                    <div class="w-full md:w-2/3 grid grid-cols-2 gap-4 text-sm bg-gray-50 p-6 rounded border">
+                        <div><span class="block text-gray-500 text-xs">Jenama</span><strong id="infoJenama">-</strong></div>
+                        <div><span class="block text-gray-500 text-xs">No Plat</span><strong id="infoPlat" class="text-xl text-blue-700 bg-blue-100 px-2 py-1 rounded">-</strong></div>
+                        <div><span class="block text-gray-500 text-xs">Kad Inden</span><strong id="valInden">-</strong></div>
+                        <div><span class="block text-gray-500 text-xs">Touch n Go</span><strong id="valTnG">-</strong></div>
+                        <div><span class="block text-gray-500 text-xs">Mileage Semasa</span><strong id="infoMileage">-</strong> km</div>
+                        <div><span class="block text-gray-500 text-xs">Mileage Servis</span><strong id="infoServis" class="text-red-600">-</strong> km</div>
                     </div>
+                </div>
+                <div class="mt-8 pt-6 border-t flex justify-end">
+                    <button onclick="sahkanAmbilKenderaan()" class="bg-green-600 text-white font-bold py-3 px-8 rounded hover:bg-green-700 shadow">SAHKAN PENGAMBILAN</button>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- TAB 4: PULANG KENDERAAN -->
-        <div id="viewPulang" class="container mx-auto p-6 hilang">
-            <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-indigo-500 max-w-4xl mx-auto">
-                <h2 class="text-xl font-bold text-gray-800 mb-6">Proses Pemulangan Kenderaan</h2>
-                
-                <div id="tiadaKenderaanPulang" class="bg-indigo-50 p-6 border rounded text-center hilang">
-                    <p class="text-gray-700 font-bold text-lg">Anda tiada kenderaan yang sedang digunakan pada masa ini.</p>
+    <!-- TAB 4: PULANG KENDERAAN (DIKEMASKINI DENGAN PENUMPANG & STESEN MINYAK) -->
+    <div id="viewPulang" class="container mx-auto p-6 hilang">
+        <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-indigo-500 max-w-4xl mx-auto">
+            <h2 class="text-xl font-bold text-gray-800 mb-6">Proses Pemulangan Kenderaan</h2>
+            
+            <div id="tiadaKenderaanPulang" class="bg-indigo-50 p-6 border rounded text-center hilang">
+                <p class="text-gray-700 font-bold text-lg">Anda tiada kenderaan yang sedang digunakan pada masa ini.</p>
+            </div>
+            
+            <div id="borangPulangKenderaan" class="hilang">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-gray-50 p-6 rounded border mb-6">
+                    <div><span class="block text-gray-500 text-xs font-bold">Kenderaan Anda</span><strong id="pulangJenamaPlat" class="text-xl text-indigo-800">-</strong></div>
+                    <div><span class="block text-gray-500 text-xs font-bold">Tempoh Penggunaan</span><strong id="pulangTempohMasa" class="text-xl text-purple-700">-</strong></div>
+                    <div><span class="block text-gray-500 text-xs font-bold">Mileage Sebelum</span><strong id="pulangMileageSebelum" class="text-xl">-</strong> km</div>
+                    
+                    <!-- F1 Tambahan: Maklumat Penumpang -->
+                    <div class="md:col-span-3 border-t pt-4">
+                        <h3 class="font-bold text-gray-800 mb-4">Maklumat Penumpang (Sila Cari Di Bawah)</h3>
+                        <div class="flex items-end space-x-2">
+                            <div class="flex-grow">
+                                <label class="block text-sm font-bold mb-2">Nama Penumpang</label>
+                                <input type="text" id="namaPenumpang" list="listPenumpang" class="w-full p-2 border rounded" placeholder="Mula menaip untuk cari penumpang...">
+                                <datalist id="listPenumpang"></datalist>
+                            </div>
+                            <button onclick="cariPenumpang()" type="button" class="bg-blue-600 text-white font-bold py-2 px-6 rounded hover:bg-blue-700 shadow h-10">Cari</button>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-3 border-t pt-4 mt-2">
+                        <h3 class="font-bold text-gray-800 mb-4">Penggunaan Kad Inden (Minyak) & Touch 'n Go</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+                            <div><label class="block text-sm font-bold mb-2">Jenama Stesen Minyak</label><input type="text" id="indenStesen" class="w-full p-2 border rounded" placeholder="Contoh: Petronas"></div>
+                            <div><label class="block text-sm font-bold mb-2">No. Invoice / Resit</label><input type="text" id="indenInvoice" class="w-full p-2 border rounded" placeholder="Contoh: INV-12345"></div>
+                            <div><label class="block text-sm font-bold mb-2">Nilai Isian Minyak (RM)</label><input type="number" id="indenRM" class="w-full p-2 border rounded" placeholder="Contoh: 50"></div>
+                            <div><label class="block text-sm font-bold mb-2">Isipadu Minyak (Liter)</label><input type="number" id="indenLiter" class="w-full p-2 border rounded" placeholder="Contoh: 25.5"></div>
+                        </div>
+                        <p class="text-xs text-red-500 italic font-semibold mb-4">* Kosongkan jika tiada penggunaan kad inden</p>
+
+                        <div class="mb-4 p-3 bg-gray-200 rounded">
+                            <label class="flex items-center space-x-2 font-bold cursor-pointer">
+                                <input type="checkbox" id="gunaTNG" class="w-5 h-5">
+                                <span>Adakah anda menggunakan Kad Touch 'n Go kenderaan?</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6 border-t pt-4">
+                        <div>
+                            <label class="block text-gray-800 font-bold mb-2">Mileage Semasa (Akhir) <span class="text-red-500">*</span></label>
+                            <input type="number" id="inputMileageSelepas" oninput="kiraMileageGuna()" class="w-full p-3 border rounded font-bold text-center text-lg" required>
+                        </div>
+                        <div>
+                            <label class="block text-gray-600 font-bold mb-2">Jumlah Jarak Digunakan</label>
+                            <input type="text" id="paparMileageGuna" class="w-full p-3 border bg-gray-200 font-bold text-indigo-700 text-center text-lg" readonly value="0">
+                        </div>
+                    </div>
                 </div>
-                
-                <div id="borangPulangKenderaan" class="hilang">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-gray-50 p-6 rounded border mb-6">
-                        <div><span class="block text-gray-500 text-xs font-bold">Kenderaan Anda</span><strong id="pulangJenamaPlat" class="text-xl text-indigo-800">-</strong></div>
-                        <div><span class="block text-gray-500 text-xs font-bold">Tempoh Penggunaan</span><strong id="pulangTempohMasa" class="text-xl text-purple-700">-</strong></div>
-                        <div><span class="block text-gray-500 text-xs font-bold">Mileage Sebelum</span><strong id="pulangMileageSebelum" class="text-xl">-</strong> km</div>
-                        
-                        <!-- Maklumat Penumpang -->
-                        <div class="md:col-span-3 border-t pt-4">
-                            <h3 class="font-bold text-gray-800 mb-4">Maklumat Penumpang (Sila Cari Di Bawah)</h3>
-                            <div class="flex items-end space-x-2">
-                                <div class="flex-grow">
-                                    <label class="block text-sm font-bold mb-2">Nama Penumpang</label>
-                                    <input type="text" id="namaPenumpang" list="listPenumpang" class="w-full p-2 border rounded" placeholder="Mula menaip untuk cari penumpang...">
-                                    <datalist id="listPenumpang"></datalist>
-                                </div>
-                                <button onclick="cariPenumpang()" type="button" class="bg-blue-600 text-white font-bold py-2 px-6 rounded hover:bg-blue-700 shadow h-10">Cari</button>
-                            </div>
-                        </div>
-
-                        <div class="md:col-span-3 border-t pt-4 mt-2">
-                            <h3 class="font-bold text-gray-800 mb-4">Penggunaan Kad Inden (Minyak) & Touch 'n Go</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
-                                <div><label class="block text-sm font-bold mb-2">Jenama Stesen Minyak</label><input type="text" id="indenStesen" class="w-full p-2 border rounded" placeholder="Contoh: Petronas"></div>
-                                <div><label class="block text-sm font-bold mb-2">No. Invoice / Resit</label><input type="text" id="indenInvoice" class="w-full p-2 border rounded" placeholder="Contoh: INV-12345"></div>
-                                <div><label class="block text-sm font-bold mb-2">Nilai Isian Minyak (RM)</label><input type="number" id="indenRM" class="w-full p-2 border rounded" placeholder="Contoh: 50"></div>
-                                <div><label class="block text-sm font-bold mb-2">Isipadu Minyak (Liter)</label><input type="number" id="indenLiter" class="w-full p-2 border rounded" placeholder="Contoh: 25.5"></div>
-                            </div>
-                            <p class="text-xs text-red-500 italic font-semibold mb-4">* Kosongkan jika tiada penggunaan kad inden</p>
-
-                            <div class="mb-4 p-3 bg-gray-200 rounded">
-                                <label class="flex items-center space-x-2 font-bold cursor-pointer">
-                                    <input type="checkbox" id="gunaTNG" class="w-5 h-5">
-                                    <span>Adakah anda menggunakan Kad Touch 'n Go kenderaan?</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6 border-t pt-4">
-                            <div>
-                                <label class="block text-gray-800 font-bold mb-2">Mileage Semasa (Akhir) <span class="text-red-500">*</span></label>
-                                <input type="number" id="inputMileageSelepas" oninput="kiraMileageGuna()" class="w-full p-3 border rounded font-bold text-center text-lg" required>
-                            </div>
-                            <div>
-                                <label class="block text-gray-600 font-bold mb-2">Jumlah Jarak Digunakan</label>
-                                <input type="text" id="paparMileageGuna" class="w-full p-3 border bg-gray-200 font-bold text-indigo-700 text-center text-lg" readonly value="0">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex justify-end">
-                        <button onclick="semakPulangKenderaan()" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded hover:bg-indigo-700 shadow">PULANGKAN KENDERAAN</button>
-                    </div>
+                <div class="flex justify-end">
+                    <button onclick="semakPulangKenderaan()" class="bg-indigo-600 text-white font-bold py-3 px-8 rounded hover:bg-indigo-700 shadow">PULANGKAN KENDERAAN</button>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- TAB 5: SELENGGARA STAF -->
-        <div id="viewSelenggara" class="container mx-auto p-6 hilang">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-purple-600 lg:col-span-1">
-                    <h2 id="tajukBorangStaf" class="text-xl font-bold mb-4">Tambah Staf Baru</h2>
-                    <form id="borangStaf" onsubmit="simpanStaf(event)">
-                        <div class="mb-4">
-                            <label class="block text-sm font-bold mb-2">Gambar Profil</label>
-                            <div class="flex items-center space-x-3">
-                                <img id="previewGambarStaf" src="https://placehold.co/100x100/e2e8f0/64748b?text=User" class="w-16 h-16 rounded-full border object-contain bg-white">
-                                <input type="file" id="stafGambar" onchange="prosesGambar(event, 'previewGambarStaf', 'stafGambarBase64')" class="text-xs">
-                            </div>
-                            <input type="hidden" id="stafGambarBase64">
+    <!-- TAB 5: SELENGGARA STAF (KHAS UNTUK SUPER ADMIN SAHAJA) -->
+    <div id="viewSelenggara" class="container mx-auto p-6 hilang">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-purple-600 lg:col-span-1">
+                <h2 id="tajukBorangStaf" class="text-xl font-bold mb-4">Tambah Staf Baru</h2>
+                <form id="borangStaf" onsubmit="simpanStaf(event)">
+                    <div class="mb-4">
+                        <label class="block text-sm font-bold mb-2">Gambar Profil</label>
+                        <div class="flex items-center space-x-3">
+                            <img id="previewGambarStaf" src="https://placehold.co/100x100/e2e8f0/64748b?text=User" class="w-16 h-16 rounded-full border object-contain bg-white">
+                            <input type="file" id="stafGambar" onchange="prosesGambar(event, 'previewGambarStaf', 'stafGambarBase64')" class="text-xs">
                         </div>
-                        <div class="mb-4"><label class="block text-sm font-bold mb-2">Nama Penuh</label><input type="text" id="stafNama" class="w-full p-2 border rounded" required></div>
-                        <div class="mb-4"><label class="block text-sm font-bold mb-2">Emel Rasmi (Google)</label><input type="email" id="stafEmel" class="w-full p-2 border rounded" required placeholder="Sila gunakan emel Gmail/Google"></div>
-                        <div class="mb-4"><label class="block text-sm font-bold mb-2">No. Telefon</label><input type="text" id="stafTel" class="w-full p-2 border rounded" required></div>
-                        <div class="mb-4"><label class="block text-sm font-bold mb-2">Unit / Jabatan</label><input type="text" id="stafUnit" class="w-full p-2 border rounded" required></div>
-                        <div class="mb-4">
-                            <label class="block text-sm font-bold mb-2">Peranan (Tahap Akses)</label>
-                            <select id="stafPeranan" class="w-full p-2 border rounded bg-purple-50 font-bold text-purple-800" required>
-                                <option value="pengguna">Pengguna (Kuasa Memandu)</option>
-                                <option value="penumpang">Pengguna Biasa (Penumpang)</option>
-                                <option value="admin">Admin (Pelulus)</option>
-                                <option value="superadmin">Super Admin (Pengurus Sistem)</option>
-                            </select>
-                        </div>
-                        <div class="flex space-x-2">
-                            <button type="button" onclick="resetBorangStaf()" class="w-1/3 bg-gray-300 font-bold py-2 rounded">Batal</button>
-                            <button type="submit" class="w-2/3 bg-purple-600 text-white font-bold py-2 rounded shadow">Simpan Data</button>
-                        </div>
-                    </form>
-
-                    <!-- Upload Pukal CSV -->
-                    <div class="mt-8 pt-6 border-t border-gray-200 bg-purple-50 p-4 rounded-lg border border-purple-200">
-                        <h3 class="font-bold text-purple-900 mb-2 flex items-center">📊 Upload Bundle (CSV)</h3>
-                        <p class="text-xs text-purple-700 mb-4">Muat naik senarai nama staf secara pukal menggunakan fail CSV.</p>
-                        <input type="file" id="excelFile" accept=".csv" class="w-full text-xs text-gray-500 mb-3 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700">
-                        <button onclick="muatNaikPukal()" class="w-full text-xs bg-white border border-purple-400 text-purple-700 py-2 rounded font-bold hover:bg-purple-100 shadow">PROSES MUAT NAIK BUNDLE</button>
-                        <button onclick="downloadTemplate()" class="w-full text-left text-xs text-blue-600 underline mt-3 block font-semibold">📥 Klik Di Sini Untuk Download Template CSV</button>
+                        <input type="hidden" id="stafGambarBase64">
                     </div>
+                    <div class="mb-4"><label class="block text-sm font-bold mb-2">Nama Penuh</label><input type="text" id="stafNama" class="w-full p-2 border rounded" required></div>
+                    <div class="mb-4"><label class="block text-sm font-bold mb-2">Emel Rasmi</label><input type="email" id="stafEmel" class="w-full p-2 border rounded" required></div>
+                    <div class="mb-4"><label class="block text-sm font-bold mb-2">No. Telefon</label><input type="text" id="stafTel" class="w-full p-2 border rounded" required></div>
+                    <div class="mb-4"><label class="block text-sm font-bold mb-2">Unit / Jabatan</label><input type="text" id="stafUnit" class="w-full p-2 border rounded" required></div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-bold mb-2">Peranan (Tahap Akses)</label>
+                        <select id="stafPeranan" class="w-full p-2 border rounded bg-purple-50 font-bold text-purple-800" required>
+                            <option value="pengguna">Pengguna (Kuasa Memandu)</option>
+                            <option value="penumpang">Pengguna Biasa (Penumpang)</option>
+                            <option value="admin">Admin (Pelulus)</option>
+                            <option value="superadmin">Super Admin (Pengurus Sistem)</option>
+                        </select>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button type="button" onclick="resetBorangStaf()" class="w-1/3 bg-gray-300 font-bold py-2 rounded">Batal</button>
+                        <button type="submit" class="w-2/3 bg-purple-600 text-white font-bold py-2 rounded shadow">Simpan Data</button>
+                    </div>
+                </form>
+
+                <!-- F1 Tambahan: Upload Pukal CSV -->
+                <div class="mt-8 pt-6 border-t border-gray-200 bg-purple-50 p-4 rounded-lg border border-purple-200">
+                    <h3 class="font-bold text-purple-900 mb-2 flex items-center">📊 Upload Bundle (CSV)</h3>
+                    <p class="text-xs text-purple-700 mb-4">Muat naik senarai nama staf secara pukal menggunakan fail CSV.</p>
+                    <input type="file" id="excelFile" accept=".csv" class="w-full text-xs text-gray-500 mb-3 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700">
+                    <button onclick="muatNaikPukal()" class="w-full text-xs bg-white border border-purple-400 text-purple-700 py-2 rounded font-bold hover:bg-purple-100 shadow">PROSES MUAT NAIK BUNDLE</button>
+                    <button onclick="downloadTemplate()" class="w-full text-left text-xs text-blue-600 underline mt-3 block font-semibold">📥 Klik Di Sini Untuk Download Template CSV</button>
                 </div>
-                <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-gray-400 lg:col-span-2">
-                    <h2 class="text-xl font-bold mb-4">Senarai Pengguna E-SILO</h2>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-sm">
-                            <thead class="bg-gray-800 text-white"><tr><th class="p-3">Profil</th><th class="p-3">Nama & Emel</th><th class="p-3">Telefon</th><th class="p-3">Unit & Peranan</th><th class="p-3">Tindakan</th></tr></thead>
-                            <tbody id="jadualSelenggaraStaf"></tbody>
-                        </table>
-                    </div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-gray-400 lg:col-span-2">
+                <h2 class="text-xl font-bold mb-4">Senarai Pengguna E-SILO</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="bg-gray-800 text-white"><tr><th class="p-3">Profil</th><th class="p-3">Nama & Emel</th><th class="p-3">Telefon</th><th class="p-3">Unit & Peranan</th><th class="p-3">Tindakan</th></tr></thead>
+                        <tbody id="jadualSelenggaraStaf"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- TAB 6: SELENGGARA KENDERAAN -->
-        <div id="viewSelenggaraKenderaan" class="container mx-auto p-6 hilang">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-emerald-600 lg:col-span-1">
-                    <h2 id="tajukBorangKenderaan" class="text-xl font-bold mb-4 text-gray-800">Daftar Kenderaan Baru</h2>
-                    <form id="borangKenderaan" onsubmit="simpanKenderaan(event)">
-                        <div class="mb-4">
-                            <label class="block text-sm font-bold mb-2">Gambar Kenderaan</label>
-                            <div class="flex flex-col space-y-2">
-                                <img id="previewGambarKenderaan" src="https://placehold.co/400x250/e2e8f0/64748b?text=Kereta" class="w-full h-32 rounded border object-contain bg-white">
-                                <input type="file" onchange="prosesGambar(event, 'previewGambarKenderaan', 'kenderaanGambarBase64')" class="text-xs">
-                            </div>
-                            <input type="hidden" id="kenderaanGambarBase64">
+    <!-- TAB 6: SELENGGARA KENDERAAN (ADMIN & SUPER ADMIN) -->
+    <div id="viewSelenggaraKenderaan" class="container mx-auto p-6 hilang">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-emerald-600 lg:col-span-1">
+                <h2 id="tajukBorangKenderaan" class="text-xl font-bold mb-4 text-gray-800">Daftar Kenderaan Baru</h2>
+                <form id="borangKenderaan" onsubmit="simpanKenderaan(event)">
+                    <div class="mb-4">
+                        <label class="block text-sm font-bold mb-2">Gambar Kenderaan</label>
+                        <div class="flex flex-col space-y-2">
+                            <img id="previewGambarKenderaan" src="https://placehold.co/400x250/e2e8f0/64748b?text=Kereta" class="w-full h-32 rounded border object-contain bg-white">
+                            <input type="file" onchange="prosesGambar(event, 'previewGambarKenderaan', 'kenderaanGambarBase64')" class="text-xs">
                         </div>
-                        <div class="mb-4"><label class="block text-sm font-bold mb-2">No. Plat</label><input type="text" id="k_plat" class="w-full p-2 border rounded font-bold uppercase" required placeholder="Cth: VEE 1234"></div>
-                        <div class="mb-4"><label class="block text-sm font-bold mb-2">Jenama & Model</label><input type="text" id="k_jenama" class="w-full p-2 border rounded" required placeholder="Cth: Toyota Hilux"></div>
-                        <div class="mb-4">
-                            <label class="block text-sm font-bold mb-2">Jenis Kenderaan</label>
-                            <select id="k_jenis" class="w-full p-2 border rounded" required>
-                                <option value="Sedan">Sedan (Kereta Penumpang)</option>
-                                <option value="4x4">4x4 (Pacuan 4 Roda)</option>
-                                <option value="Van">Van</option>
-                                <option value="Lori">Lori / Lain-lain</option>
-                            </select>
-                        </div>
-                        <div class="mb-4">
-                            <label class="block text-sm font-bold mb-2">Milikan Aset</label>
-                            <select id="k_milikan" class="w-full p-2 border rounded" required>
-                                <option value="Aset Jabatan">Aset Hak Milik Jabatan</option>
-                                <option value="Spanco">Sewa Beli (Spanco)</option>
-                            </select>
-                        </div>
-                        <div class="mb-4"><label class="block text-sm font-bold mb-2">No. Pendaftaran Aset / Rujukan</label><input type="text" id="k_noAset" class="w-full p-2 border rounded" placeholder="Cth: KPDN/AST/001"></div>
-                        <div class="grid grid-cols-2 gap-2 mb-4">
-                            <div><label class="block text-sm font-bold mb-2">Kad Inden</label><input type="text" id="k_inden" class="w-full p-2 border rounded"></div>
-                            <div><label class="block text-sm font-bold mb-2">Touch n Go</label><input type="text" id="k_tng" class="w-full p-2 border rounded"></div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 mb-4">
-                            <div><label class="block text-sm font-bold mb-2">Mileage Mula</label><input type="number" id="k_mileage" class="w-full p-2 border rounded" required></div>
-                            <div><label class="block text-sm font-bold mb-2">Servis Seterusnya</label><input type="number" id="k_servis" class="w-full p-2 border rounded" required></div>
-                        </div>
-                        
-                        <div class="flex space-x-2">
-                            <button type="button" onclick="resetBorangKenderaan()" class="w-1/3 bg-gray-300 font-bold py-2 rounded">Batal</button>
-                            <button type="submit" class="w-2/3 bg-emerald-600 text-white font-bold py-2 rounded shadow">Simpan Data</button>
-                        </div>
-                    </form>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-gray-400 lg:col-span-2">
-                    <h2 class="text-xl font-bold mb-4">Pangkalan Data Aset Kenderaan</h2>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-sm">
-                            <thead class="bg-gray-800 text-white"><tr><th class="p-3 w-16">Gambar</th><th class="p-3">No. Plat & Model</th><th class="p-3">Jenis & Milikan</th><th class="p-3">No. Aset</th><th class="p-3 text-center">Tindakan</th></tr></thead>
-                            <tbody id="jadualSelenggaraKenderaan"></tbody>
-                        </table>
+                        <input type="hidden" id="kenderaanGambarBase64">
                     </div>
+                    <div class="mb-4"><label class="block text-sm font-bold mb-2">No. Plat</label><input type="text" id="k_plat" class="w-full p-2 border rounded font-bold uppercase" required placeholder="Cth: VEE 1234"></div>
+                    <div class="mb-4"><label class="block text-sm font-bold mb-2">Jenama & Model</label><input type="text" id="k_jenama" class="w-full p-2 border rounded" required placeholder="Cth: Toyota Hilux"></div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-bold mb-2">Jenis Kenderaan</label>
+                        <select id="k_jenis" class="w-full p-2 border rounded" required>
+                            <option value="Sedan">Sedan (Kereta Penumpang)</option>
+                            <option value="4x4">4x4 (Pacuan 4 Roda)</option>
+                            <option value="Van">Van</option>
+                            <option value="Lori">Lori / Lain-lain</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-bold mb-2">Milikan Aset</label>
+                        <select id="k_milikan" class="w-full p-2 border rounded" required>
+                            <option value="Aset Jabatan">Aset Hak Milik Jabatan</option>
+                            <option value="Spanco">Sewa Beli (Spanco)</option>
+                        </select>
+                    </div>
+                    <div class="mb-4"><label class="block text-sm font-bold mb-2">No. Pendaftaran Aset / Rujukan</label><input type="text" id="k_noAset" class="w-full p-2 border rounded" placeholder="Cth: KPDN/AST/001"></div>
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        <div><label class="block text-sm font-bold mb-2">Kad Inden</label><input type="text" id="k_inden" class="w-full p-2 border rounded"></div>
+                        <div><label class="block text-sm font-bold mb-2">Touch n Go</label><input type="text" id="k_tng" class="w-full p-2 border rounded"></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        <div><label class="block text-sm font-bold mb-2">Mileage Mula</label><input type="number" id="k_mileage" class="w-full p-2 border rounded" required></div>
+                        <div><label class="block text-sm font-bold mb-2">Servis Seterusnya</label><input type="number" id="k_servis" class="w-full p-2 border rounded" required></div>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <button type="button" onclick="resetBorangKenderaan()" class="w-1/3 bg-gray-300 font-bold py-2 rounded">Batal</button>
+                        <button type="submit" class="w-2/3 bg-emerald-600 text-white font-bold py-2 rounded shadow">Simpan Data</button>
+                    </div>
+                </form>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-gray-400 lg:col-span-2">
+                <h2 class="text-xl font-bold mb-4">Pangkalan Data Aset Kenderaan</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="bg-gray-800 text-white"><tr><th class="p-3 w-16">Gambar</th><th class="p-3">No. Plat & Model</th><th class="p-3">Jenis & Milikan</th><th class="p-3">No. Aset</th><th class="p-3 text-center">Tindakan</th></tr></thead>
+                        <tbody id="jadualSelenggaraKenderaan"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
-
-    </div> <!-- TUTUP WRAPPER UTAMA -->
+    </div>
 
     <!-- MODAL PENGESAHAN PULANG TERPERINCI -->
     <div id="modalKonfirmasiPulang" class="fixed inset-0 bg-black bg-opacity-60 z-50 hilang flex justify-center items-center">
@@ -432,8 +410,7 @@
     <!-- SKRIP FIREBASE & LOGIK SISTEM -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, setDoc, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAjEvEA0MczAuwD3qKQAyP-finyiDmcIFM",
@@ -446,15 +423,11 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        
-        const auth = getAuth(app);
-        const googleProvider = new GoogleAuthProvider();
 
         let DB_Kenderaan = [];
         let DB_Tempahan = [];
         let DB_Pengguna = [];
         let profilSemasa = {}; 
-        let currentUserEmail = null;
 
         function formatTarikhMY(t) { if(!t || t==="-") return "-"; let p=t.split('-'); return p.length===3 ? `${p[2]}/${p[1]}/${p[0]}` : t; }
         function formatMasa(isoString) {
@@ -496,105 +469,36 @@
         });
         onSnapshot(collection(db, "pengguna_esilo"), (snapshot) => {
             DB_Pengguna = [];
+            let selectUser = document.getElementById('pilihUjianUser');
+            let valLama = selectUser.value; selectUser.innerHTML = "";
+            
+            // Datalist Penumpang
             let dtList = document.getElementById('listPenumpang');
             if (dtList) dtList.innerHTML = "";
+
             let adaSuperAdmin = false;
 
             snapshot.forEach((doc) => { 
                 let p = doc.data(); DB_Pengguna.push(p);
+                selectUser.innerHTML += `<option value="${p.emel}">${p.nama} (${p.peranan.toUpperCase()})</option>`;
                 if (dtList) dtList.innerHTML += `<option value="${p.nama} (${p.unit})">`;
                 if(p.peranan === 'superadmin') adaSuperAdmin = true;
             });
             
             if(!adaSuperAdmin) {
+                 selectUser.innerHTML += `<option value="superadmin@esilo.my">Sistem (SUPERADMIN)</option>`;
                  DB_Pengguna.push({ emel: "superadmin@esilo.my", nama: "Sistem Pengurus", unit: "Ibu Pejabat", peranan: "superadmin", tel: "0100000000" });
             }
 
-            if(currentUserEmail) {
-                tukarPenggunaAkaun(currentUserEmail);
-            }
+            if(valLama && DB_Pengguna.find(u => u.emel === valLama)) selectUser.value = valLama;
+            else if(DB_Pengguna.length > 0) selectUser.value = DB_Pengguna[0].emel;
+            tukarPenggunaAkaun(selectUser.value);
             janaSistemStaf(); 
         });
 
-        // ================= LOGIK AKAUN & TAB (PENGESAHAN GOOGLE) =================
-
-        // PENAMBAHBAIKAN: Menangani ralat configuration-not-found dengan penjelasan yang jelas
-        window.logMasukGoogle = async function() {
-            let btn = document.getElementById('btnGoogleLogin');
-            let txtAsal = btn.innerHTML;
-            btn.innerHTML = "⏳ Menghubungkan Google...";
-            btn.disabled = true;
-            document.getElementById('loginError').classList.add('hilang');
-
-            try {
-                await signInWithPopup(auth, googleProvider);
-            } catch (error) {
-                console.error("Ralat Log Masuk:", error);
-                
-                let msg = error.message;
-                if (error.code === 'auth/configuration-not-found') {
-                    msg = "Sistem Log Masuk Google belum diaktifkan di dalam pangkalan data. Sila buka Firebase Console > Build > Authentication > Sign-in method, dan aktifkan pilihan 'Google'. Sila rujuk panduan langkah demi langkah untuk menetapkannya.";
-                }
-
-                document.getElementById('loginError').innerHTML = "<strong>Gagal Log Masuk:</strong><br>" + msg;
-                document.getElementById('loginError').classList.remove('hilang');
-                btn.innerHTML = txtAsal;
-                btn.disabled = false;
-            }
-        };
-
-        window.logKeluar = function() {
-            signOut(auth).then(() => {
-                notif("Berjaya log keluar.");
-                setTimeout(() => window.location.reload(), 1000); 
-            });
-        };
-
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                let isRegistered = false;
-                let userDoc = await getDoc(doc(db, "pengguna_esilo", user.email));
-                
-                if (userDoc.exists() || user.email === "superadmin@esilo.my") {
-                    isRegistered = true;
-                }
-
-                if (isRegistered) {
-                    currentUserEmail = user.email;
-                    document.getElementById('viewLogin').classList.add('opacity-0');
-                    setTimeout(() => {
-                        document.getElementById('viewLogin').classList.add('hilang');
-                        document.getElementById('mainApp').classList.remove('hilang');
-                        tukarPenggunaAkaun(user.email);
-                    }, 300);
-                } else {
-                    await signOut(auth);
-                    document.getElementById('loginError').innerHTML = `<strong>Akses Ditolak:</strong><br>Akaun Gmail anda (${user.email}) belum didaftarkan di dalam sistem. Sila hubungi Super Admin untuk pendaftaran emel anda.`;
-                    document.getElementById('loginError').classList.remove('hilang');
-                    let btn = document.getElementById('btnGoogleLogin');
-                    btn.innerHTML = `<img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-6 h-6" alt="Google"><span>Log Masuk dengan Google</span>`;
-                    btn.disabled = false;
-                }
-            } else {
-                currentUserEmail = null;
-                profilSemasa = {};
-                document.getElementById('mainApp').classList.add('hilang');
-                document.getElementById('viewLogin').classList.remove('hilang', 'opacity-0');
-                let btn = document.getElementById('btnGoogleLogin');
-                btn.innerHTML = `<img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-6 h-6" alt="Google"><span>Log Masuk dengan Google</span>`;
-                btn.disabled = false;
-            }
-        });
-
-        window.tukarPenggunaAkaun = async function(emel) {
-            let p = DB_Pengguna.find(u => u.emel === emel);
-            if (!p) {
-                let userDoc = await getDoc(doc(db, "pengguna_esilo", emel));
-                if (userDoc.exists()) p = userDoc.data();
-                else if (emel === "superadmin@esilo.my") p = { emel: "superadmin@esilo.my", nama: "Sistem Pengurus", unit: "Ibu Pejabat", peranan: "superadmin", tel: "0100000000" };
-            }
-            profilSemasa = p || {};
-
+        // ================= LOGIK AKAUN & TAB =================
+        window.tukarPenggunaAkaun = function(emel) {
+            profilSemasa = DB_Pengguna.find(u => u.emel === emel) || {};
             document.getElementById('profilEmel').innerText = profilSemasa.emel || "-";
             document.getElementById('profilPeranan').innerText = (profilSemasa.peranan || "-").toUpperCase();
             
@@ -610,11 +514,6 @@
                 document.getElementById('tabPulang').classList.remove('hilang');
                 document.getElementById('paparanPengguna').classList.remove('hilang');
                 
-                if(profilSemasa.peranan === 'penumpang') {
-                     document.getElementById('tabAmbil').classList.add('hilang');
-                     document.getElementById('tabPulang').classList.add('hilang');
-                }
-
                 window.paparTab('operasi');
             } else if (profilSemasa.peranan === 'admin') {
                 document.getElementById('tabDashboard').classList.remove('hilang');
@@ -677,6 +576,7 @@
             document.getElementById('nama').value = profilSemasa.nama || ""; 
             document.getElementById('unit').value = profilSemasa.unit || "";
             
+            // F1 Tambahan: Logik Pintar Sekatan Tempahan
             let adaPending = DB_Tempahan.find(t => t.emel === profilSemasa.emel && t.status === "Menunggu Kelulusan");
             let adaSedangGuna = DB_Kenderaan.find(k => k.pengguna === profilSemasa.nama && k.status === "Sedang Digunakan");
             
@@ -862,7 +762,7 @@
             });
         }
 
-        // ================= UPLOAD PUKAL CSV =================
+        // ================= F1 TAMBAHAN: BULK UPLOAD STAF =================
         window.muatNaikPukal = function() {
             let fileInput = document.getElementById('excelFile');
             if(fileInput.files.length === 0) return alert("Sila pilih fail CSV template terlebih dahulu!");
@@ -944,6 +844,7 @@
             let s = document.getElementById('pilihanAmbilKenderaan'); s.innerHTML = '<option value="">-- Pilih --</option>';
             let list = DB_Kenderaan.filter(k => k.status === 'Ditempah' && k.tempahOleh === profilSemasa.nama);
             
+            // F1 Tambahan: Logik Tiada Permohonan di Ambil
             if(list.length === 0) {
                 document.getElementById('tiadaKenderaanAmbil').classList.remove('hilang');
                 document.getElementById('ruanganPilihAmbil').classList.add('hilang');
@@ -983,6 +884,7 @@
             document.getElementById('paparMileageGuna').value = (!isNaN(mS) && mS >= mA) ? (mS - mA) : "0";
         };
         
+        // F1 Tambahan: Logik Carian Penumpang
         window.cariPenumpang = function() {
             let inputVal = document.getElementById('namaPenumpang').value;
             if(!inputVal) return alert("Sila taip nama penumpang di dalam kotak untuk membuat carian pangkalan data.");
@@ -1011,6 +913,7 @@
             document.getElementById('modalTempoh').innerText = tempohDigunakan;
             document.getElementById('modalJarak').innerText = jarakGuna.toLocaleString();
             
+            // Mengemaskini UI Modal Pulang
             document.getElementById('modalStesen').innerText = stesen;
             document.getElementById('modalInvoice').innerText = inv;
             document.getElementById('modalMinyak').innerText = infoMinyak;
@@ -1025,6 +928,7 @@
             window.tutupModalPulang(); 
             window.paparTab('operasi'); 
             notif(`Berjaya memulangkan kenderaan.`);
+            // Pembersihan Borang Pulang
             document.getElementById('indenStesen').value = ""; document.getElementById('indenInvoice').value = ""; document.getElementById('namaPenumpang').value = "";
             document.getElementById('indenRM').value = ""; document.getElementById('indenLiter').value = ""; document.getElementById('gunaTNG').checked = false; document.getElementById('inputMileageSelepas').value = "";
         };
