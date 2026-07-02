@@ -744,10 +744,18 @@
             let kenderaanDipapar = DB_Kenderaan;
             
             if(profilSemasa.peranan === 'pengguna' || profilSemasa.peranan === 'penumpang') {
+                // PENGGUNA / PENUMPANG:
+                // Papar semua kenderaan yang sedang dalam tindakan sahaja.
+                // Termasuk kenderaan yang ditempah / sedang digunakan oleh pengguna lain.
+                // Tidak paparkan kenderaan Available kerana paparan keseluruhan adalah untuk admin dan superadmin sahaja.
                 document.getElementById('dashboardSummary').classList.add('hilang');
-                document.getElementById('tajukDashboard').innerText = "Kenderaan Anda (Sedang Ditempah / Digunakan)";
-                kenderaanDipapar = DB_Kenderaan.filter(k => (k.status === 'Ditempah' && k.tempahOleh === profilSemasa.nama) || (k.status === 'Sedang Digunakan' && k.pengguna === profilSemasa.nama));
+                document.getElementById('tajukDashboard').innerText = "Status Kenderaan Sedang Ditempah / Digunakan";
+                kenderaanDipapar = DB_Kenderaan.filter(k =>
+                    k.status === 'Ditempah' || k.status === 'Sedang Digunakan'
+                );
             } else {
+                // ADMIN / SUPERADMIN:
+                // Papar keseluruhan status kenderaan termasuk Available.
                 document.getElementById('dashboardSummary').classList.remove('hilang');
                 document.getElementById('tajukDashboard').innerText = "Status Semasa Semua Kenderaan";
                 document.getElementById('sumTotal').innerText = DB_Kenderaan.length;
@@ -756,7 +764,15 @@
                 document.getElementById('sumSedangGuna').innerText = DB_Kenderaan.filter(k => k.status === 'Sedang Digunakan').length;
             }
 
-            kenderaanDipapar.forEach((k, i) => {
+            if (kenderaanDipapar.length === 0) {
+                tbDash.innerHTML = `
+                <tr>
+                    <td colspan="6" class="p-6 text-center text-gray-500 font-semibold bg-gray-50">
+                        Tiada kenderaan sedang ditempah atau sedang digunakan pada masa ini.
+                    </td>
+                </tr>`;
+            } else {
+                kenderaanDipapar.forEach((k, i) => {
                 let bg = k.status === "Available" ? "bg-green-100 text-green-700" : (k.status === "Ditempah" ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-700");
                 let textP = "-"; let textTel = "-";
                 if(k.status === "Ditempah") { textP = `(Ditempah) ${k.tempahOleh}`; textTel = k.noTelPengguna; }
@@ -774,7 +790,8 @@
                     <td class="p-3 align-top text-gray-600 text-xs">Mula: <strong class="block">${textMasaMula}</strong>Pulang: <strong class="block">${textMasaTamat}</strong></td>
                     <td class="p-3 align-top"><span class="px-2 py-1 rounded text-xs font-bold border ${bg}">${k.status}</span></td>
                 </tr>`;
-            });
+                });
+            }
 
             // Jadual Pengguna (Tab Operasi)
             const tbPeng = document.getElementById('jadualPengguna'); if(!tbPeng) return; tbPeng.innerHTML = "";
