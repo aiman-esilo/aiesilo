@@ -71,17 +71,17 @@
     <!-- Menu Tab Navigasi Dinamik (Bentuk Kotak Bersempadan) -->
     <div class="bg-white shadow border-b">
         <div class="container mx-auto px-6 py-3 flex flex-wrap gap-2" id="menuTabs">
-            <button onclick="paparTab('dashboard')" id="tabDashboard" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">🏠 Utama</button>
+            <button onclick="paparTab('dashboard')" id="tabDashboard" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">🏠 UTAMA</button>
             
             <button onclick="paparTab('operasi')" id="tabOperasi" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center relative">
-                <span id="teksTabOperasi">📝 Tempahan</span>
+                <span id="teksTabOperasi">📝 TEMPAHAN</span>
                 <span id="badgeTempahan" class="ml-2 bg-red-500 text-white rounded-full px-2 py-0.5 text-xs font-bold hilang">0</span>
             </button>
             
-            <button onclick="paparTab('ambil')" id="tabAmbil" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">🔑 Ambil</button>
-            <button onclick="paparTab('pulang')" id="tabPulang" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">↩️ Pulang</button>
-            <button onclick="paparTab('selenggara')" id="tabSelenggara" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">👥 Staf</button>
-            <button onclick="paparTab('selenggaraKenderaan')" id="tabSelenggaraKenderaan" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">🚘 Kenderaan</button>
+            <button onclick="paparTab('ambil')" id="tabAmbil" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">🔑 AMBIL</button>
+            <button onclick="paparTab('pulang')" id="tabPulang" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">↩️ PULANG</button>
+            <button onclick="paparTab('selenggara')" id="tabSelenggara" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">👥 STAF</button>
+            <button onclick="paparTab('selenggaraKenderaan')" id="tabSelenggaraKenderaan" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center">🚘 KENDERAAN</button>
             <button onclick="paparTab('rekodKad')" id="tabRekodKad" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center hilang">💳 REKOD KAD</button>
             <button onclick="paparTab('rekodSelenggara')" id="tabRekodSelenggara" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center hilang">🛠️ REKOD SELENGGARA</button>
             <button onclick="paparTab('laporan')" id="tabLaporan" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center hilang">📊 LAPORAN</button>
@@ -105,9 +105,14 @@
         <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-indigo-600">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
                 <h2 id="tajukDashboard" class="text-xl font-bold text-gray-800">Status Semasa Semua Kenderaan</h2>
-                <div class="w-full md:w-96">
+                <div class="w-full md:w-[520px]">
                     <label class="block text-xs font-bold text-gray-500 mb-1">Carian No. Kenderaan / Model</label>
-                    <input type="text" id="carianDashboardKenderaan" oninput="janaSistem()" class="w-full p-2 border rounded" placeholder="Contoh: BEE 1234 / Hilux / Perdana">
+                    <div class="flex gap-2">
+                        <input type="text" id="carianDashboardKenderaan" class="w-full p-2 border rounded" placeholder="Contoh: BEE 1234 / Hilux / Perdana">
+                        <button type="button" onclick="jalankanCarianDashboard()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-bold shadow">CARI</button>
+                        <button type="button" onclick="resetCarianDashboard()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded font-bold">RESET</button>
+                    </div>
+                    <p class="text-[11px] text-gray-500 mt-1">Carian hanya berjalan selepas butang CARI ditekan.</p>
                 </div>
             </div>
             <div class="overflow-x-auto">
@@ -138,8 +143,8 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="mb-4"><label class="block text-gray-700 font-semibold mb-2">Nama Pengguna</label><input type="text" id="nama" class="w-full p-2 border bg-gray-100 rounded" readonly></div>
                         <div class="mb-4"><label class="block text-gray-700 font-semibold mb-2">Unit / Jabatan</label><input type="text" id="unit" class="w-full p-2 border bg-gray-100 rounded" readonly></div>
-                        <div class="mb-4"><label class="block text-gray-700 font-semibold mb-2">Tarikh Guna</label><input type="date" id="tarikhGuna" class="w-full p-2 border rounded" required></div>
-                        <div class="mb-4"><label class="block text-gray-700 font-semibold mb-2">Tarikh Jangka Pulang</label><input type="date" id="tarikhPulang" class="w-full p-2 border rounded" required></div>
+                        <div class="mb-4"><label class="block text-gray-700 font-semibold mb-2">Tarikh Guna</label><input type="date" id="tarikhGuna" onchange="autoTarikhPulang()" class="w-full p-2 border rounded" required></div>
+                        <div class="mb-4"><label class="block text-gray-700 font-semibold mb-2">Tarikh Jangka Pulang</label><input type="date" id="tarikhPulang" oninput="tarikhPulangManual=true" class="w-full p-2 border rounded" required></div>
                         <div class="mb-4"><label class="block text-gray-700 font-semibold mb-2">Tempat Lokasi Tujuan</label><input type="text" id="lokasi" class="w-full p-2 border rounded" required placeholder="Contoh: Kuala Lumpur"></div>
                         <div class="mb-4"><label class="block text-gray-700 font-semibold mb-2">Tujuan Penggunaan</label><input type="text" id="tujuan" class="w-full p-2 border rounded" required placeholder="Contoh: Mesyuarat Projek"></div>
                         <div class="mb-4 md:col-span-2">
@@ -288,7 +293,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
                             <div>
                                 <label class="block text-sm font-bold mb-2">Jenama Stesen Minyak</label>
-                                <select id="indenStesen" class="w-full p-2 border rounded">
+                                <select id="indenStesen" onchange="autoJenisMinyakPulang()" class="w-full p-2 border rounded">
                                     <option value="">-- Tiada Pengisian --</option>
                                     <option value="Petronas">Petronas</option>
                                     <option value="Petron">Petron</option>
@@ -341,17 +346,11 @@
                 </div>
             </div>
         </div>
-        <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-gray-700 max-w-6xl mx-auto mt-6">
+        <div id="kotakLogPulang" class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-gray-700 max-w-6xl mx-auto mt-6 hilang">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
                 <div>
                     <h2 class="text-xl font-bold text-gray-800">Buku Log Digital Perjalanan</h2>
-                    <p class="text-sm text-gray-500">Rekod perjalanan kenderaan dipaparkan secara berterusan selepas pemulangan direkodkan.</p>
-                </div>
-                <div class="w-full md:w-80">
-                    <label class="block text-xs font-bold mb-1 text-gray-500">Pilih No. Kenderaan</label>
-                    <select id="logPulangPlat" onchange="janaLogPulang()" class="w-full p-2 border rounded">
-                        <option value="semua">SEMUA</option>
-                    </select>
+                    <p id="teksLogPulang" class="text-sm text-gray-500">Rekod perjalanan hanya dipaparkan untuk kenderaan semasa yang akan dipulangkan.</p>
                 </div>
             </div>
             <div class="overflow-x-auto">
@@ -454,12 +453,10 @@
                             </select>
                         </div>
                         <div class="mb-4"><label class="block text-sm font-bold mb-2">No. Pendaftaran Aset / Rujukan</label><input type="text" id="k_noAset" class="w-full p-2 border rounded" placeholder="Cth: KPDN/AST/001"></div>
-                        <div class="grid grid-cols-2 gap-2 mb-4">
-                            <div><label class="block text-sm font-bold mb-2">Kad Inden</label><input type="text" id="k_inden" class="w-full p-2 border rounded bg-gray-50" placeholder="Auto dari REKOD KAD"></div>
-                            <div><label class="block text-sm font-bold mb-2">Touch n Go</label><input type="text" id="k_tng" class="w-full p-2 border rounded bg-gray-50" placeholder="Auto dari REKOD KAD"></div>
-                        </div>
+                        <input type="hidden" id="k_inden">
+                        <input type="hidden" id="k_tng">
                         <div id="infoKadAssignKenderaan" class="mb-4 p-3 rounded bg-blue-50 border border-blue-200 text-xs text-blue-900">
-                            Masukkan No. Plat untuk semakan automatik kad inden dan Touch 'n Go yang telah diassign dalam dashboard REKOD KAD.
+                            Masukkan No. Plat untuk paparan SEMUA KAD AKTIF yang direkodkan dalam dashboard REKOD KAD.
                         </div>
                         <div class="grid grid-cols-2 gap-2 mb-4">
                             <div><label class="block text-sm font-bold mb-2">Mileage Mula</label><input type="number" id="k_mileage" class="w-full p-2 border rounded" required></div>
@@ -582,8 +579,8 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div class="bg-blue-100 p-4 rounded-lg border border-blue-200 shadow-sm"><h3 class="text-blue-800 text-xs font-bold uppercase">Jumlah Kenderaan</h3><p id="selSumTotal" class="text-3xl font-black text-blue-900 mt-1">0</p></div>
             <div class="bg-purple-100 p-4 rounded-lg border border-purple-200 shadow-sm"><h3 class="text-purple-800 text-xs font-bold uppercase">Sedang Diselenggara</h3><p id="selSumSedang" class="text-3xl font-black text-purple-900 mt-1">0</p></div>
-            <div class="bg-amber-100 p-4 rounded-lg border border-amber-200 shadow-sm"><h3 class="text-amber-800 text-xs font-bold uppercase">Kurang 100km</h3><p id="selSumKM" class="text-3xl font-black text-amber-900 mt-1">0</p></div>
-            <div class="bg-rose-100 p-4 rounded-lg border border-rose-200 shadow-sm"><h3 class="text-rose-800 text-xs font-bold uppercase">Kurang 2 Minggu</h3><p id="selSumTarikh" class="text-3xl font-black text-rose-900 mt-1">0</p></div>
+            <div class="bg-amber-100 p-4 rounded-lg border border-amber-200 shadow-sm"><h3 id="labelSelSumKM" class="text-amber-800 text-xs font-bold uppercase">Kurang 100km</h3><p id="selSumKM" class="text-3xl font-black text-amber-900 mt-1">0</p></div>
+            <div class="bg-rose-100 p-4 rounded-lg border border-rose-200 shadow-sm"><h3 id="labelSelSumTarikh" class="text-rose-800 text-xs font-bold uppercase">Kurang 2 Minggu</h3><p id="selSumTarikh" class="text-3xl font-black text-rose-900 mt-1">0</p></div>
         </div>
         <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-orange-600 mb-6">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
@@ -592,8 +589,8 @@
                     <p class="text-sm text-gray-500">Kemaskini odometer servis, tarikh servis dan reminder sebelum servis berikutnya.</p>
                 </div>
                 <div class="grid grid-cols-2 gap-2 text-sm">
-                    <div><label class="block text-xs font-bold mb-1">Had KM Reminder</label><input type="number" id="hadKmServis" value="100" oninput="janaRekodSelenggara()" class="w-full p-2 border rounded"></div>
-                    <div><label class="block text-xs font-bold mb-1">Had Hari Reminder</label><input type="number" id="hadHariServis" value="14" oninput="janaRekodSelenggara()" class="w-full p-2 border rounded"></div>
+                    <div><label class="block text-xs font-bold mb-1">Had KM Reminder</label><input type="number" id="hadKmServis" value="100" oninput="kemaskiniSelenggaraAuto()" onchange="kemaskiniSelenggaraAuto()" class="w-full p-2 border rounded"></div>
+                    <div><label class="block text-xs font-bold mb-1">Had Hari Reminder</label><input type="number" id="hadHariServis" value="14" oninput="kemaskiniSelenggaraAuto()" onchange="kemaskiniSelenggaraAuto()" class="w-full p-2 border rounded"></div>
                 </div>
             </div>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -636,13 +633,14 @@
         <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-blue-700 mb-6">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
                 <div>
-                    <h2 class="text-2xl font-black text-gray-800">Dashboard LAPORAN</h2>
-                    <p class="text-sm text-gray-500">Tarikh mula wajib. Jika tarikh akhir kosong, sistem akan cari satu hari sahaja berdasarkan tarikh mula.</p>
+                    <h2 class="text-2xl font-black text-gray-800">DASHBOARD LAPORAN</h2>
+                    <p class="text-sm text-gray-500">Tarikh mula wajib. Jika tarikh akhir kosong, carian hanya dibuat pada tarikh mula. Medan tanpa pilihan khusus dianggap SEMUA.</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    <button onclick="janaLaporanDigital()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-bold shadow">Jana Laporan</button>
+                    <button onclick="tapisLaporanDigital()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-bold shadow">CARI / TAPIS</button>
+                    <button onclick="resetTapisanLaporan()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded font-bold">RESET TAPISAN</button>
                     <button onclick="muatTurunLaporanCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded font-bold shadow">CSV</button>
-                    <button onclick="cetakBukuLogDigital()" class="bg-gray-800 hover:bg-black text-white px-4 py-2 rounded font-bold shadow">Cetak / PDF Landscape</button>
+                    <button onclick="cetakBukuLogDigital()" class="bg-gray-800 hover:bg-black text-white px-4 py-2 rounded font-bold shadow">CETAK / PDF LANDSCAPE</button>
                 </div>
             </div>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -654,18 +652,23 @@
             <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 bg-gray-50 p-4 rounded border">
                 <div><label class="block text-xs font-bold mb-1">Tarikh Mula <span class="text-red-600">*</span></label><input type="date" id="fTarikhMula" class="w-full p-2 border rounded" required></div>
                 <div><label class="block text-xs font-bold mb-1">Tarikh Akhir</label><input type="date" id="fTarikhAkhir" class="w-full p-2 border rounded"><p class="text-[11px] text-gray-500 mt-1">Kosongkan untuk cari 1 hari sahaja.</p></div>
-                <div><label class="block text-xs font-bold mb-1">Jenis Kenderaan</label><input type="text" oninput="filterPilihanSelect('cJenisKenderaan','fJenisKenderaan')" id="cJenisKenderaan" class="w-full p-1 border rounded mb-1" placeholder="Cari..."><select id="fJenisKenderaan" multiple class="w-full p-2 border rounded h-24"></select><p class="text-[11px] text-gray-500">Pilih SEMUA jika tiada spesifik.</p></div>
-                <div><label class="block text-xs font-bold mb-1">No. Pendaftaran</label><input type="text" oninput="filterPilihanSelect('cNoKenderaan','fNoKenderaan')" id="cNoKenderaan" class="w-full p-1 border rounded mb-1" placeholder="Cari..."><select id="fNoKenderaan" multiple class="w-full p-2 border rounded h-24"></select></div>
-                <div><label class="block text-xs font-bold mb-1">Nama Pengguna</label><input type="text" oninput="filterPilihanSelect('cNamaPengguna','fNamaPengguna')" id="cNamaPengguna" class="w-full p-1 border rounded mb-1" placeholder="Cari..."><select id="fNamaPengguna" multiple class="w-full p-2 border rounded h-24"></select></div>
+                <div><label class="block text-xs font-bold mb-1">Jenis Kenderaan</label><input id="fJenisKenderaan" list="dlJenisKenderaan" class="w-full p-2 border rounded" placeholder="SEMUA"><datalist id="dlJenisKenderaan"></datalist></div>
+                <div><label class="block text-xs font-bold mb-1">No. Pendaftaran</label><input id="fNoKenderaan" list="dlNoKenderaan" class="w-full p-2 border rounded uppercase" placeholder="SEMUA"><datalist id="dlNoKenderaan"></datalist></div>
+                <div><label class="block text-xs font-bold mb-1">Nama Pengguna</label><input id="fNamaPengguna" list="dlNamaPengguna" class="w-full p-2 border rounded" placeholder="SEMUA"><datalist id="dlNamaPengguna"></datalist></div>
                 <div><label class="block text-xs font-bold mb-1">Penggunaan Kad Inden</label><select id="fGunaInden" class="w-full p-2 border rounded"><option value="semua">SEMUA</option><option value="Ya">Ya</option><option value="Tidak">Tidak</option></select></div>
-                <div><label class="block text-xs font-bold mb-1">Jenama Kad Inden</label><input type="text" oninput="filterPilihanSelect('cJenisKadInden','fJenisKadInden')" id="cJenisKadInden" class="w-full p-1 border rounded mb-1" placeholder="Cari..."><select id="fJenisKadInden" multiple class="w-full p-2 border rounded h-24"><option value="semua">SEMUA</option><option value="Petronas">Petronas</option><option value="Petron">Petron</option><option value="Shell">Shell</option></select></div>
+                <div><label class="block text-xs font-bold mb-1">Jenama Kad Inden</label><input id="fJenisKadInden" list="dlJenisKadInden" class="w-full p-2 border rounded" placeholder="SEMUA"><datalist id="dlJenisKadInden"></datalist></div>
                 <div><label class="block text-xs font-bold mb-1">Touch 'n Go</label><select id="fGunaTNG" class="w-full p-2 border rounded"><option value="semua">SEMUA</option><option value="Ya">Ya</option><option value="Tidak">Tidak</option></select></div>
-                <div class="flex items-end"><button onclick="resetTapisanLaporan()" class="w-full bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded font-bold">Reset Tapisan</button></div>
             </div>
         </div>
+
         <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-purple-700 mb-6">
-            <h3 class="text-xl font-bold mb-3 text-gray-800">Pilihan Buku Log Digital</h3>
-            <p class="text-sm text-gray-500 mb-4">Jika pilihan ini digunakan, admin perlu masukkan tarikh mula dan no kenderaan. Tarikh akhir boleh dikosongkan untuk carian satu hari.</p>
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800">PILIHAN BUKU LOG DIGITAL</h3>
+                    <p class="text-sm text-gray-500">Kotak ini berasingan daripada HASIL CARIAN. Pilih Buku Log Digital, masukkan tarikh mula dan no kenderaan untuk jana log kenderaan.</p>
+                </div>
+                <button onclick="tapisLaporanDigital('buku_log')" class="bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 rounded font-bold shadow">JANA BUKU LOG</button>
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-purple-50 p-4 rounded border border-purple-200">
                 <div><label class="block text-xs font-bold mb-1">Jenis Laporan</label><select id="fJenisLaporan" class="w-full p-2 border rounded"><option value="umum">Laporan Umum</option><option value="buku_log">Buku Log Digital Kenderaan</option></select></div>
                 <div><label class="block text-xs font-bold mb-1">Tarikh Mula Buku Log</label><input type="date" id="fLogTarikhMula" class="w-full p-2 border rounded"></div>
@@ -673,12 +676,13 @@
                 <div><label class="block text-xs font-bold mb-1">No Kenderaan Buku Log</label><select id="fLogNoKenderaan" class="w-full p-2 border rounded"><option value="semua">SEMUA</option></select></div>
             </div>
         </div>
+
         <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-gray-700">
-            <h3 class="text-xl font-bold mb-4 text-gray-800">Hasil Laporan / Buku Log Digital</h3>
+            <h3 class="text-xl font-bold mb-4 text-gray-800">HASIL CARIAN</h3>
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse text-xs">
                     <thead class="bg-gray-800 text-white"><tr><th class="p-2">Tarikh</th><th class="p-2">Masa Mula</th><th class="p-2">Masa Akhir</th><th class="p-2">Nama Pengguna</th><th class="p-2">Tujuan</th><th class="p-2">Lokasi</th><th class="p-2">Nama Pelulus</th><th class="p-2">No Kenderaan</th><th class="p-2">Odometer</th><th class="p-2">KM</th><th class="p-2">Inden</th><th class="p-2">Inv</th><th class="p-2">Liter</th><th class="p-2">Catatan</th></tr></thead>
-                    <tbody id="jadualLaporanDigital"></tbody>
+                    <tbody id="jadualLaporanDigital"><tr><td colspan="14" class="p-6 text-center text-gray-500 font-bold bg-gray-50">Sila masukkan tapisan dan tekan CARI / TAPIS.</td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -902,10 +906,10 @@
             document.getElementById('paparanPengguna').classList.remove('hilang');
             if(isAdmin) {
                 document.getElementById('paparanAdmin').classList.remove('hilang');
-                document.getElementById('teksTabOperasi').innerText = "📝 Tempahan / 📋 Kelulusan";
+                document.getElementById('teksTabOperasi').innerText = "📝 TEMPAHAN / 📋 KELULUSAN";
             } else {
                 document.getElementById('paparanAdmin').classList.add('hilang');
-                document.getElementById('teksTabOperasi').innerText = "📝 Tempahan";
+                document.getElementById('teksTabOperasi').innerText = "📝 TEMPAHAN";
             }
 
             kemaskiniBorang();
@@ -1392,7 +1396,7 @@
             document.getElementById('k_inden').value = '';
             document.getElementById('k_tng').value = '';
             if(!plat) {
-                info.innerHTML = "Masukkan No. Plat untuk semakan automatik kad inden dan Touch 'n Go yang telah diassign dalam dashboard REKOD KAD.";
+                info.innerHTML = "Masukkan No. Plat untuk paparan SEMUA KAD AKTIF yang direkodkan dalam dashboard REKOD KAD.";
                 return;
             }
             const kad = dapatkanKadUntukKenderaan(plat);
@@ -1991,6 +1995,325 @@
                 console.error(err);
                 document.getElementById('previewOCR').innerText = 'OCR gagal membaca nombor. Sila isi odometer secara manual atau cuba ambil gambar semula.';
             }
+        };
+
+
+        // ================= PATCH V3: RESET PAPARAN, CARIAN, FORMAT & LAPORAN RINGAN =================
+        let carianDashboardAktif = '';
+        let laporanSudahDicari = false;
+        let tarikhPulangManual = false;
+
+        function pad2(n){ return String(n).padStart(2,'0'); }
+        function formatTarikhDDMMYYYY(v){
+            if(!v || v === '-') return '-';
+            let d = String(v).includes('T') ? new Date(v) : new Date(String(v)+'T00:00:00');
+            if(isNaN(d)) return v;
+            return `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${d.getFullYear()}`;
+        }
+        function format3(v){
+            const n = Number(v);
+            if(!isFinite(n)) return '0.000';
+            return n.toFixed(3);
+        }
+        function formatRM3(v){ return 'RM ' + format3(v); }
+
+        window.jalankanCarianDashboard = function(){
+            carianDashboardAktif = (document.getElementById('carianDashboardKenderaan')?.value || '').trim().toLowerCase();
+            janaSistem();
+        };
+        window.resetCarianDashboard = function(){
+            const el = document.getElementById('carianDashboardKenderaan');
+            if(el) el.value = '';
+            carianDashboardAktif = '';
+            janaSistem();
+        };
+        window.autoTarikhPulang = function(){
+            const mula = document.getElementById('tarikhGuna');
+            const pulang = document.getElementById('tarikhPulang');
+            if(!mula || !pulang) return;
+            if(!tarikhPulangManual || !pulang.value) pulang.value = mula.value;
+        };
+
+        function resetPaparanSementara(tabId){
+            carianDashboardAktif = '';
+            const carianDash = document.getElementById('carianDashboardKenderaan'); if(carianDash) carianDash.value = '';
+            const logPlat = document.getElementById('logPulangPlat'); if(logPlat) logPlat.value = 'semua';
+            const idsCari = ['fTarikhMula','fTarikhAkhir','fLogTarikhMula','fLogTarikhAkhir','fJenisKenderaan','fNoKenderaan','fNamaPengguna','fJenisKadInden'];
+            idsCari.forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+            ['fGunaInden','fGunaTNG'].forEach(id => { const el=document.getElementById(id); if(el) el.value='semua'; });
+            const jenisL = document.getElementById('fJenisLaporan'); if(jenisL) jenisL.value='umum';
+            const logNo = document.getElementById('fLogNoKenderaan'); if(logNo) logNo.value='semua';
+            laporanSudahDicari = false;
+            if(tabId !== 'laporan') mesejLaporan('Sila masukkan tapisan dan tekan CARI / TAPIS.');
+        }
+
+        // Override tukar paparan supaya semua input carian / tapisan reset apabila pengguna berpindah dashboard.
+        window.paparTab = function(tabId) {
+            resetPaparanSementara(tabId);
+            if (document.startViewTransition) { document.startViewTransition(() => tukarPaparanV3(tabId)); } else { tukarPaparanV3(tabId); }
+        };
+        function tukarPaparanV3(tabId) {
+            ['viewDashboard', 'viewOperasi', 'viewAmbil', 'viewPulang', 'viewSelenggara', 'viewSelenggaraKenderaan', 'viewRekodKad', 'viewRekodSelenggara', 'viewLaporan'].forEach(id => {
+                let v = document.getElementById(id); if(v) v.classList.add('hilang');
+            });
+            ['tabDashboard', 'tabOperasi', 'tabAmbil', 'tabPulang', 'tabSelenggara', 'tabSelenggaraKenderaan', 'tabRekodKad', 'tabRekodSelenggara', 'tabLaporan'].forEach(id => {
+                let el = document.getElementById(id);
+                if(el) { el.classList.remove('tab-aktif'); el.classList.add('tab-pasif'); }
+            });
+            let idAktif = '';
+            if(tabId === 'dashboard') { document.getElementById('viewDashboard').classList.remove('hilang'); idAktif = 'tabDashboard'; janaSistem(); }
+            else if(tabId === 'operasi') { document.getElementById('viewOperasi').classList.remove('hilang'); idAktif = 'tabOperasi'; kemaskiniBorang(); }
+            else if(tabId === 'ambil') { document.getElementById('viewAmbil').classList.remove('hilang'); window.janaDropdownAmbil(); idAktif = 'tabAmbil'; }
+            else if(tabId === 'pulang') { document.getElementById('viewPulang').classList.remove('hilang'); window.janaBorangPulang(); idAktif = 'tabPulang'; }
+            else if(tabId === 'selenggara') { if(profilSemasa.peranan !== 'superadmin') return window.paparTab('dashboard'); document.getElementById('viewSelenggara').classList.remove('hilang'); idAktif = 'tabSelenggara'; }
+            else if(tabId === 'selenggaraKenderaan') { if(!aksesAdmin()) return window.paparTab('dashboard'); document.getElementById('viewSelenggaraKenderaan').classList.remove('hilang'); autoIsiMaklumatKadKenderaan(); idAktif = 'tabSelenggaraKenderaan'; }
+            else if(tabId === 'rekodKad') { if(!aksesAdmin()) return window.paparTab('dashboard'); document.getElementById('viewRekodKad').classList.remove('hilang'); janaPilihanKenderaanKad(); janaRekodKad(); idAktif = 'tabRekodKad'; }
+            else if(tabId === 'rekodSelenggara') { if(!aksesAdmin()) return window.paparTab('dashboard'); document.getElementById('viewRekodSelenggara').classList.remove('hilang'); kemaskiniSelenggaraAuto(); idAktif = 'tabRekodSelenggara'; }
+            else if(tabId === 'laporan') { if(!aksesAdmin()) return window.paparTab('dashboard'); document.getElementById('viewLaporan').classList.remove('hilang'); janaPilihanFilterLaporan(); mesejLaporan('Sila masukkan tapisan dan tekan CARI / TAPIS.'); idAktif = 'tabLaporan'; }
+            let elAktif = document.getElementById(idAktif);
+            if(elAktif) { elAktif.classList.remove('tab-pasif'); elAktif.classList.add('tab-aktif'); }
+        }
+
+        // Override dashboard carian: tidak auto search, hanya guna carianDashboardAktif selepas butang CARI.
+        const janaSistemAsalV3 = janaSistem;
+        janaSistem = function() {
+            const el = document.getElementById('carianDashboardKenderaan');
+            const nilaiPaparan = el ? el.value : '';
+            if(el) el.value = carianDashboardAktif || nilaiPaparan;
+            // salin nilai aktif ke input sementara supaya fungsi asal dapat tapis.
+            const asal = el ? el.value : '';
+            if(el) el.value = carianDashboardAktif;
+            janaSistemAsalV3();
+            if(el && !carianDashboardAktif) el.value = nilaiPaparan;
+        };
+
+        // Data list laporan yang ringan: input search collapsed, default SEMUA.
+        function setDataList(id, arr){
+            const dl = document.getElementById(id); if(!dl) return;
+            const uniq = [...new Set((arr || []).map(x => String(x || '').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+            dl.innerHTML = uniq.map(v => `<option value="${escapeHtml(v)}"></option>`).join('');
+        }
+        janaPilihanFilterLaporan = function() {
+            setDataList('dlJenisKenderaan', DB_Kenderaan.map(k => k.jenis || '-'));
+            setDataList('dlNoKenderaan', DB_Kenderaan.map(k => k.plat || '-').concat(DB_LogKenderaan.map(l => l.noPendaftaran || '')));
+            setDataList('dlNamaPengguna', DB_LogKenderaan.map(l => l.namaPengguna || '').concat(DB_Pengguna.map(p => p.nama || '')));
+            setDataList('dlJenisKadInden', ['Petronas','Petron','Shell'].concat(DB_LogKenderaan.map(l => l.jenamaStesen || '')));
+            janaPilihanKenderaanKad();
+        };
+        function nilaiInputFilter(id){
+            const v = (document.getElementById(id)?.value || '').trim();
+            if(!v || v.toLowerCase() === 'semua') return '';
+            return v;
+        }
+        function dapatkanLaporanDitapisV3(forceJenis) {
+            const jenisLaporan = forceJenis || document.getElementById('fJenisLaporan')?.value || 'umum';
+            const tarikhMula = (jenisLaporan === 'buku_log' ? document.getElementById('fLogTarikhMula')?.value : document.getElementById('fTarikhMula')?.value) || '';
+            const tarikhAkhirInput = (jenisLaporan === 'buku_log' ? document.getElementById('fLogTarikhAkhir')?.value : document.getElementById('fTarikhAkhir')?.value) || '';
+            const tarikhAkhir = tarikhAkhirInput || tarikhMula;
+            if(!tarikhMula) return {data: [], mesej: 'Sila isi Tarikh Mula. Tarikh mula adalah wajib untuk jana laporan.'};
+            const jenis = nilaiInputFilter('fJenisKenderaan');
+            const plat = nilaiInputFilter('fNoKenderaan');
+            const nama = nilaiInputFilter('fNamaPengguna');
+            const jenama = nilaiInputFilter('fJenisKadInden');
+            const gunaInden = document.getElementById('fGunaInden')?.value || 'semua';
+            const gunaTNG = document.getElementById('fGunaTNG')?.value || 'semua';
+            const logNo = document.getElementById('fLogNoKenderaan')?.value || 'semua';
+            if(jenisLaporan === 'buku_log' && logNo === 'semua') return {data: [], mesej: 'Untuk Buku Log Digital, sila pilih No Kenderaan yang khusus.'};
+            let data = DB_LogKenderaan.filter(l => {
+                const t = l.tarikh || (l.timestampPulang ? new Date(l.timestampPulang).toISOString().slice(0,10) : '');
+                if(t < tarikhMula || t > tarikhAkhir) return false;
+                if(jenisLaporan === 'buku_log' && logNo !== 'semua' && (l.noPendaftaran || '-') !== logNo) return false;
+                if(jenis && (l.jenisKenderaan || '-') !== jenis) return false;
+                if(plat && (l.noPendaftaran || '-') !== plat.toUpperCase()) return false;
+                if(nama && (l.namaPengguna || '-') !== nama) return false;
+                if(jenama && (l.jenamaStesen || '-') !== jenama) return false;
+                if(gunaInden !== 'semua' && (l.penggunaanKadInden || 'Tidak') !== gunaInden) return false;
+                if(gunaTNG !== 'semua' && (l.penggunaanTNG || 'Tidak') !== gunaTNG) return false;
+                return true;
+            });
+            return {data, mesej:''};
+        }
+        window.tapisLaporanDigital = function(forceJenis){
+            laporanSudahDicari = true;
+            if(forceJenis === 'buku_log') document.getElementById('fJenisLaporan').value = 'buku_log';
+            window.janaLaporanDigital(forceJenis);
+        };
+        window.janaLaporanDigital = function(forceJenis) {
+            const tb = document.getElementById('jadualLaporanDigital');
+            if(!tb) return;
+            if(!laporanSudahDicari && !forceJenis) { mesejLaporan('Sila masukkan tapisan dan tekan CARI / TAPIS.'); return; }
+            const hasil = dapatkanLaporanDitapisV3(forceJenis);
+            laporanSemasa = hasil.data || [];
+            tb.innerHTML = '';
+            if(hasil.mesej) { mesejLaporan(hasil.mesej); return; }
+            const totalInden = laporanSemasa.filter(l => l.penggunaanKadInden === 'Ya').length;
+            const totalTNG = laporanSemasa.filter(l => l.penggunaanTNG === 'Ya').length;
+            const totalKM = laporanSemasa.reduce((a,l) => a + (Number(l.penggunaanOdometer) || 0), 0);
+            document.getElementById('lapSumRekod').innerText = laporanSemasa.length;
+            document.getElementById('lapSumInden').innerText = totalInden;
+            document.getElementById('lapSumTNG').innerText = totalTNG;
+            document.getElementById('lapSumKM').innerText = Number(totalKM).toLocaleString('ms-MY');
+            if(laporanSemasa.length === 0) { mesejLaporan('Tiada rekod laporan ditemui berdasarkan tapisan semasa.'); return; }
+            laporanSemasa.forEach(l => {
+                tb.innerHTML += `<tr class="border-b hover:bg-gray-50">
+                    <td class="p-2">${escapeHtml(formatTarikhDDMMYYYY(l.tarikh || l.timestampPulang))}</td><td class="p-2">${escapeHtml(l.masaMula || '-')}</td><td class="p-2">${escapeHtml(l.masaAkhir || '-')}</td><td class="p-2 font-bold">${escapeHtml(l.namaPengguna || '-')}</td><td class="p-2">${escapeHtml(l.tujuan || '-')}</td><td class="p-2">${escapeHtml(l.lokasi || '-')}</td><td class="p-2">${escapeHtml(l.namaPelulus || l.pelulusEmel || '-')}</td><td class="p-2 font-bold text-blue-700">${escapeHtml(l.noPendaftaran || '-')}</td><td class="p-2">${escapeHtml(l.odometerAkhir || '-')}</td><td class="p-2">${escapeHtml(l.penggunaanOdometer || '0')}</td><td class="p-2">${escapeHtml(l.penggunaanKadInden || 'Tidak')}<br><span class="text-xs text-gray-500">${escapeHtml(l.jenamaStesen || '-')} ${escapeHtml(l.jenisMinyak || '')}</span><br><span class="text-[11px] text-gray-400">${escapeHtml((l.nilaiRM || l.jumlahRM) ? formatRM3(l.nilaiRM || l.jumlahRM) : '')}</span></td><td class="p-2">${escapeHtml(l.noInv || '-')}</td><td class="p-2">${escapeHtml(l.jumlahLiter ? format3(l.jumlahLiter) : '-')}</td><td class="p-2">${escapeHtml(l.catatanPengguna || '-')}</td>
+                </tr>`;
+            });
+        };
+        window.resetTapisanLaporan = function() {
+            ['fTarikhMula','fTarikhAkhir','fLogTarikhMula','fLogTarikhAkhir','fJenisKenderaan','fNoKenderaan','fNamaPengguna','fJenisKadInden'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+            const gi=document.getElementById('fGunaInden'); if(gi) gi.value='semua';
+            const gt=document.getElementById('fGunaTNG'); if(gt) gt.value='semua';
+            const jl=document.getElementById('fJenisLaporan'); if(jl) jl.value='umum';
+            const ln=document.getElementById('fLogNoKenderaan'); if(ln) ln.value='semua';
+            laporanSudahDicari = false;
+            mesejLaporan('Sila masukkan tapisan dan tekan CARI / TAPIS.');
+        };
+        window.muatTurunLaporanCSV = function() {
+            const hasil = dapatkanLaporanDitapisV3();
+            const data = hasil.data || [];
+            if(hasil.mesej) return alert(hasil.mesej);
+            const headers = ['Tarikh','Masa Mula','Masa Akhir','Nama Pengguna','Tujuan','Lokasi','Nama Pelulus','No Kenderaan','Odometer Semasa','Penggunaan Odometer','Penggunaan Kad Inden','No Inv','Jenis Inden','Jumlah Liter','Jumlah RM','Catatan Pengguna'];
+            let content = headers.map(csvEscape).join(',') + '\n';
+            data.forEach(l => { content += [formatTarikhDDMMYYYY(l.tarikh),l.masaMula,l.masaAkhir,l.namaPengguna,l.tujuan,l.lokasi,l.namaPelulus || l.pelulusEmel,l.noPendaftaran,l.odometerAkhir,l.penggunaanOdometer,l.penggunaanKadInden,l.noInv,l.jenamaStesen,format3(l.jumlahLiter),format3(l.nilaiRM || l.jumlahRM),l.catatanPengguna].map(csvEscape).join(',') + '\n'; });
+            const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'Buku_Log_Digital_ESILO.csv';
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        };
+
+        // Kad aktif dengan tarikh dd/mm/yyyy dan warna status.
+        window.autoIsiMaklumatKadKenderaan = function() {
+            const platEl = document.getElementById('k_plat');
+            const info = document.getElementById('infoKadAssignKenderaan');
+            const dl = document.getElementById('senaraiPlatKenderaan');
+            if(dl) dl.innerHTML = DB_Kenderaan.map(k => `<option value="${escapeHtml(k.plat)}">${escapeHtml(k.jenama || '')}</option>`).join('');
+            if(!platEl || !info) return;
+            const plat = platEl.value.trim().toUpperCase();
+            const iEl=document.getElementById('k_inden'); if(iEl) iEl.value='';
+            const tEl=document.getElementById('k_tng'); if(tEl) tEl.value='';
+            if(!plat) { info.innerHTML = "Masukkan No. Plat untuk paparan <b>SEMUA KAD AKTIF</b> yang direkodkan dalam dashboard REKOD KAD."; return; }
+            const kad = dapatkanKadUntukKenderaan(plat);
+            const teksInden = kad.semuaInden.map(k => `${k.jenamaStesen || '-'} ${k.jenisMinyak || '-'}: ${k.noKad}`).join(' | ');
+            const teksTNG = kad.semuaTNG.map(k => k.noKad).join(' | ');
+            if(iEl) iEl.value = teksInden || '-';
+            if(tEl) tEl.value = teksTNG || '-';
+            const kadBaris = (k) => {
+                const st = statusLuputKad(k.tarikhLuput);
+                const merah = st.kelas.includes('red');
+                const hijau = st.kelas.includes('green');
+                const cls = merah ? 'text-red-700 bg-red-100' : (hijau ? 'text-green-700 bg-green-100' : 'text-amber-800 bg-amber-100');
+                return `<li><b>${escapeHtml(k.noKad)}</b> - ${escapeHtml(k.jenamaStesen || 'Touch n Go')} ${escapeHtml(k.jenisMinyak || '')} <span class="px-2 py-0.5 rounded ${cls}">Luput: ${escapeHtml(formatTarikhDDMMYYYY(k.tarikhLuput))}</span></li>`;
+            };
+            const barisInden = kad.semuaInden.length ? kad.semuaInden.map(kadBaris).join('') : '<li>Tiada kad inden aktif.</li>';
+            const barisTNG = kad.semuaTNG.length ? kad.semuaTNG.map(kadBaris).join('') : '<li>Tiada kad Touch n Go aktif.</li>';
+            info.innerHTML = `<div class="font-bold mb-2 bg-blue-700 text-white px-3 py-2 rounded">SEMUA KAD AKTIF BAGI ${escapeHtml(plat)}</div><div class="mb-2 text-cyan-800">Kad Inden:<ul class="list-disc pl-5 mt-1">${barisInden}</ul></div><div class="text-emerald-800">Touch 'n Go:<ul class="list-disc pl-5 mt-1">${barisTNG}</ul></div>`;
+        };
+
+        const janaSistemKenderaanAsalV3 = janaSistemKenderaan;
+        janaSistemKenderaan = function() {
+            const tbody = document.getElementById('jadualSelenggaraKenderaan');
+            const dl = document.getElementById('senaraiPlatKenderaan');
+            if(dl) dl.innerHTML = DB_Kenderaan.map(k => `<option value="${escapeHtml(k.plat)}">${escapeHtml(k.jenama || '')}</option>`).join('');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            DB_Kenderaan.forEach(k => {
+                let img = k.gambar || "https://placehold.co/400x250/e2e8f0/64748b?text=Kereta";
+                let kadAuto = dapatkanKadUntukKenderaan(k.plat);
+                const kadTxt = (x) => {
+                    const st = statusLuputKad(x.tarikhLuput);
+                    const cls = st.kelas.includes('red') ? 'text-red-700 bg-red-100' : 'text-green-700 bg-green-100';
+                    return `<div class="mb-1"><b>${escapeHtml(x.noKad)}</b> - ${escapeHtml(x.jenamaStesen || 'TNG')} ${escapeHtml(x.jenisMinyak || '')} <span class="px-1 rounded ${cls}">${escapeHtml(formatTarikhDDMMYYYY(x.tarikhLuput))}</span></div>`;
+                };
+                let semua = [...kadAuto.semuaInden, ...kadAuto.semuaTNG];
+                let infoKad = semua.length ? `<div class="text-xs text-blue-800 bg-blue-50 border border-blue-200 rounded p-2 mt-2"><b>SEMUA KAD AKTIF</b>${semua.map(kadTxt).join('')}</div>` : '<div class="text-xs text-gray-500 mt-1">Tiada kad aktif.</div>';
+                tbody.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="p-2"><img src="${img}" class="w-16 h-10 object-contain rounded border bg-white"></td><td class="p-2"><strong>${escapeHtml(k.plat)}</strong><br><span class="text-xs text-gray-500">${escapeHtml(k.jenama)}</span>${infoKad}</td><td class="p-2"><span>${escapeHtml(k.jenis || '-')}</span><br><span class="text-xs font-bold px-1 rounded bg-gray-100">${escapeHtml(k.milikan || '-')}</span></td><td class="p-2">${escapeHtml(k.noAset || '-')}</td><td class="p-2 text-center"><button onclick="editKenderaan('${escapeHtml(k.plat)}')" class="text-xs bg-blue-100 px-3 py-1 rounded font-bold hover:bg-blue-200 shadow">Edit</button></td></tr>`;
+            });
+        };
+
+        // Jenis minyak automatik berdasarkan kad inden aktif yang diassign kepada kenderaan semasa.
+        window.autoJenisMinyakPulang = function(){
+            const stesen = document.getElementById('indenStesen')?.value || '';
+            const k = DB_Kenderaan.find(x => x.pengguna === profilSemasa.nama && x.status === 'Sedang Digunakan');
+            if(!k || !stesen) return;
+            const kad = dapatkanKadUntukKenderaan(k.plat).semuaInden.find(x => (x.jenamaStesen || '') === stesen);
+            if(kad && document.getElementById('indenJenisMinyak')) document.getElementById('indenJenisMinyak').value = kad.jenisMinyak || '';
+        };
+
+        const janaBorangPulangAsalV3 = window.janaBorangPulang;
+        window.janaBorangPulang = function(){
+            janaBorangPulangAsalV3();
+            const k = DB_Kenderaan.find(x => x.pengguna === profilSemasa.nama && x.status === 'Sedang Digunakan');
+            const kotak = document.getElementById('kotakLogPulang');
+            if(k) {
+                const kad = dapatkanKadUntukKenderaan(k.plat);
+                const s = document.getElementById('indenStesen');
+                if(s) {
+                    s.innerHTML = '<option value="">-- Tiada Pengisian --</option>' + kad.semuaInden.map(x => `<option value="${escapeHtml(x.jenamaStesen || '')}">${escapeHtml(x.jenamaStesen || '-')} - ${escapeHtml(x.noKad || '-')}</option>`).join('');
+                }
+                autoJenisMinyakPulang();
+                if(kotak) kotak.classList.remove('hilang');
+                const teks = document.getElementById('teksLogPulang'); if(teks) teks.innerText = `Rekod perjalanan terhad kepada kenderaan semasa: ${k.plat}.`;
+                janaLogPulang();
+            } else {
+                if(kotak) kotak.classList.add('hilang');
+            }
+        };
+        window.janaLogPulang = function() {
+            const tb = document.getElementById('jadualLogPulang'); if(!tb) return;
+            const k = DB_Kenderaan.find(x => x.pengguna === profilSemasa.nama && x.status === 'Sedang Digunakan');
+            if(!k) { tb.innerHTML = '<tr><td colspan="12" class="p-4 text-center text-gray-500 bg-gray-50">Tiada kenderaan semasa untuk dipulangkan.</td></tr>'; return; }
+            const data = DB_LogKenderaan.filter(l => (l.noPendaftaran || '') === k.plat).slice().sort((a,b)=>String(b.timestampPulang||'').localeCompare(String(a.timestampPulang||'')));
+            if(!data.length) { tb.innerHTML = `<tr><td colspan="12" class="p-4 text-center text-gray-500 bg-gray-50">Tiada rekod perjalanan terdahulu untuk ${escapeHtml(k.plat)}.</td></tr>`; return; }
+            tb.innerHTML = '';
+            data.forEach(l => tb.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="p-2">${escapeHtml(formatTarikhDDMMYYYY(l.tarikh || l.timestampPulang))}</td><td class="p-2">${escapeHtml(l.masaMula || '-')}</td><td class="p-2">${escapeHtml(l.masaAkhir || '-')}</td><td class="p-2">${escapeHtml(l.namaPengguna || '-')}</td><td class="p-2 font-bold text-blue-700">${escapeHtml(l.noPendaftaran || '-')}</td><td class="p-2">${escapeHtml(l.tujuan || '-')}</td><td class="p-2">${escapeHtml(l.lokasi || '-')}</td><td class="p-2">${escapeHtml(l.odometerAkhir || '-')}</td><td class="p-2">${escapeHtml(l.penggunaanOdometer || '0')}</td><td class="p-2">${escapeHtml(l.penggunaanKadInden || 'Tidak')}<br><span class="text-[11px] text-gray-500">${escapeHtml(l.jenamaStesen || '-')} ${escapeHtml(l.jenisMinyak || '')}<br>${escapeHtml((l.nilaiRM || l.jumlahRM) ? formatRM3(l.nilaiRM || l.jumlahRM) : '')}</span></td><td class="p-2">${escapeHtml(l.penggunaanTNG || 'Tidak')}</td><td class="p-2">${escapeHtml(l.catatanPengguna || '-')}</td></tr>`);
+        };
+
+        // Override kira mileage paparan supaya KM / RM / Liter 3 titik perpuluhan bila dipaparkan.
+        const kiraMileageGunaAsalV3 = window.kiraMileageGuna;
+        window.kiraMileageGuna = function(){
+            kiraMileageGunaAsalV3();
+            const el=document.getElementById('paparMileageGuna');
+            if(el && el.value !== '') el.value = format3(el.value);
+        };
+
+        // Override modal pulang supaya nilai RM/liter 3 decimal.
+        const semakPulangKenderaanAsalV3 = window.semakPulangKenderaan;
+        window.semakPulangKenderaan = function(){
+            semakPulangKenderaanAsalV3();
+            const minyak = document.getElementById('modalMinyak');
+            const rm = document.getElementById('indenRM')?.value || 0;
+            const liter = document.getElementById('indenLiter')?.value || 0;
+            if(minyak) minyak.innerText = (Number(rm)>0 || Number(liter)>0) ? `${formatRM3(rm)} / ${format3(liter)} liter` : '-';
+        };
+
+        // Pastikan rekod log disimpan dalam format tiga perpuluhan untuk RM dan liter.
+        const sahkanPulangKenderaanAsalV3 = window.sahkanPulangKenderaan;
+        window.sahkanPulangKenderaan = async function(){
+            const rmEl=document.getElementById('indenRM'); if(rmEl && rmEl.value) rmEl.value = format3(rmEl.value);
+            const litEl=document.getElementById('indenLiter'); if(litEl && litEl.value) litEl.value = format3(litEl.value);
+            await sahkanPulangKenderaanAsalV3();
+        };
+
+        window.kemaskiniSelenggaraAuto = function(){
+            const km = Number(document.getElementById('hadKmServis')?.value || 100);
+            const hari = Number(document.getElementById('hadHariServis')?.value || 14);
+            const lkm = document.getElementById('labelSelSumKM'); if(lkm) lkm.innerText = `Kurang ${km}km`;
+            const lhari = document.getElementById('labelSelSumTarikh'); if(lhari) lhari.innerText = `Kurang ${hari} Hari`;
+            janaRekodSelenggara();
+        };
+
+        // Set menu teks ke huruf besar selepas render.
+        function kemasMenuHurufBesar(){
+            const map = [['tabDashboard','🏠 UTAMA'],['teksTabOperasi',aksesAdmin()?'📝 TEMPAHAN / 📋 KELULUSAN':'📝 TEMPAHAN'],['tabAmbil','🔑 AMBIL'],['tabPulang','↩️ PULANG'],['tabSelenggara','👥 STAF'],['tabSelenggaraKenderaan','🚘 KENDERAAN'],['tabRekodKad','💳 REKOD KAD'],['tabRekodSelenggara','🛠️ REKOD SELENGGARA'],['tabLaporan','📊 LAPORAN']];
+            map.forEach(([id,txt]) => { const el=document.getElementById(id); if(el && id !== 'teksTabOperasi') el.innerText=txt; const sp=document.getElementById(id); if(id==='teksTabOperasi' && sp) sp.innerText=txt; });
+        }
+        const tukarPenggunaAkaunAsalV3 = window.tukarPenggunaAkaun;
+        window.tukarPenggunaAkaun = function(emel){
+            tukarPenggunaAkaunAsalV3(emel);
+            kemasMenuHurufBesar();
+            resetCarianDashboard();
         };
 
         function notif(msj) {
