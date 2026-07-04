@@ -13,7 +13,7 @@
             to { transform: translateX(0); opacity: 1; }
         }
         .emel-masuk { animation: slideIn 0.5s ease-out forwards; }
-        #viewDashboard, #viewOperasi, #viewAmbil, #viewPulang, #viewSelenggara, #viewSelenggaraKenderaan, #viewRekodKad, #viewRekodSelenggara, #viewLaporan {
+        #viewDashboard, #viewOperasi, #viewAmbil, #viewPulang, #viewSelenggara, #viewSelenggaraKenderaan, #viewRekodKad, #viewRekodSelenggara, #viewLaporan, #viewBackup {
             view-transition-name: paparan-esilo;
         }
         ::view-transition-old(paparan-esilo),
@@ -41,6 +41,20 @@
             body { background: white !important; }
         }
         .camera-frame { aspect-ratio: 16/9; background: #0f172a; }
+
+        /* PATCH V4: paparan lebih mesra mobile */
+        @media (max-width: 640px) {
+            body { font-size: 14px; }
+            .container { width: 100% !important; padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+            #menuTabs { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem !important; padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+            #menuTabs button { width: 100%; justify-content: center; font-size: 12px; padding: 0.65rem 0.5rem; }
+            nav .container { align-items: stretch !important; }
+            nav h1 { font-size: 1.35rem !important; }
+            input, select, textarea, button { font-size: 14px !important; }
+            table { min-width: 760px; }
+            .mobile-stack { flex-direction: column !important; align-items: stretch !important; }
+            .mobile-full { width: 100% !important; }
+        }
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
@@ -85,6 +99,7 @@
             <button onclick="paparTab('rekodKad')" id="tabRekodKad" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center hilang">💳 REKOD KAD</button>
             <button onclick="paparTab('rekodSelenggara')" id="tabRekodSelenggara" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center hilang">🛠️ REKOD SELENGGARA</button>
             <button onclick="paparTab('laporan')" id="tabLaporan" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center hilang">📊 LAPORAN</button>
+            <button onclick="paparTab('backup')" id="tabBackup" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center hilang">💾 BACKUP</button>
         </div>
     </div>
 
@@ -302,15 +317,12 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-bold mb-2">Jenis Minyak</label>
-                                <select id="indenJenisMinyak" class="w-full p-2 border rounded">
-                                    <option value="">-- Pilih Jika Berkaitan --</option>
-                                    <option value="RON95">RON95</option>
-                                    <option value="Diesel">Diesel</option>
-                                </select>
+                                <input type="text" id="indenJenisMinyak" class="w-full p-2 border rounded bg-gray-100 font-bold text-blue-700" placeholder="Auto ikut rekod kad" readonly>
+                                <p class="text-[11px] text-gray-500 mt-1">Jenis minyak naik automatik selepas jenama/kad inden dipilih.</p>
                             </div>
                             <div><label class="block text-sm font-bold mb-2">No. Invoice / Resit</label><input type="text" id="indenInvoice" class="w-full p-2 border rounded" placeholder="Contoh: INV-12345"></div>
-                            <div><label class="block text-sm font-bold mb-2">Nilai Isian Minyak (RM)</label><input type="number" id="indenRM" class="w-full p-2 border rounded" placeholder="Contoh: 50"></div>
-                            <div><label class="block text-sm font-bold mb-2">Isipadu Minyak (Liter)</label><input type="number" id="indenLiter" class="w-full p-2 border rounded" placeholder="Contoh: 25.5"></div>
+                            <div><label class="block text-sm font-bold mb-2">Nilai Isian Minyak (RM)</label><input type="number" id="indenRM" step="0.01" class="w-full p-2 border rounded" placeholder="Contoh: 50.00"></div>
+                            <div><label class="block text-sm font-bold mb-2">Isipadu Minyak (Liter)</label><input type="number" id="indenLiter" step="0.001" class="w-full p-2 border rounded" placeholder="Contoh: 25.500"></div>
                         </div>
                         <p class="text-xs text-red-500 italic font-semibold mb-4">* Kosongkan jika tiada penggunaan kad inden</p>
 
@@ -684,6 +696,58 @@
                     <thead class="bg-gray-800 text-white"><tr><th class="p-2">Tarikh</th><th class="p-2">Masa Mula</th><th class="p-2">Masa Akhir</th><th class="p-2">Nama Pengguna</th><th class="p-2">Tujuan</th><th class="p-2">Lokasi</th><th class="p-2">Nama Pelulus</th><th class="p-2">No Kenderaan</th><th class="p-2">Odometer</th><th class="p-2">KM</th><th class="p-2">Inden</th><th class="p-2">Inv</th><th class="p-2">Liter</th><th class="p-2">Catatan</th></tr></thead>
                     <tbody id="jadualLaporanDigital"><tr><td colspan="14" class="p-6 text-center text-gray-500 font-bold bg-gray-50">Sila masukkan tapisan dan tekan CARI / TAPIS.</td></tr></tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- TAB 10: BACKUP SISTEM -->
+    <div id="viewBackup" class="container mx-auto p-6 hilang">
+        <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-slate-700">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6 mobile-stack">
+                <div>
+                    <h2 class="text-2xl font-black text-gray-800">DASHBOARD BACKUP</h2>
+                    <p class="text-sm text-gray-500">Kemaskini emel backup dan jana salinan data sistem E-SILO.</p>
+                </div>
+                <div class="text-xs bg-yellow-50 text-yellow-800 border border-yellow-200 p-3 rounded max-w-xl">
+                    Nota: HTML frontend tidak boleh menghantar emel automatik tanpa backend/Cloud Function. Dashboard ini menyimpan emel backup, menjana fail backup dan membuka emel siap dengan ringkasan.
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-slate-50 p-5 rounded-lg border border-slate-200 lg:col-span-1">
+                    <h3 class="text-lg font-bold text-slate-800 mb-4">Tetapan Emel Backup</h3>
+                    <label class="block text-sm font-bold mb-2">Emel Backup Utama</label>
+                    <input type="email" id="backupEmelUtama" class="w-full p-3 border rounded mb-3" placeholder="contoh: logistik@kpdn.gov.my">
+                    <label class="block text-sm font-bold mb-2">Emel CC / Alternatif</label>
+                    <input type="text" id="backupEmelCC" class="w-full p-3 border rounded mb-3" placeholder="pisahkan dengan koma jika lebih satu">
+                    <label class="block text-sm font-bold mb-2">No WhatsApp Admin Backup</label>
+                    <input type="text" id="backupWhatsapp" class="w-full p-3 border rounded mb-4" placeholder="contoh: 60123456789">
+                    <button onclick="simpanTetapanBackup()" class="w-full bg-slate-700 hover:bg-slate-800 text-white font-bold py-3 rounded shadow">SIMPAN TETAPAN BACKUP</button>
+                </div>
+
+                <div class="bg-white p-5 rounded-lg border border-gray-200 lg:col-span-2">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4">Jana Backup Data Firebase</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+                        <div class="bg-blue-50 p-3 rounded border border-blue-100"><div class="text-xs font-bold text-blue-700">Kenderaan</div><div id="bkSumKenderaan" class="text-2xl font-black text-blue-900">0</div></div>
+                        <div class="bg-emerald-50 p-3 rounded border border-emerald-100"><div class="text-xs font-bold text-emerald-700">Tempahan</div><div id="bkSumTempahan" class="text-2xl font-black text-emerald-900">0</div></div>
+                        <div class="bg-purple-50 p-3 rounded border border-purple-100"><div class="text-xs font-bold text-purple-700">Pengguna</div><div id="bkSumPengguna" class="text-2xl font-black text-purple-900">0</div></div>
+                        <div class="bg-cyan-50 p-3 rounded border border-cyan-100"><div class="text-xs font-bold text-cyan-700">Rekod Kad</div><div id="bkSumKad" class="text-2xl font-black text-cyan-900">0</div></div>
+                        <div class="bg-amber-50 p-3 rounded border border-amber-100"><div class="text-xs font-bold text-amber-700">Log</div><div id="bkSumLog" class="text-2xl font-black text-amber-900">0</div></div>
+                    </div>
+
+                    <div class="flex flex-col md:flex-row gap-3 mb-4 mobile-stack">
+                        <button onclick="muatTurunBackupJSON()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-5 py-3 rounded shadow mobile-full">MUAT TURUN JSON</button>
+                        <button onclick="muatTurunBackupCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-3 rounded shadow mobile-full">MUAT TURUN CSV RINGKAS</button>
+                        <button onclick="bukaEmelBackup()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-3 rounded shadow mobile-full">BUKA EMEL BACKUP</button>
+                        <button onclick="hantarWhatsappBackup()" class="bg-green-600 hover:bg-green-700 text-white font-bold px-5 py-3 rounded shadow mobile-full">WHATSAPP ADMIN</button>
+                    </div>
+
+                    <div class="bg-gray-50 border rounded p-4 text-sm text-gray-700">
+                        <b>Status:</b> <span id="statusBackup">Sila tetapkan emel backup dan jana fail backup secara berkala.</span>
+                    </div>
+                    <pre id="previewBackup" class="mt-4 bg-slate-900 text-slate-100 text-xs p-4 rounded overflow-auto max-h-72"></pre>
+                </div>
             </div>
         </div>
     </div>
@@ -2314,6 +2378,367 @@
             tukarPenggunaAkaunAsalV3(emel);
             kemasMenuHurufBesar();
             resetCarianDashboard();
+        };
+
+
+        // ================= PATCH V4: BACKUP, FORMAT, WHATSAPP, LOG SEMASA & MOBILE =================
+        let DB_BackupConfig = {};
+
+        function formatRM2(v){
+            const n = Number(String(v ?? 0).replace(/,/g,''));
+            return 'RM ' + (isNaN(n) ? 0 : n).toLocaleString('en-MY', {minimumFractionDigits:2, maximumFractionDigits:2});
+        }
+        function formatLiter3(v){
+            const n = Number(String(v ?? 0).replace(/,/g,''));
+            return (isNaN(n) ? 0 : n).toLocaleString('en-MY', {minimumFractionDigits:3, maximumFractionDigits:3});
+        }
+        function formatOdometer0(v){
+            const n = Number(String(v ?? 0).replace(/,/g,''));
+            return (isNaN(n) ? 0 : Math.round(n)).toLocaleString('en-MY');
+        }
+        function nomborBersih(v){
+            const n = Number(String(v ?? 0).replace(/,/g,''));
+            return isNaN(n) ? 0 : n;
+        }
+
+        // Override format lama supaya paparan V3 ikut format terkini.
+        try { formatRM3 = formatRM2; format3 = formatLiter3; } catch(e) {}
+
+        onSnapshot(collection(db, 'backup_config'), (snapshot) => {
+            snapshot.forEach((x) => { if(x.id === 'tetapan') DB_BackupConfig = { id:x.id, ...x.data() }; });
+            isiTetapanBackup();
+        });
+
+        function pastikanInputJenisMinyakReadonly(){
+            const el = document.getElementById('indenJenisMinyak');
+            if(!el) return;
+            if(el.tagName === 'SELECT') {
+                const input = document.createElement('input');
+                input.type = 'text'; input.id = 'indenJenisMinyak'; input.readOnly = true;
+                input.className = 'w-full p-2 border rounded bg-gray-100 font-bold text-blue-700';
+                input.placeholder = 'Auto ikut rekod kad';
+                el.parentNode.replaceChild(input, el);
+            } else {
+                el.readOnly = true;
+                el.classList.add('bg-gray-100','font-bold','text-blue-700');
+            }
+        }
+
+        function dapatKenderaanPulangSemasa(){
+            return DB_Kenderaan.find(v => v.status === 'Sedang Digunakan' && v.pengguna === profilSemasa.nama);
+        }
+
+        function dapatKadIndenDipilih(){
+            const k = dapatKenderaanPulangSemasa();
+            const val = document.getElementById('indenStesen')?.value || '';
+            if(!k || !val) return null;
+            const kadList = dapatkanKadUntukKenderaan(k.plat).semuaInden || [];
+            return kadList.find(x => (x.id || x.noKad || x.jenamaStesen) === val || x.noKad === val || x.jenamaStesen === val) || null;
+        }
+
+        window.autoJenisMinyakPulang = function(){
+            pastikanInputJenisMinyakReadonly();
+            const jenisEl = document.getElementById('indenJenisMinyak');
+            const kad = dapatKadIndenDipilih();
+            if(jenisEl) jenisEl.value = kad ? (kad.jenisMinyak || '-') : '';
+            const stesenEl = document.getElementById('indenStesen');
+            if(stesenEl && kad) stesenEl.dataset.jenamaStesen = kad.jenamaStesen || '-';
+        };
+
+        const janaBorangPulangAsalV4 = window.janaBorangPulang;
+        window.janaBorangPulang = function(){
+            pastikanInputJenisMinyakReadonly();
+            janaBorangPulangAsalV4();
+            const k = dapatKenderaanPulangSemasa();
+            const kotak = document.getElementById('kotakLogPulang');
+            const tb = document.getElementById('jadualLogPulang');
+            if(!k) {
+                if(kotak) kotak.classList.add('hilang');
+                if(tb) tb.innerHTML = '<tr><td colspan="12" class="p-4 text-center text-gray-500 bg-gray-50">Tiada kenderaan semasa untuk dipulangkan.</td></tr>';
+                return;
+            }
+            const kad = dapatkanKadUntukKenderaan(k.plat);
+            const s = document.getElementById('indenStesen');
+            if(s) {
+                s.innerHTML = '<option value="">-- Tiada Pengisian --</option>' + (kad.semuaInden || []).map(x => `<option value="${escapeHtml(x.id || x.noKad || x.jenamaStesen || '')}">${escapeHtml(x.jenamaStesen || '-')} - ${escapeHtml(x.noKad || '-')}</option>`).join('');
+                delete s.dataset.jenamaStesen;
+            }
+            const jenisEl = document.getElementById('indenJenisMinyak'); if(jenisEl) jenisEl.value = '';
+            if(kotak) kotak.classList.remove('hilang');
+            const teks = document.getElementById('teksLogPulang');
+            if(teks) teks.innerText = `Rekod perjalanan hanya untuk kenderaan semasa yang sedang dipulangkan: ${k.plat} - ${k.jenama || '-'}.`;
+            janaLogPulang();
+        };
+
+        window.janaLogPulang = function(){
+            const tb = document.getElementById('jadualLogPulang'); if(!tb) return;
+            const k = dapatKenderaanPulangSemasa();
+            if(!k) {
+                tb.innerHTML = '<tr><td colspan="12" class="p-4 text-center text-gray-500 bg-gray-50">Tiada kenderaan semasa untuk dipulangkan.</td></tr>';
+                return;
+            }
+            const data = DB_LogKenderaan.filter(l => String(l.noPendaftaran || '').toUpperCase() === String(k.plat || '').toUpperCase())
+                .sort((a,b)=>String(b.timestampPulang||b.createdAt||'').localeCompare(String(a.timestampPulang||a.createdAt||'')))
+                .slice(0, 30);
+            if(!data.length) {
+                tb.innerHTML = `<tr><td colspan="12" class="p-4 text-center text-gray-500 bg-gray-50">Tiada rekod perjalanan terdahulu untuk ${escapeHtml(k.plat)}.</td></tr>`;
+                return;
+            }
+            tb.innerHTML = data.map(l => `<tr class="border-b hover:bg-gray-50">
+                <td class="p-2">${escapeHtml(formatTarikhDDMMYYYY(l.tarikh || l.timestampPulang))}</td>
+                <td class="p-2">${escapeHtml(l.masaMula || '-')}</td>
+                <td class="p-2">${escapeHtml(l.masaAkhir || '-')}</td>
+                <td class="p-2">${escapeHtml(l.namaPengguna || '-')}</td>
+                <td class="p-2 font-bold text-blue-700">${escapeHtml(l.noPendaftaran || '-')}</td>
+                <td class="p-2">${escapeHtml(l.tujuan || '-')}</td>
+                <td class="p-2">${escapeHtml(l.lokasi || '-')}</td>
+                <td class="p-2">${escapeHtml(formatOdometer0(l.odometerAkhir || 0))}</td>
+                <td class="p-2">${escapeHtml(formatOdometer0(l.penggunaanOdometer || 0))}</td>
+                <td class="p-2">${escapeHtml(l.penggunaanKadInden || 'Tidak')}<br><span class="text-[11px] text-gray-500">${escapeHtml(l.jenamaStesen || '-')} ${escapeHtml(l.jenisMinyak || '')}<br>${escapeHtml((l.nilaiRM && l.nilaiRM !== '-') ? formatRM2(l.nilaiRM) : '')} ${escapeHtml((l.jumlahLiter && l.jumlahLiter !== '-') ? '/ ' + formatLiter3(l.jumlahLiter) + ' L' : '')}</span></td>
+                <td class="p-2">${escapeHtml(l.penggunaanTNG || 'Tidak')}</td>
+                <td class="p-2">${escapeHtml(l.catatanPengguna || '-')}</td>
+            </tr>`).join('');
+        };
+
+        const semakPulangKenderaanAsalV4 = window.semakPulangKenderaan;
+        window.semakPulangKenderaan = function(){
+            autoJenisMinyakPulang();
+            const rmEl = document.getElementById('indenRM');
+            const litEl = document.getElementById('indenLiter');
+            const odoEl = document.getElementById('inputMileageSelepas');
+            if(rmEl && rmEl.value) rmEl.value = nomborBersih(rmEl.value).toFixed(2);
+            if(litEl && litEl.value) litEl.value = nomborBersih(litEl.value).toFixed(3);
+            if(odoEl && odoEl.value) odoEl.value = String(Math.round(nomborBersih(odoEl.value)));
+            semakPulangKenderaanAsalV4();
+            const minyak = document.getElementById('modalMinyak');
+            const rm = document.getElementById('indenRM')?.value || 0;
+            const liter = document.getElementById('indenLiter')?.value || 0;
+            if(minyak) minyak.innerText = (Number(rm)>0 || Number(liter)>0) ? `${formatRM2(rm)} / ${formatLiter3(liter)} liter` : '-';
+            const jarak = document.getElementById('modalJarak');
+            if(jarak && window.rekodPulangSemasa) jarak.innerText = formatOdometer0(window.rekodPulangSemasa.penggunaanOdometer || 0);
+        };
+
+        const sahkanPulangKenderaanAsalV4 = window.sahkanPulangKenderaan;
+        window.sahkanPulangKenderaan = async function(){
+            if(window.rekodPulangSemasa) {
+                const kad = dapatKadIndenDipilih();
+                if(kad) {
+                    window.rekodPulangSemasa.stesen = kad.jenamaStesen || '-';
+                    window.rekodPulangSemasa.jenisMinyak = kad.jenisMinyak || '-';
+                    window.rekodPulangSemasa.kadInden = kad.noKad || '-';
+                }
+                window.rekodPulangSemasa.rm = window.rekodPulangSemasa.rm && window.rekodPulangSemasa.rm !== '-' ? Number(window.rekodPulangSemasa.rm).toFixed(2) : '-';
+                window.rekodPulangSemasa.liter = window.rekodPulangSemasa.liter && window.rekodPulangSemasa.liter !== '-' ? Number(window.rekodPulangSemasa.liter).toFixed(3) : '-';
+                window.rekodPulangSemasa.mileageBaru = Math.round(nomborBersih(window.rekodPulangSemasa.mileageBaru));
+                window.rekodPulangSemasa.penggunaanOdometer = Math.round(nomborBersih(window.rekodPulangSemasa.penggunaanOdometer));
+            }
+            await sahkanPulangKenderaanAsalV4();
+        };
+
+        // Pop-up WhatsApp reminder kepada admin selepas tempahan dibuat.
+        const hantarTempahanAsalV4 = window.hantarTempahan;
+        window.hantarTempahan = async function(e){
+            await hantarTempahanAsalV4(e);
+            const nama = profilSemasa.nama || '-';
+            const emel = profilSemasa.emel || '-';
+            const msg = `Ada 1 tempahan kenderaan baharu dibuat oleh ${nama} (${emel}). Sila semak sistem E-SILO.`;
+            const ok = confirm('Tempahan telah dihantar. Adakah anda mahu hantar reminder WhatsApp kepada Admin sekarang?');
+            if(ok) {
+                const adminTel = (DB_BackupConfig.whatsapp || '').replace(/[^0-9]/g,'');
+                const url = adminTel ? `https://wa.me/${adminTel}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+                window.open(url, '_blank');
+            }
+        };
+
+        // BACKUP DASHBOARD
+        function isiTetapanBackup(){
+            const emel = document.getElementById('backupEmelUtama');
+            const cc = document.getElementById('backupEmelCC');
+            const wa = document.getElementById('backupWhatsapp');
+            if(emel && DB_BackupConfig.emelUtama) emel.value = DB_BackupConfig.emelUtama;
+            if(cc && DB_BackupConfig.emelCC) cc.value = DB_BackupConfig.emelCC;
+            if(wa && DB_BackupConfig.whatsapp) wa.value = DB_BackupConfig.whatsapp;
+            kemaskiniRingkasanBackup();
+        }
+        function kemaskiniRingkasanBackup(){
+            const set = (id,v)=>{ const el=document.getElementById(id); if(el) el.innerText=v; };
+            set('bkSumKenderaan', DB_Kenderaan.length); set('bkSumTempahan', DB_Tempahan.length); set('bkSumPengguna', DB_Pengguna.length); set('bkSumKad', DB_RekodKad.length); set('bkSumLog', DB_LogKenderaan.length);
+            const prev = document.getElementById('previewBackup');
+            if(prev) prev.textContent = JSON.stringify({
+                dijanaPada: new Date().toISOString(),
+                kenderaan: DB_Kenderaan.length, tempahan: DB_Tempahan.length, pengguna: DB_Pengguna.length, rekodKad: DB_RekodKad.length, logKenderaan: DB_LogKenderaan.length
+            }, null, 2);
+        }
+        function kumpulBackupData(){
+            return {
+                meta: { sistem:'E-SILO', dijanaPada:new Date().toISOString(), dijanaOleh:profilSemasa.emel || '-' },
+                kenderaan: DB_Kenderaan, tempahan: DB_Tempahan, pengguna: DB_Pengguna, rekodKad: DB_RekodKad, logKenderaan: DB_LogKenderaan, tetapanBackup: DB_BackupConfig
+            };
+        }
+        function downloadText(filename, text, type='text/plain'){
+            const blob = new Blob([text], {type});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+        }
+        window.simpanTetapanBackup = async function(){
+            if(!aksesAdmin()) return alert('Akses BACKUP hanya untuk Admin dan Super Admin.');
+            const data = {
+                emelUtama: document.getElementById('backupEmelUtama')?.value.trim() || '',
+                emelCC: document.getElementById('backupEmelCC')?.value.trim() || '',
+                whatsapp: document.getElementById('backupWhatsapp')?.value.trim() || '',
+                dikemaskiniOleh: profilSemasa.emel || '-', dikemaskiniPada: new Date().toISOString()
+            };
+            await setDoc(doc(db, 'backup_config', 'tetapan'), data);
+            DB_BackupConfig = data;
+            document.getElementById('statusBackup').innerText = 'Tetapan backup berjaya disimpan.';
+            notif('Tetapan backup berjaya disimpan.');
+        };
+        window.muatTurunBackupJSON = function(){
+            const nama = `ESILO_BACKUP_${new Date().toISOString().slice(0,10)}.json`;
+            downloadText(nama, JSON.stringify(kumpulBackupData(), null, 2), 'application/json;charset=utf-8');
+            document.getElementById('statusBackup').innerText = 'Fail JSON backup telah dijana.';
+        };
+        window.muatTurunBackupCSV = function(){
+            const data = kumpulBackupData();
+            const lines = ['KATEGORI,JUMLAH'];
+            lines.push(`Kenderaan,${data.kenderaan.length}`,`Tempahan,${data.tempahan.length}`,`Pengguna,${data.pengguna.length}`,`Rekod Kad,${data.rekodKad.length}`,`Log Kenderaan,${data.logKenderaan.length}`);
+            lines.push('', 'LOG KENDERAAN');
+            lines.push('Tarikh,No Kenderaan,Nama Pengguna,Tujuan,Lokasi,Odometer Akhir,KM,RM,Liter,Inden,TNG');
+            data.logKenderaan.forEach(l => lines.push([l.tarikh||'', l.noPendaftaran||'', l.namaPengguna||'', l.tujuan||'', l.lokasi||'', l.odometerAkhir||'', l.penggunaanOdometer||'', l.nilaiRM||'', l.jumlahLiter||'', l.noKadInden||'', l.noKadTNG||''].map(x => `"${String(x).replace(/"/g,'""')}"`).join(',')));
+            downloadText(`ESILO_BACKUP_RINGKAS_${new Date().toISOString().slice(0,10)}.csv`, lines.join('\n'), 'text/csv;charset=utf-8');
+            document.getElementById('statusBackup').innerText = 'Fail CSV ringkas telah dijana.';
+        };
+        window.bukaEmelBackup = function(){
+            const emel = document.getElementById('backupEmelUtama')?.value.trim() || DB_BackupConfig.emelUtama || '';
+            const cc = document.getElementById('backupEmelCC')?.value.trim() || DB_BackupConfig.emelCC || '';
+            if(!emel) return alert('Sila isi emel backup utama dahulu.');
+            const body = `Backup sistem E-SILO dijana pada ${new Date().toLocaleString('ms-MY')}.\n\nRingkasan:\n- Kenderaan: ${DB_Kenderaan.length}\n- Tempahan: ${DB_Tempahan.length}\n- Pengguna: ${DB_Pengguna.length}\n- Rekod Kad: ${DB_RekodKad.length}\n- Log Kenderaan: ${DB_LogKenderaan.length}\n\nSila lampirkan fail JSON/CSV backup yang telah dimuat turun daripada dashboard BACKUP.`;
+            const url = `mailto:${encodeURIComponent(emel)}?cc=${encodeURIComponent(cc)}&subject=${encodeURIComponent('BACKUP SISTEM E-SILO')}&body=${encodeURIComponent(body)}`;
+            window.location.href = url;
+        };
+        window.hantarWhatsappBackup = function(){
+            const tel = (document.getElementById('backupWhatsapp')?.value || DB_BackupConfig.whatsapp || '').replace(/[^0-9]/g,'');
+            const msg = `Backup sistem E-SILO tersedia. Ringkasan: Kenderaan ${DB_Kenderaan.length}, Tempahan ${DB_Tempahan.length}, Pengguna ${DB_Pengguna.length}, Rekod Kad ${DB_RekodKad.length}, Log ${DB_LogKenderaan.length}.`;
+            const url = tel ? `https://wa.me/${tel}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+            window.open(url, '_blank');
+        };
+
+        const tukarPenggunaAkaunAsalV4 = window.tukarPenggunaAkaun;
+        window.tukarPenggunaAkaun = function(emel){
+            tukarPenggunaAkaunAsalV4(emel);
+            setTabVisible('tabBackup', aksesAdmin());
+            kemaskiniRingkasanBackup();
+        };
+
+        window.paparTab = function(tabId){
+            resetPaparanSementara(tabId);
+            if (document.startViewTransition) { document.startViewTransition(() => tukarPaparanV4(tabId)); } else { tukarPaparanV4(tabId); }
+        };
+        function tukarPaparanV4(tabId){
+            ['viewDashboard','viewOperasi','viewAmbil','viewPulang','viewSelenggara','viewSelenggaraKenderaan','viewRekodKad','viewRekodSelenggara','viewLaporan','viewBackup'].forEach(id => { const v=document.getElementById(id); if(v) v.classList.add('hilang'); });
+            ['tabDashboard','tabOperasi','tabAmbil','tabPulang','tabSelenggara','tabSelenggaraKenderaan','tabRekodKad','tabRekodSelenggara','tabLaporan','tabBackup'].forEach(id => { const el=document.getElementById(id); if(el){ el.classList.remove('tab-aktif'); el.classList.add('tab-pasif'); } });
+            let idAktif = '';
+            if(tabId === 'dashboard') { document.getElementById('viewDashboard').classList.remove('hilang'); idAktif='tabDashboard'; janaSistem(); }
+            else if(tabId === 'operasi') { document.getElementById('viewOperasi').classList.remove('hilang'); idAktif='tabOperasi'; kemaskiniBorang(); }
+            else if(tabId === 'ambil') { document.getElementById('viewAmbil').classList.remove('hilang'); window.janaDropdownAmbil(); idAktif='tabAmbil'; }
+            else if(tabId === 'pulang') { document.getElementById('viewPulang').classList.remove('hilang'); window.janaBorangPulang(); idAktif='tabPulang'; }
+            else if(tabId === 'selenggara') { if(profilSemasa.peranan !== 'superadmin') return window.paparTab('dashboard'); document.getElementById('viewSelenggara').classList.remove('hilang'); idAktif='tabSelenggara'; }
+            else if(tabId === 'selenggaraKenderaan') { if(!aksesAdmin()) return window.paparTab('dashboard'); document.getElementById('viewSelenggaraKenderaan').classList.remove('hilang'); autoIsiMaklumatKadKenderaan(); idAktif='tabSelenggaraKenderaan'; }
+            else if(tabId === 'rekodKad') { if(!aksesAdmin()) return window.paparTab('dashboard'); document.getElementById('viewRekodKad').classList.remove('hilang'); janaPilihanKenderaanKad(); janaRekodKad(); idAktif='tabRekodKad'; }
+            else if(tabId === 'rekodSelenggara') { if(!aksesAdmin()) return window.paparTab('dashboard'); document.getElementById('viewRekodSelenggara').classList.remove('hilang'); kemaskiniSelenggaraAuto(); idAktif='tabRekodSelenggara'; }
+            else if(tabId === 'laporan') { if(!aksesAdmin()) return window.paparTab('dashboard'); document.getElementById('viewLaporan').classList.remove('hilang'); janaPilihanFilterLaporan(); mesejLaporan('Sila masukkan tapisan dan tekan CARI / TAPIS.'); idAktif='tabLaporan'; }
+            else if(tabId === 'backup') { if(!aksesAdmin()) return window.paparTab('dashboard'); document.getElementById('viewBackup').classList.remove('hilang'); isiTetapanBackup(); idAktif='tabBackup'; }
+            const elAktif=document.getElementById(idAktif); if(elAktif){ elAktif.classList.remove('tab-pasif'); elAktif.classList.add('tab-aktif'); }
+            kemasMenuHurufBesar();
+        }
+
+        // Update menu huruf besar termasuk BACKUP.
+        const kemasMenuHurufBesarAsalV4 = kemasMenuHurufBesar;
+        kemasMenuHurufBesar = function(){
+            kemasMenuHurufBesarAsalV4();
+            const b=document.getElementById('tabBackup'); if(b) b.innerText='💾 BACKUP';
+        };
+
+        // Auto refresh ringkasan backup apabila data Firebase berubah.
+        const janaSistemAsalV4Backup = janaSistem;
+        janaSistem = function(){
+            janaSistemAsalV4Backup();
+            kemaskiniRingkasanBackup();
+        };
+
+
+        // ================= PATCH V4.1: FORMAT AKHIR & REMINDER WHATSAPP HANYA SELEPAS BERJAYA =================
+        window.kiraMileageGuna = function(){
+            let mS = parseInt(document.getElementById('inputMileageSelepas')?.value || 0);
+            let mA = parseInt(document.getElementById('pulangMileageSebelum')?.dataset.nilaiAsal || 0);
+            const papar = document.getElementById('paparMileageGuna');
+            if(!papar) return;
+            if(isNaN(mS) || isNaN(mA) || mS < mA) papar.value = '0';
+            else papar.value = formatOdometer0(mS - mA);
+        };
+
+        const semakPulangKenderaanAsalV41 = window.semakPulangKenderaan;
+        window.semakPulangKenderaan = function(){
+            autoJenisMinyakPulang();
+            semakPulangKenderaanAsalV41();
+            const kad = dapatKadIndenDipilih();
+            if(kad && window.rekodPulangSemasa) {
+                window.rekodPulangSemasa.stesen = kad.jenamaStesen || '-';
+                window.rekodPulangSemasa.jenisMinyak = kad.jenisMinyak || '-';
+                window.rekodPulangSemasa.kadInden = kad.noKad || '-';
+                const stesenModal = document.getElementById('modalStesen'); if(stesenModal) stesenModal.innerText = kad.jenamaStesen || '-';
+                const jenisModal = document.getElementById('modalJenisMinyak'); if(jenisModal) jenisModal.innerText = kad.jenisMinyak || '-';
+            }
+            const minyak = document.getElementById('modalMinyak');
+            const rm = document.getElementById('indenRM')?.value || 0;
+            const liter = document.getElementById('indenLiter')?.value || 0;
+            if(minyak) minyak.innerText = (Number(rm)>0 || Number(liter)>0) ? `${formatRM2(rm)} / ${formatLiter3(liter)} liter` : '-';
+            const jarak = document.getElementById('modalJarak');
+            if(jarak && window.rekodPulangSemasa) jarak.innerText = formatOdometer0(window.rekodPulangSemasa.penggunaanOdometer || 0);
+        };
+
+        window.hantarTempahan = async function(e) {
+            e.preventDefault();
+            let btnSahkan = document.getElementById('btnSahkan');
+            btnSahkan.innerText = '⏳ Menghitung Jarak OSRM...';
+            btnSahkan.disabled = true;
+            try {
+                let lokasiDituju = document.getElementById('lokasi').value;
+                let jarakKiraan = await kiraJarakSebenarOSRM(lokasiDituju);
+                let dataBaru = {
+                    emel: profilSemasa.emel || 'tiada@emel.com',
+                    nama: profilSemasa.nama || 'Tanpa Nama',
+                    tel: profilSemasa.tel || '-',
+                    unit: profilSemasa.unit || '-',
+                    tujuan: document.getElementById('tujuan').value || '-',
+                    lokasi: lokasiDituju || '-',
+                    jarakPerjalanan: Number(jarakKiraan) || 100,
+                    tMula: document.getElementById('tarikhGuna').value || '-',
+                    tTamat: document.getElementById('tarikhPulang').value || '-',
+                    cadangan: document.getElementById('cadanganKenderaan').value || 'Sedan',
+                    kenderaanDipilih: 'Belum Ditetapkan',
+                    status: 'Menunggu Kelulusan',
+                    createdAt: new Date().toISOString()
+                };
+                await addDoc(collection(db, 'tempahan'), dataBaru);
+                document.getElementById('borangTempahan').reset();
+                btnSahkan.innerText = 'Hantar Permohonan';
+                btnSahkan.disabled = false;
+                notif('Permohonan dihantar.');
+                const msg = `Ada 1 tempahan kenderaan baharu dibuat oleh ${dataBaru.nama} (${dataBaru.emel}). Sila semak sistem E-SILO.`;
+                const ok = confirm('Tempahan telah berjaya dihantar. Mahu hantar reminder WhatsApp kepada Admin sekarang?');
+                if(ok) {
+                    const adminTel = (DB_BackupConfig.whatsapp || '').replace(/[^0-9]/g,'');
+                    const url = adminTel ? `https://wa.me/${adminTel}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+                    window.open(url, '_blank');
+                }
+            } catch (err) {
+                console.error('Ralat Hantar Tempahan:', err);
+                alert('Sistem mengalami sedikit masalah. Sila pastikan ruangan borang diisi dengan lengkap dan cuba lagi.');
+                btnSahkan.innerText = 'Hantar Permohonan';
+                btnSahkan.disabled = false;
+            }
         };
 
         function notif(msj) {
