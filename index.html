@@ -3233,41 +3233,134 @@
             document.getElementById('modalKonfirmasiPulang').classList.remove('hilang');
         };
 
+        // FIX V5.1: Pemulangan dibuat lebih tahan ralat Firestore.
+        // Urutan baharu:
+        // 1) Update kenderaan & tempahan dahulu.
+        // 2) Simpan buku log digital selepas itu.
+        // Jika collection log_kenderaan belum dibenarkan dalam Firestore Rules,
+        // pemulangan tetap berjaya dan log disimpan sebagai backup setempat.
         window.sahkanPulangKenderaan = async function(){
-            if(!window.rekodPulangSemasa || !window.rekodPulangSemasa.plat) return alert('Tiada rekod pemulangan untuk disahkan. Sila tekan PULANGKAN KENDERAAN semula.');
+            if(!window.rekodPulangSemasa || !window.rekodPulangSemasa.plat) {
+                return alert('Tiada rekod pemulangan untuk disahkan. Sila tekan PULANGKAN KENDERAAN semula.');
+            }
+
             const btn = [...document.querySelectorAll('button')].find(b => b.textContent.includes('YA, SAHKAN'));
             if(btn) { btn.disabled = true; btn.innerText = 'MENYIMPAN...'; }
+
+            let logData = null;
+            let logBerjaya = false;
+            let ralatLog = null;
+
             try {
                 const r = window.rekodPulangSemasa;
-                const k = DB_Kenderaan.find(v => v.plat === r.plat);
-                if(!k) throw new Error('Kenderaan tidak ditemui.');
-                const tempahanSelesai = DB_Tempahan.find(t => t.kenderaanDipilih === k.plat && t.status === 'Lulus' && (t.emel === profilSemasa.emel || t.nama === profilSemasa.nama));
+                const k = DB_Kenderaan.find(v => String(v.plat || '').toUpperCase() === String(r.plat || '').toUpperCase());
+                if(!k) throw new Error('Kenderaan tidak ditemui dalam DB_Kenderaan.');
+
+                const tempahanSelesai = DB_Tempahan.find(t =>
+                    String(t.kenderaanDipilih || '').toUpperCase() === String(k.plat || '').toUpperCase() &&
+                    t.status === 'Lulus' &&
+                    (t.emel === profilSemasa.emel || t.nama === profilSemasa.nama)
+                );
+
                 const pelulus = DB_Pengguna.find(p => p.emel === (tempahanSelesai ? tempahanSelesai.lulusOleh : ''));
                 const sekarang = new Date();
-                const logData = {
-                    createdAt: sekarang.toISOString(), timestampPulang: sekarang.toISOString(), tarikh: sekarang.toISOString().slice(0,10),
-                    masaMula: fmtMasaISO(k.masaAmbil), masaAkhir: fmtMasaISO(sekarang.toISOString()),
-                    namaPengguna: profilSemasa.nama || k.pengguna || '-', emelPengguna: profilSemasa.emel || '-', unit: profilSemasa.unit || k.unit || '-',
-                    tujuan: k.tujuan || (tempahanSelesai ? tempahanSelesai.tujuan : '-') || '-', lokasi: k.lokasiTujuan || (tempahanSelesai ? tempahanSelesai.lokasi : '-') || '-',
-                    namaPelulus: pelulus ? pelulus.nama : (tempahanSelesai ? tempahanSelesai.lulusOleh : '-'), pelulusEmel: tempahanSelesai ? (tempahanSelesai.lulusOleh || '-') : '-',
-                    noPendaftaran: k.plat, jenisKenderaan: k.jenis || '-', modelKenderaan: k.jenama || '-',
-                    odometerMula: Math.round(nomborBersih(r.odometerMula)), odometerAkhir: Math.round(nomborBersih(r.mileageBaru)), penggunaanOdometer: Math.round(nomborBersih(r.penggunaanOdometer)),
-                    penggunaanKadInden: r.stesen && r.stesen !== '-' ? 'Ya' : 'Tidak', noKadInden: r.kadInden || '-', jenamaStesen: r.stesen || '-', jenisMinyak: r.jenisMinyak || '-', noInv: r.inv || '-',
-                    nilaiRM: r.rm || '-', jumlahLiter: r.liter || '-', penggunaanTNG: r.tng === 'Digunakan' ? 'Ya' : 'Tidak', noKadTNG: r.noKadTNG || '-',
-                    penumpang: r.pnum || '-', catatanPengguna: r.catatan || '-', tempohDigunakan: r.tempohDigunakan || '-', tempahanId: r.tempahanId || '-'
+                const logId = `LOG_${String(k.plat || 'KENDERAAN').replace(/[^A-Z0-9]/gi, '').toUpperCase()}_${Date.now()}`;
+
+                logData = {
+                    idLog: logId,
+                    createdAt: sekarang.toISOString(),
+                    timestampPulang: sekarang.toISOString(),
+                    tarikh: sekarang.toISOString().slice(0,10),
+                    masaMula: fmtMasaISO(k.masaAmbil),
+                    masaAkhir: fmtMasaISO(sekarang.toISOString()),
+                    namaPengguna: profilSemasa.nama || k.pengguna || '-',
+                    emelPengguna: profilSemasa.emel || '-',
+                    unit: profilSemasa.unit || k.unit || '-',
+                    tujuan: k.tujuan || (tempahanSelesai ? tempahanSelesai.tujuan : '-') || '-',
+                    lokasi: k.lokasiTujuan || (tempahanSelesai ? tempahanSelesai.lokasi : '-') || '-',
+                    namaPelulus: pelulus ? pelulus.nama : (tempahanSelesai ? tempahanSelesai.lulusOleh : '-'),
+                    pelulusEmel: tempahanSelesai ? (tempahanSelesai.lulusOleh || '-') : '-',
+                    noPendaftaran: k.plat,
+                    jenisKenderaan: k.jenis || '-',
+                    modelKenderaan: k.jenama || '-',
+                    odometerMula: Math.round(nomborBersih(r.odometerMula)),
+                    odometerAkhir: Math.round(nomborBersih(r.mileageBaru)),
+                    penggunaanOdometer: Math.round(nomborBersih(r.penggunaanOdometer)),
+                    penggunaanKadInden: r.stesen && r.stesen !== '-' ? 'Ya' : 'Tidak',
+                    noKadInden: r.kadInden || '-',
+                    jenamaStesen: r.stesen || '-',
+                    jenisMinyak: r.jenisMinyak || '-',
+                    noInv: r.inv || '-',
+                    nilaiRM: r.rm || '-',
+                    jumlahLiter: r.liter || '-',
+                    penggunaanTNG: r.tng === 'Digunakan' ? 'Ya' : 'Tidak',
+                    noKadTNG: r.noKadTNG || '-',
+                    penumpang: r.pnum || '-',
+                    catatanPengguna: r.catatan || '-',
+                    tempohDigunakan: r.tempohDigunakan || '-',
+                    tempahanId: tempahanSelesai ? tempahanSelesai.idT : '-',
+                    statusLog: 'Dijana semasa pemulangan'
                 };
-                await addDoc(collection(db, 'log_kenderaan'), logData);
-                await updateDoc(doc(db, 'kenderaan', r.plat), { status:'Available', mileage: logData.odometerAkhir, pengguna:'-', noTelPengguna:'-', unit:'-', tujuan:'-', lokasiTujuan:'-', tMula:'-', tTamat:'-', masaAmbil:null });
-                if(tempahanSelesai) await updateDoc(doc(db, 'tempahan', tempahanSelesai.idT), { status:'Selesai', logKenderaan: logData, tSelesai: sekarang.toISOString() });
+
+                // 1) Update utama pemulangan. Ini mesti dibuat dahulu supaya kenderaan tidak tersangkut.
+                await updateDoc(doc(db, 'kenderaan', k.plat), {
+                    status: 'Available',
+                    mileage: logData.odometerAkhir,
+                    pengguna: '-',
+                    noTelPengguna: '-',
+                    tempahOleh: '-',
+                    unit: '-',
+                    tujuan: '-',
+                    lokasiTujuan: '-',
+                    tMula: '-',
+                    tTamat: '-',
+                    masaAmbil: null,
+                    lastReturnAt: sekarang.toISOString(),
+                    lastLogId: logId
+                });
+
+                // 2) Update tempahan. Jangan simpan keseluruhan object log di tempahan supaya rules lebih mudah.
+                if(tempahanSelesai) {
+                    await updateDoc(doc(db, 'tempahan', tempahanSelesai.idT), {
+                        status: 'Selesai',
+                        logKenderaanId: logId,
+                        tSelesai: sekarang.toISOString(),
+                        odometerAkhir: logData.odometerAkhir,
+                        penggunaanOdometer: logData.penggunaanOdometer
+                    });
+                }
+
+                // 3) Simpan buku log digital. Jika rules belum benarkan log_kenderaan, jangan gagalkan pemulangan.
+                try {
+                    await setDoc(doc(db, 'log_kenderaan', logId), logData, { merge: true });
+                    logBerjaya = true;
+                } catch(logErr) {
+                    ralatLog = logErr;
+                    console.warn('Buku log digital gagal disimpan ke Firestore. Backup setempat dibuat:', logErr);
+                    const pending = JSON.parse(localStorage.getItem('ESILO_LOG_PENDING_BACKUP') || '[]');
+                    pending.push(logData);
+                    localStorage.setItem('ESILO_LOG_PENDING_BACKUP', JSON.stringify(pending));
+                }
+
                 window.tutupModalPulang();
                 window.rekodPulangSemasa = null;
-                ['indenStesen','indenJenisMinyak','indenInvoice','namaPenumpang','indenRM','indenLiter','inputMileageSelepas','catatanPengguna'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+                ['indenStesen','indenJenisMinyak','indenInvoice','namaPenumpang','indenRM','indenLiter','inputMileageSelepas','catatanPengguna'].forEach(id => {
+                    const el=document.getElementById(id);
+                    if(el) el.value='';
+                });
                 const ck = document.getElementById('gunaTNG'); if(ck) ck.checked = false;
-                notif('Berjaya memulangkan kenderaan dan buku log digital telah dijana.');
+
+                if(logBerjaya) {
+                    notif('Berjaya memulangkan kenderaan dan buku log digital telah dijana.');
+                } else {
+                    alert('Pemulangan kenderaan berjaya, tetapi buku log digital tidak dapat disimpan ke Firestore. Sistem telah simpan backup setempat dalam browser ini. Sila tambah permission untuk collection log_kenderaan. Ralat: ' + (ralatLog?.code || ralatLog?.message || ralatLog));
+                    notif('Pemulangan berjaya. Buku log perlu disemak pada Firestore Rules.');
+                }
+
                 window.paparTab('pulang');
             } catch(err) {
-                console.error(err);
-                alert('Pengesahan pemulangan gagal disimpan. Sila semak sambungan Firestore / permission rules dan cuba lagi.');
+                console.error('RALAT PEMULANGAN UTAMA:', err);
+                alert('Pengesahan pemulangan gagal pada update utama kenderaan/tempahan. Ralat: ' + (err?.code || '') + ' ' + (err?.message || err));
             } finally {
                 if(btn) { btn.disabled = false; btn.innerText = 'YA, SAHKAN'; }
             }
