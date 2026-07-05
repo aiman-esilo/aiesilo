@@ -3233,7 +3233,41 @@
             document.getElementById('modalKonfirmasiPulang').classList.remove('hilang');
         };
 
-        // FIX V5.1: Pemulangan dibuat lebih tahan ralat Firestore.
+
+
+        // FIX V5.2: Bersihkan data sebelum simpan ke Firestore.
+        // Ralat Firestore invalid-argument biasanya berlaku apabila object ada undefined, NaN,
+        // Infinity, Date tidak sah, atau value berbentuk function.
+        function bersihkanNilaiFirestore(v) {
+            if (v === undefined) return null;
+            if (v === null) return null;
+            if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+            if (typeof v === 'string') return v;
+            if (typeof v === 'boolean') return v;
+            if (v instanceof Date) return isNaN(v.getTime()) ? null : v.toISOString();
+            if (Array.isArray(v)) return v.map(item => bersihkanNilaiFirestore(item));
+            if (typeof v === 'object') {
+                const out = {};
+                Object.entries(v).forEach(([key, value]) => {
+                    if (!key || typeof value === 'function') return;
+                    out[key] = bersihkanNilaiFirestore(value);
+                });
+                return out;
+            }
+            return String(v);
+        }
+
+        function bersihkanObjectFirestore(obj) {
+            return bersihkanNilaiFirestore(obj || {});
+        }
+
+        function mesejRalatFirestore(err) {
+            const kod = err?.code ? String(err.code) : '';
+            const msg = err?.message ? String(err.message) : String(err || 'Ralat tidak diketahui');
+            return (kod ? kod + ' - ' : '') + msg;
+        }
+
+        // FIX V5.2: Pemulangan dibuat lebih tahan ralat Firestore.
         // Urutan baharu:
         // 1) Update kenderaan & tempahan dahulu.
         // 2) Simpan buku log digital selepas itu.
@@ -3302,6 +3336,9 @@
                     statusLog: 'Dijana semasa pemulangan'
                 };
 
+                // V5.2: pastikan tiada undefined/NaN sebelum dihantar ke Firestore.
+                logData = bersihkanObjectFirestore(logData);
+
                 // 1) Update utama pemulangan. Ini mesti dibuat dahulu supaya kenderaan tidak tersangkut.
                 await updateDoc(doc(db, 'kenderaan', k.plat), {
                     status: 'Available',
@@ -3353,14 +3390,14 @@
                 if(logBerjaya) {
                     notif('Berjaya memulangkan kenderaan dan buku log digital telah dijana.');
                 } else {
-                    alert('Pemulangan kenderaan berjaya, tetapi buku log digital tidak dapat disimpan ke Firestore. Sistem telah simpan backup setempat dalam browser ini. Sila tambah permission untuk collection log_kenderaan. Ralat: ' + (ralatLog?.code || ralatLog?.message || ralatLog));
-                    notif('Pemulangan berjaya. Buku log perlu disemak pada Firestore Rules.');
+                    alert('Pemulangan kenderaan berjaya, tetapi buku log digital tidak dapat disimpan ke Firestore. Sistem telah simpan backup setempat dalam browser ini. Ralat sebenar: ' + mesejRalatFirestore(ralatLog));
+                    notif('Pemulangan berjaya. Buku log gagal disimpan; semak ralat sebenar dalam Console/alert.');
                 }
 
                 window.paparTab('pulang');
             } catch(err) {
                 console.error('RALAT PEMULANGAN UTAMA:', err);
-                alert('Pengesahan pemulangan gagal pada update utama kenderaan/tempahan. Ralat: ' + (err?.code || '') + ' ' + (err?.message || err));
+                alert('Pengesahan pemulangan gagal pada update utama kenderaan/tempahan. Ralat sebenar: ' + mesejRalatFirestore(err));
             } finally {
                 if(btn) { btn.disabled = false; btn.innerText = 'YA, SAHKAN'; }
             }
