@@ -3938,6 +3938,311 @@
             document.getElementById('tetapanStatusV61').value = String(r.status || 'aktif').toLowerCase();
         };
 
+
+        // ================= PATCH V6.2 FINAL REPAIR: PAPARAN, PADAM, TUJUAN CUSTOM, UPLOAD BUNDLE =================
+        // Diletakkan paling hujung supaya override semua fungsi V5.2/V6.1 tanpa membuang kod asal.
+
+        function nilaiHeaderV62(row, keys, fallback=''){
+            for(const k of keys){
+                if(Object.prototype.hasOwnProperty.call(row, k) && String(row[k] ?? '').trim() !== '') return String(row[k]).trim();
+            }
+            return fallback;
+        }
+        function headerKeyV62(s){ return String(s || '').trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''); }
+        function parseCSVV62(text){
+            const rows = [];
+            let row = [], cur = '', q = false;
+            const src = String(text || '').replace(/^\uFEFF/, '');
+            for(let i=0;i<src.length;i++){
+                const ch = src[i], nx = src[i+1];
+                if(ch === '"'){
+                    if(q && nx === '"'){ cur += '"'; i++; }
+                    else q = !q;
+                } else if(ch === ',' && !q){ row.push(cur); cur = ''; }
+                else if((ch === '\n' || ch === '\r') && !q){
+                    if(ch === '\r' && nx === '\n') i++;
+                    row.push(cur); cur = '';
+                    if(row.some(v => String(v).trim() !== '')) rows.push(row);
+                    row = [];
+                } else cur += ch;
+            }
+            row.push(cur);
+            if(row.some(v => String(v).trim() !== '')) rows.push(row);
+            if(rows.length < 2) return [];
+            const headers = rows[0].map(headerKeyV62);
+            return rows.slice(1).map(r => {
+                const obj = {};
+                headers.forEach((h, idx) => obj[h] = (r[idx] ?? '').trim());
+                return obj;
+            });
+        }
+        function csvEscapeV62(v){ return '"' + String(v ?? '').replace(/"/g,'""') + '"'; }
+        function downloadCSVV62(filename, rows){
+            const content = rows.map(r => r.map(csvEscapeV62).join(',')).join('\n');
+            const blob = new Blob([content], { type:'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob); link.download = filename;
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        }
+        function normalTarikhV62(v){
+            const s = String(v || '').trim();
+            if(!s || s === '-') return '-';
+            if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+            const m = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+            if(m) return `${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;
+            return s;
+        }
+
+        // 1) Pastikan Tetapan Utama tidak melekat di dashboard lain.
+        const paparTabSebelumV62 = window.paparTab;
+        window.paparTab = function(tabId){
+            if(tabId !== 'tetapanUtama'){
+                document.getElementById('viewTetapanUtama')?.classList.add('hilang');
+                const tabTetapan = document.getElementById('tabTetapanUtama');
+                if(tabTetapan){ tabTetapan.classList.remove('tab-aktif'); tabTetapan.classList.add('tab-pasif'); }
+            }
+            const result = paparTabSebelumV62(tabId);
+            setTimeout(() => { susunDashboardMenegakV62(); pasangUploadBundleV62(); }, 0);
+            return result;
+        };
+
+        // 2) Soft delete Tetapan Utama supaya default tidak muncul semula selepas PADAM.
+        tetapanAktifV61 = function(kategori){
+            const defaults = (DEFAULT_TETAPAN_V61[kategori] || []).map(x => ({ kategori, status:'aktif', sumber:'default', ...x }));
+            const data = DB_TetapanUtamaV61.filter(x => x.kategori === kategori);
+            const map = new Map();
+            [...defaults, ...data].forEach(x => {
+                const key = normKeyV61(x.nama); if(!key) return;
+                map.set(key, x);
+            });
+            return [...map.values()].filter(x => String(x.status || 'aktif').toLowerCase() === 'aktif').sort((a,b)=>String(a.nama).localeCompare(String(b.nama)));
+        };
+        tetapanSemuaV61 = function(kategori){
+            const defaults = (DEFAULT_TETAPAN_V61[kategori] || []).map(x => ({ kategori, id:'default_' + kategori + '_' + normKeyV61(x.nama).replace(/[^a-z0-9]+/g,'_'), status:'aktif', sumber:'default', ...x }));
+            const data = DB_TetapanUtamaV61.filter(x => x.kategori === kategori);
+            const map = new Map();
+            [...defaults, ...data].forEach(x => {
+                const key = normKeyV61(x.nama); if(!key) return;
+                map.set(key, x);
+            });
+            return [...map.values()].filter(x => String(x.status || 'aktif').toLowerCase() !== 'padam').sort((a,b)=>String(a.nama).localeCompare(String(b.nama)));
+        };
+        window.padamTetapanUtamaV61 = async function(){
+            if(!aksesAdmin()) return alert('Hanya Admin / Super Admin dibenarkan.');
+            const kategori = document.getElementById('tetapanKategoriV61')?.value || '';
+            const nama = document.getElementById('tetapanNamaV61')?.value.trim() || '';
+            if(!kategori || !nama) return alert('Pilih rekod daripada jadual dahulu atau masukkan nama tetapan untuk dipadam.');
+            if(!confirm('Padam tetapan ini daripada paparan aktif?')) return;
+            const delId = kategori + '_' + nama.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+            const dataPadam = {
+                kategori,
+                nama,
+                alamat: document.getElementById('tetapanAlamatV61')?.value.trim() || '-',
+                telefon: document.getElementById('tetapanTelefonV61')?.value.trim() || '-',
+                status:'padam',
+                updatedAt:new Date().toISOString(),
+                updatedBy:profilSemasa.emel || '-'
+            };
+            try {
+                await setDoc(doc(db, 'tetapan_utama', delId), dataPadam, { merge:true });
+                const ix = DB_TetapanUtamaV61.findIndex(x => x.id === delId || (x.kategori === kategori && normKeyV61(x.nama) === normKeyV61(nama)));
+                if(ix >= 0) DB_TetapanUtamaV61[ix] = { id:delId, ...DB_TetapanUtamaV61[ix], ...dataPadam };
+                else DB_TetapanUtamaV61.push({ id:delId, ...dataPadam });
+                resetBorangTetapanV61(true);
+                renderTetapanUtamaV61(); applyTetapanUtamaV61();
+                notif('Tetapan telah dipadam dan tidak lagi dipaparkan.');
+            } catch(err){ console.error(err); alert('Gagal padam tetapan. Semak permission Firestore untuk write/setDoc.'); }
+        };
+
+        // 3) Tujuan penggunaan: dropdown rujukan + boleh taip sendiri, tidak disimpan ke Tetapan Utama.
+        function pastikanTujuanBolehTaipV62(){
+            let el = document.getElementById('tujuan');
+            if(!el) return;
+            const current = el.value || '';
+            if(el.tagName === 'SELECT'){
+                const input = document.createElement('input');
+                input.type = 'text'; input.id = 'tujuan'; input.required = true;
+                input.className = el.className || 'w-full p-2 border rounded';
+                input.placeholder = 'Pilih atau taip tujuan baharu untuk permohonan ini sahaja';
+                input.value = current;
+                el.replaceWith(input);
+                el = input;
+            }
+            el.setAttribute('list', 'dlTujuanPenggunaanV62');
+            el.placeholder = 'Pilih atau taip tujuan baharu untuk permohonan ini sahaja';
+            let dl = document.getElementById('dlTujuanPenggunaanV62');
+            if(!dl){ dl = document.createElement('datalist'); dl.id = 'dlTujuanPenggunaanV62'; document.body.appendChild(dl); }
+            dl.innerHTML = tetapanAktifV61('tujuan_penggunaan').map(x => `<option value="${escapeHtml(x.nama)}">`).join('');
+        }
+        const applyTetapanSebelumV62 = applyTetapanUtamaV61;
+        applyTetapanUtamaV61 = function(){
+            applyTetapanSebelumV62();
+            pastikanTujuanBolehTaipV62();
+            susunDashboardMenegakV62();
+            pasangUploadBundleV62();
+        };
+
+        // 4) Dashboard atas-bawah, bukan kiri-kanan.
+        function buangClassAwalanV62(el, prefix){
+            if(!el) return;
+            [...el.classList].forEach(c => { if(c.startsWith(prefix)) el.classList.remove(c); });
+        }
+        function susunDashboardMenegakV62(){
+            ['viewSelenggara','viewSelenggaraKenderaan','viewRekodKad','viewRekodSelenggara','viewTetapanUtama'].forEach(id => {
+                const view = document.getElementById(id); if(!view) return;
+                view.querySelectorAll('.grid').forEach(g => {
+                    const perluStack = [...g.children].some(ch => [...ch.classList].some(c => c.startsWith('lg:col-span'))) || [...g.classList].some(c => c.startsWith('lg:grid-cols-'));
+                    if(perluStack){
+                        buangClassAwalanV62(g, 'lg:grid-cols-');
+                        g.classList.add('grid-cols-1');
+                        [...g.children].forEach(ch => buangClassAwalanV62(ch, 'lg:col-span-'));
+                    }
+                });
+            });
+        }
+
+        // 5) Medan muat naik bundle + muat turun template untuk Kenderaan dan Rekod Kad.
+        function pasangUploadBundleV62(){
+            const borangK = document.getElementById('borangKenderaan');
+            if(borangK && !document.getElementById('blokUploadKenderaanV62')){
+                const blok = document.createElement('div');
+                blok.id = 'blokUploadKenderaanV62';
+                blok.className = 'mt-8 pt-6 border-t border-gray-200 bg-emerald-50 p-4 rounded-lg border border-emerald-200';
+                blok.innerHTML = `
+                    <h3 class="font-bold text-emerald-900 mb-2 flex items-center">📄 Muat Naik Dokumen Kenderaan Bundle (CSV)</h3>
+                    <p class="text-xs text-emerald-700 mb-4">Gunakan template CSV untuk memasukkan banyak rekod kenderaan secara serentak. Rekod sedia ada akan dikemaskini berdasarkan No. Plat.</p>
+                    <input type="file" id="fileBundleKenderaanV62" accept=".csv,text/csv" class="w-full text-xs text-gray-500 mb-3 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-emerald-600 file:text-white hover:file:bg-emerald-700">
+                    <div class="grid grid-cols-1 gap-2">
+                        <button type="button" onclick="muatNaikBundleKenderaanV62()" class="w-full text-xs bg-white border border-emerald-400 text-emerald-700 py-2 rounded font-bold hover:bg-emerald-100 shadow">PROSES MUAT NAIK BUNDLE KENDERAAN</button>
+                        <button type="button" onclick="downloadTemplateKenderaanV62()" class="w-full text-left text-xs text-blue-600 underline block font-semibold">📥 Download Template CSV Kenderaan</button>
+                    </div>`;
+                borangK.insertAdjacentElement('afterend', blok);
+            }
+            const borangKad = document.getElementById('borangRekodKad');
+            if(borangKad && !document.getElementById('blokUploadRekodKadV62')){
+                const blok = document.createElement('div');
+                blok.id = 'blokUploadRekodKadV62';
+                blok.className = 'mt-8 pt-6 border-t border-gray-200 bg-cyan-50 p-4 rounded-lg border border-cyan-200';
+                blok.innerHTML = `
+                    <h3 class="font-bold text-cyan-900 mb-2 flex items-center">📄 Muat Naik Dokumen Rekod Kad Bundle (CSV)</h3>
+                    <p class="text-xs text-cyan-700 mb-4">Gunakan template CSV untuk memasukkan banyak rekod Kad Inden dan Touch 'n Go. Rekod sedia ada akan dikemaskini berdasarkan Kategori + No. Kad.</p>
+                    <input type="file" id="fileBundleRekodKadV62" accept=".csv,text/csv" class="w-full text-xs text-gray-500 mb-3 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-cyan-600 file:text-white hover:file:bg-cyan-700">
+                    <div class="grid grid-cols-1 gap-2">
+                        <button type="button" onclick="muatNaikBundleRekodKadV62()" class="w-full text-xs bg-white border border-cyan-400 text-cyan-700 py-2 rounded font-bold hover:bg-cyan-100 shadow">PROSES MUAT NAIK BUNDLE REKOD KAD</button>
+                        <button type="button" onclick="downloadTemplateRekodKadV62()" class="w-full text-left text-xs text-blue-600 underline block font-semibold">📥 Download Template CSV Rekod Kad</button>
+                    </div>`;
+                borangKad.insertAdjacentElement('afterend', blok);
+            }
+        }
+        window.downloadTemplateKenderaanV62 = function(){
+            downloadCSVV62('template_kenderaan_esilo.csv', [
+                ['No_Plat','Jenama_Model','Jenis_Kenderaan','Milikan_Aset','No_Aset','Mileage_Mula','Servis_Seterusnya','Status'],
+                ['PPN 1234','Toyota Hilux','4x4','Aset Jabatan','KPDN/AST/001','10000','15000','Available'],
+                ['PPN 5678','Proton Perdana','Sedan','Spanco','SPN/2026/002','25000','30000','Available']
+            ]);
+        };
+        window.downloadTemplateRekodKadV62 = function(){
+            downloadCSVV62('template_rekod_kad_esilo.csv', [
+                ['Kategori','No_Kad','Jenama_Stesen','Jenis_Minyak','Tarikh_Luput','No_Plat_Kenderaan','Status','Ulasan_Tidak_Aktif'],
+                ['inden','IND-001','Petronas','RON95','2027-12-31','PPN 1234','aktif','-'],
+                ['tng','TNG-001','Touch n Go','-','2028-06-30','PPN 1234','aktif','-']
+            ]);
+        };
+        window.muatNaikBundleKenderaanV62 = function(){
+            if(!aksesAdmin()) return alert('Akses muat naik kenderaan hanya untuk Admin dan Super Admin.');
+            const fileInput = document.getElementById('fileBundleKenderaanV62');
+            if(!fileInput || fileInput.files.length === 0) return alert('Sila pilih fail CSV kenderaan dahulu.');
+            const reader = new FileReader();
+            reader.onload = async function(e){
+                const rows = parseCSVV62(e.target.result);
+                let berjaya = 0, gagal = 0;
+                for(const r of rows){
+                    const plat = nilaiHeaderV62(r, ['no_plat','noplat','no_pendaftaran','no_kenderaan']).toUpperCase();
+                    if(!plat){ gagal++; continue; }
+                    const existing = DB_Kenderaan.find(k => String(k.plat || '').toUpperCase() === plat) || {};
+                    const mileage = Number(nilaiHeaderV62(r, ['mileage_mula','mileage','odometer_mula'], existing.mileage || 0)) || 0;
+                    const servis = Number(nilaiHeaderV62(r, ['servis_seterusnya','mileage_servis','odometer_next_servis'], existing.mileageServis || 0)) || 0;
+                    const dataK = {
+                        plat,
+                        jenama: nilaiHeaderV62(r, ['jenama_model','jenama','model'], existing.jenama || '-'),
+                        jenis: nilaiHeaderV62(r, ['jenis_kenderaan','jenis'], existing.jenis || 'Sedan'),
+                        milikan: nilaiHeaderV62(r, ['milikan_aset','milikan'], existing.milikan || 'Aset Jabatan'),
+                        noAset: nilaiHeaderV62(r, ['no_aset','no_pendaftaran_aset','rujukan'], existing.noAset || '-'),
+                        mileage,
+                        mileageServis: servis,
+                        odometerNextServis: servis || existing.odometerNextServis || 0,
+                        gambar: existing.gambar || '',
+                        status: nilaiHeaderV62(r, ['status'], existing.status || 'Available'),
+                        pengguna: existing.pengguna || '-', noTelPengguna: existing.noTelPengguna || '-', tempahOleh: existing.tempahOleh || '-', unit: existing.unit || '-', tujuan: existing.tujuan || '-', lokasiTujuan: existing.lokasiTujuan || '-',
+                        tMula: existing.tMula || '-', tTamat: existing.tTamat || '-', masaAmbil: existing.masaAmbil || null,
+                        tarikhServisSemasa: existing.tarikhServisSemasa || '', odometerServisSemasa: existing.odometerServisSemasa || 0, tarikhNextServis: existing.tarikhNextServis || '', statusSelenggara: existing.statusSelenggara || 'normal', catatanSelenggara: existing.catatanSelenggara || '-',
+                        updatedAt: new Date().toISOString(), updatedBy: profilSemasa.emel || '-'
+                    };
+                    try { await setDoc(doc(db, 'kenderaan', plat), dataK, { merge:true }); berjaya++; }
+                    catch(err){ console.error('Gagal upload kenderaan', plat, err); gagal++; }
+                }
+                fileInput.value = '';
+                notif(`${berjaya} rekod kenderaan berjaya dimuat naik. ${gagal ? gagal + ' rekod gagal/diabaikan.' : ''}`);
+                janaSistem();
+            };
+            reader.readAsText(fileInput.files[0]);
+        };
+        window.muatNaikBundleRekodKadV62 = function(){
+            if(!aksesAdmin()) return alert('Akses muat naik rekod kad hanya untuk Admin dan Super Admin.');
+            const fileInput = document.getElementById('fileBundleRekodKadV62');
+            if(!fileInput || fileInput.files.length === 0) return alert('Sila pilih fail CSV rekod kad dahulu.');
+            const reader = new FileReader();
+            reader.onload = async function(e){
+                const rows = parseCSVV62(e.target.result);
+                let berjaya = 0, gagal = 0;
+                for(const r of rows){
+                    let kategori = nilaiHeaderV62(r, ['kategori','kategori_kad'], 'inden').toLowerCase();
+                    if(kategori.includes('touch') || kategori.includes('tng')) kategori = 'tng';
+                    else kategori = 'inden';
+                    const noKad = nilaiHeaderV62(r, ['no_kad','nokad','nombor_kad']).toUpperCase();
+                    const plat = nilaiHeaderV62(r, ['no_plat_kenderaan','no_plat','plat','no_kenderaan']).toUpperCase();
+                    if(!noKad || !plat){ gagal++; continue; }
+                    const statusKad = nilaiHeaderV62(r, ['status','status_kad'], 'aktif').toLowerCase() === 'tidak aktif' ? 'tidak aktif' : 'aktif';
+                    const data = {
+                        kategori,
+                        noKad,
+                        plat,
+                        statusKad,
+                        ulasanTidakAktif: nilaiHeaderV62(r, ['ulasan_tidak_aktif','ulasan','catatan'], statusKad === 'tidak aktif' ? 'Tidak dinyatakan' : '-'),
+                        tarikhLuput: normalTarikhV62(nilaiHeaderV62(r, ['tarikh_luput','tarikh_tamat'], '-')),
+                        jenamaStesen: kategori === 'inden' ? nilaiHeaderV62(r, ['jenama_stesen','jenama','stesen'], 'Petronas') : 'Touch n Go',
+                        jenisMinyak: kategori === 'inden' ? nilaiHeaderV62(r, ['jenis_minyak','minyak'], 'RON95') : '-',
+                        updatedAt: new Date().toISOString(),
+                        updatedBy: profilSemasa.emel || '-'
+                    };
+                    const id = `${kategori}_${noKad}`.replace(/[^a-zA-Z0-9_-]/g, '_');
+                    try {
+                        await setDoc(doc(db, 'rekod_kad', id), data, { merge:true });
+                        const kenderaanWujud = DB_Kenderaan.find(k => String(k.plat || '').toUpperCase() === plat);
+                        if(kenderaanWujud && statusKad === 'aktif'){
+                            if(kategori === 'inden') await updateDoc(doc(db, 'kenderaan', plat), { kadInden:noKad, jenamaStesenInden:data.jenamaStesen, jenisMinyakInden:data.jenisMinyak, tarikhLuputInden:data.tarikhLuput });
+                            else await updateDoc(doc(db, 'kenderaan', plat), { tng:noKad, tarikhLuputTNG:data.tarikhLuput });
+                        }
+                        berjaya++;
+                    } catch(err){ console.error('Gagal upload rekod kad', noKad, err); gagal++; }
+                }
+                fileInput.value = '';
+                notif(`${berjaya} rekod kad berjaya dimuat naik. ${gagal ? gagal + ' rekod gagal/diabaikan.' : ''}`);
+                janaPilihanKenderaanKad(); janaRekodKad();
+            };
+            reader.readAsText(fileInput.files[0]);
+        };
+
+        // 6) Repair kecil: jenis minyak semasa pulang ikut statusKad/plat yang betul.
+        window.autoJenisMinyakPulang = function(){
+            const stesen = document.getElementById('indenStesen')?.value || '';
+            const k = DB_Kenderaan.find(v => v.status === 'Sedang Digunakan' && v.pengguna === profilSemasa.nama);
+            const kad = DB_RekodKad.find(x => x.kategori === 'inden' && String(x.statusKad || 'aktif').toLowerCase() === 'aktif' && String(x.plat || x.platKenderaan || '').toUpperCase() === String(k?.plat || '').toUpperCase() && (!stesen || x.jenamaStesen === stesen));
+            const jenis = document.getElementById('indenJenisMinyak'); if(jenis) jenis.value = kad?.jenisMinyak || '';
+        };
+
+        setTimeout(() => { applyTetapanUtamaV61(); susunDashboardMenegakV62(); pasangUploadBundleV62(); }, 900);
+
     </script>
 </body>
 </html>
