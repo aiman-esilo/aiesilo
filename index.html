@@ -55,6 +55,23 @@
             .mobile-stack { flex-direction: column !important; align-items: stretch !important; }
             .mobile-full { width: 100% !important; }
         }
+
+
+        /* ================= PATCH V5: MOBILE & BADGE ================= */
+        @media (max-width: 768px) {
+            body { font-size: 14px; }
+            .container { width: 100% !important; padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+            #menuTabs { overflow-x: auto; flex-wrap: nowrap !important; gap: 0.5rem !important; padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+            #menuTabs button { white-space: nowrap; min-width: max-content; }
+            table { min-width: 760px; }
+            input, select, textarea, button { font-size: 14px !important; }
+            .mobile-stack { flex-direction: column !important; align-items: stretch !important; }
+            .mobile-stack > * { width: 100% !important; }
+            .mobile-card { border-radius: 14px; padding: 14px !important; }
+            #ruangNotifikasi { left: 0.75rem; right: 0.75rem; width: auto !important; top: 6rem; }
+        }
+        .badge-ambil-v5 { display:inline-flex; align-items:center; justify-content:center; min-width:1.25rem; height:1.25rem; padding:0 .35rem; border-radius:9999px; background:#ef4444; color:white; font-size:11px; font-weight:800; margin-left:.35rem; }
+        .badge-ambil-v5.hilang { display:none !important; }
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
@@ -2747,6 +2764,557 @@
             d.innerHTML = `<strong>Sistem E-SILO</strong><br>${msj}`;
             n.appendChild(d); setTimeout(() => d.remove(), 4000);
         }
+
+
+        // ================= PATCH V5: ASSIGN BERKALA, BATAL, TIDAK LULUS, WHATSAPP UNIVERSAL =================
+        let DB_AssignBerkala = [];
+        let sejarahStatusV5 = 'belum';
+        let sejarahLimitV5 = 10;
+        let whatsappReminderV5 = { msg: '', tel: '' };
+
+        function siapV5() {
+            pasangBadgeAmbilV5();
+            pasangModalWhatsAppV5();
+            pasangPanelAssignBerkalaV5();
+            pasangKawalanSejarahV5();
+            kemaskiniMenuV5();
+        }
+
+        siapV5();
+
+        onSnapshot(collection(db, 'assign_berkala'), (snapshot) => {
+            DB_AssignBerkala = [];
+            snapshot.forEach((x) => DB_AssignBerkala.push({ id: x.id, ...x.data() }));
+            DB_AssignBerkala.sort((a,b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+            janaSenaraiAssignBerkalaV5();
+            janaSistem();
+        });
+
+        function kemaskiniMenuV5(){
+            const tabAmbil = document.getElementById('tabAmbil');
+            if(tabAmbil && !document.getElementById('badgeAmbilAssigned')) {
+                tabAmbil.innerHTML = '🔑 AMBIL <span id="badgeAmbilAssigned" class="badge-ambil-v5 hilang">0</span>';
+            }
+            const b = document.getElementById('tabBackup'); if(b) b.innerText = '💾 BACKUP';
+        }
+
+        function pasangBadgeAmbilV5(){
+            kemaskiniMenuV5();
+            kemaskiniBadgeAmbilV5();
+        }
+
+        function kemaskiniBadgeAmbilV5(){
+            const badge = document.getElementById('badgeAmbilAssigned');
+            if(!badge) return;
+            const nama = profilSemasa?.nama || '';
+            const count = DB_Kenderaan.filter(k => k.status === 'Ditempah' && k.tempahOleh === nama).length;
+            if(count > 0) { badge.innerText = count; badge.classList.remove('hilang'); }
+            else badge.classList.add('hilang');
+        }
+
+        function pasangModalWhatsAppV5(){
+            if(document.getElementById('modalWhatsappV5')) return;
+            const div = document.createElement('div');
+            div.id = 'modalWhatsappV5';
+            div.className = 'fixed inset-0 bg-black bg-opacity-60 z-[70] hilang flex justify-center items-center p-4';
+            div.innerHTML = `
+                <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border-t-4 border-green-600">
+                    <h3 class="text-xl font-black text-gray-800 mb-2">Hantar Reminder WhatsApp</h3>
+                    <p class="text-sm text-gray-600 mb-4">Pilih kaedah buka WhatsApp. Pilihan aplikasi biasanya boleh digunakan untuk WhatsApp biasa atau WhatsApp Business mengikut tetapan telefon pengguna.</p>
+                    <div class="bg-green-50 border border-green-200 rounded p-3 text-sm text-green-900 mb-4" id="teksWhatsappV5"></div>
+                    <div class="grid grid-cols-1 gap-3">
+                        <button type="button" onclick="bukaWhatsappAplikasiV5()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded shadow">BUKA APLIKASI WHATSAPP</button>
+                        <button type="button" onclick="bukaWhatsappWebV5()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded shadow">BUKA WHATSAPP WEB / DESKTOP</button>
+                        <button type="button" onclick="tutupWhatsappV5()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 rounded">TUTUP</button>
+                    </div>
+                    <p class="text-[11px] text-gray-500 mt-4">Nota: Browser tidak boleh memaksa WhatsApp Business secara khusus. Sistem menyediakan pautan aplikasi dan web supaya pengguna boleh pilih aplikasi yang tersedia.</p>
+                </div>`;
+            document.body.appendChild(div);
+        }
+
+        window.tutupWhatsappV5 = function(){ document.getElementById('modalWhatsappV5')?.classList.add('hilang'); };
+        function bukaWhatsappUniversalV5(msg, telRaw){
+            whatsappReminderV5 = { msg: msg || '', tel: String(telRaw || '').replace(/[^0-9]/g,'') };
+            pasangModalWhatsAppV5();
+            const teks = document.getElementById('teksWhatsappV5');
+            if(teks) teks.innerText = msg || '-';
+            document.getElementById('modalWhatsappV5')?.classList.remove('hilang');
+        }
+        window.bukaWhatsappAplikasiV5 = function(){
+            const tel = whatsappReminderV5.tel;
+            const msg = encodeURIComponent(whatsappReminderV5.msg || '');
+            const url = tel ? `whatsapp://send?phone=${tel}&text=${msg}` : `whatsapp://send?text=${msg}`;
+            window.open(url, '_blank');
+        };
+        window.bukaWhatsappWebV5 = function(){
+            const tel = whatsappReminderV5.tel;
+            const msg = encodeURIComponent(whatsappReminderV5.msg || '');
+            const url = tel ? `https://web.whatsapp.com/send?phone=${tel}&text=${msg}` : `https://web.whatsapp.com/send?text=${msg}`;
+            window.open(url, '_blank');
+        };
+
+        function pasangPanelAssignBerkalaV5(){
+            if(document.getElementById('panelAssignBerkalaV5')) return;
+            const dash = document.getElementById('viewDashboard');
+            const summary = document.getElementById('dashboardSummary');
+            if(!dash) return;
+            const panel = document.createElement('div');
+            panel.id = 'panelAssignBerkalaV5';
+            panel.className = 'bg-white p-6 rounded-lg shadow-lg border-t-4 border-cyan-600 mb-6 hilang mobile-card';
+            panel.innerHTML = `
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4 mobile-stack">
+                    <div>
+                        <h2 class="text-xl font-black text-gray-800">SETTING ASSIGN BERKALA</h2>
+                        <p class="text-sm text-gray-500">Kenderaan boleh dikhaskan kepada unit/pengguna untuk tempoh tertentu. Tempahan yang diluluskan admin tetap mendahului setting ini.</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-6 gap-3 bg-cyan-50 border border-cyan-200 p-4 rounded-lg mb-4">
+                    <div><label class="block text-xs font-bold text-gray-600 mb-1">No. Pendaftaran</label><select id="assignPlatV5" class="w-full p-2 border rounded"></select></div>
+                    <div><label class="block text-xs font-bold text-gray-600 mb-1">Unit Diassign</label><input id="assignUnitV5" class="w-full p-2 border rounded" placeholder="Contoh: DOT"></div>
+                    <div><label class="block text-xs font-bold text-gray-600 mb-1">Pengguna Assign</label><input id="assignPenggunaV5" list="listPenggunaAssignV5" class="w-full p-2 border rounded" placeholder="Nama / kosong"><datalist id="listPenggunaAssignV5"></datalist></div>
+                    <div><label class="block text-xs font-bold text-gray-600 mb-1">Tarikh Mula</label><input id="assignMulaV5" type="date" class="w-full p-2 border rounded"></div>
+                    <div><label class="block text-xs font-bold text-gray-600 mb-1">Tarikh Akhir</label><input id="assignAkhirV5" type="date" class="w-full p-2 border rounded"></div>
+                    <div class="flex gap-2 items-end"><button onclick="simpanAssignBerkalaV5()" class="w-full bg-cyan-700 hover:bg-cyan-800 text-white font-bold p-2 rounded">SET</button></div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead><tr class="bg-gray-800 text-white"><th class="p-3">Kenderaan</th><th class="p-3">Unit/Pengguna</th><th class="p-3">Tempoh</th><th class="p-3">Status</th><th class="p-3">Tindakan</th></tr></thead>
+                        <tbody id="jadualAssignBerkalaV5"></tbody>
+                    </table>
+                </div>`;
+            if(summary) summary.insertAdjacentElement('afterend', panel);
+            else dash.prepend(panel);
+            janaPilihanAssignBerkalaV5();
+        }
+
+        function janaPilihanAssignBerkalaV5(){
+            const s = document.getElementById('assignPlatV5');
+            if(s) {
+                const old = s.value;
+                s.innerHTML = '<option value="">-- Pilih Kenderaan --</option>' + DB_Kenderaan.map(k => `<option value="${escapeHtml(k.plat)}">${escapeHtml(k.plat)} - ${escapeHtml(k.jenama || '-')}</option>`).join('');
+                if([...s.options].some(o => o.value === old)) s.value = old;
+            }
+            const dl = document.getElementById('listPenggunaAssignV5');
+            if(dl) dl.innerHTML = DB_Pengguna.map(p => `<option value="${escapeHtml(p.nama || '')}">${escapeHtml(p.unit || '')}</option>`).join('');
+        }
+
+        function aktifAssignBerkalaUntukPlatV5(plat, tarikh = new Date()){
+            const today = tarikh.toISOString().slice(0,10);
+            return DB_AssignBerkala.find(a =>
+                a.status === 'Aktif' && String(a.plat || '').toUpperCase() === String(plat || '').toUpperCase() &&
+                (!a.tarikhMula || a.tarikhMula <= today) && (!a.tarikhAkhir || a.tarikhAkhir >= today)
+            ) || null;
+        }
+
+        window.simpanAssignBerkalaV5 = async function(){
+            if(!aksesAdmin()) return alert('Hanya Admin / Super Admin dibenarkan.');
+            const plat = document.getElementById('assignPlatV5')?.value || '';
+            const unit = document.getElementById('assignUnitV5')?.value.trim() || '';
+            const pengguna = document.getElementById('assignPenggunaV5')?.value.trim() || '';
+            const mula = document.getElementById('assignMulaV5')?.value || '';
+            const akhir = document.getElementById('assignAkhirV5')?.value || '';
+            if(!plat || !unit || !mula || !akhir) return alert('Sila lengkapkan No. Pendaftaran, Unit, Tarikh Mula dan Tarikh Akhir.');
+            if(akhir < mula) return alert('Tarikh akhir tidak boleh lebih awal daripada tarikh mula.');
+            const id = plat.replace(/[^A-Za-z0-9_-]/g,'_');
+            await setDoc(doc(db, 'assign_berkala', id), {
+                plat, unit, pengguna: pengguna || '-', tarikhMula: mula, tarikhAkhir: akhir,
+                status: 'Aktif', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), oleh: profilSemasa.emel || '-'
+            }, { merge: true });
+            notif(`Setting assign berkala untuk ${plat} berjaya disimpan.`);
+            ['assignUnitV5','assignPenggunaV5','assignMulaV5','assignAkhirV5'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+            janaSenaraiAssignBerkalaV5(); janaSistem();
+        };
+
+        window.batalkanAssignBerkalaV5 = async function(id){
+            if(!aksesAdmin()) return;
+            if(!confirm('Batalkan setting assign berkala ini?')) return;
+            await updateDoc(doc(db, 'assign_berkala', id), { status: 'Dibatalkan', updatedAt: new Date().toISOString(), batalOleh: profilSemasa.emel || '-' });
+            notif('Setting assign berkala telah dibatalkan.');
+        };
+
+        function janaSenaraiAssignBerkalaV5(){
+            janaPilihanAssignBerkalaV5();
+            const tb = document.getElementById('jadualAssignBerkalaV5');
+            if(!tb) return;
+            const data = DB_AssignBerkala.slice(0,50);
+            if(!data.length) { tb.innerHTML = '<tr><td colspan="5" class="p-5 text-center text-gray-500 bg-gray-50">Tiada setting assign berkala.</td></tr>'; return; }
+            tb.innerHTML = data.map(a => {
+                const aktif = aktifAssignBerkalaUntukPlatV5(a.plat) && a.status === 'Aktif';
+                const cls = a.status === 'Dibatalkan' ? 'bg-gray-100 text-gray-500' : (aktif ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-800');
+                const teks = a.status === 'Dibatalkan' ? 'DIBATALKAN' : (aktif ? 'AKTIF SEKARANG' : 'BELUM / LUAR TEMPOH');
+                return `<tr class="border-b hover:bg-gray-50"><td class="p-3 font-bold text-blue-700">${escapeHtml(a.plat || '-')}</td><td class="p-3">${escapeHtml(a.unit || '-')}<br><span class="text-xs text-gray-500">${escapeHtml(a.pengguna || '-')}</span></td><td class="p-3">${escapeHtml(formatTarikhMY(a.tarikhMula || '-'))} - ${escapeHtml(formatTarikhMY(a.tarikhAkhir || '-'))}</td><td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold ${cls}">${teks}</span></td><td class="p-3">${a.status === 'Aktif' ? `<button onclick="batalkanAssignBerkalaV5('${escapeHtml(a.id)}')" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 rounded">BATALKAN</button>` : '-'}</td></tr>`;
+            }).join('');
+        }
+
+        function pasangKawalanSejarahV5(){
+            if(document.getElementById('kawalanSejarahV5')) return;
+            const h3 = [...document.querySelectorAll('h3')].find(x => x.textContent.includes('Sejarah Kelulusan Tempahan'));
+            if(!h3) return;
+            const wrap = document.createElement('div');
+            wrap.id = 'kawalanSejarahV5';
+            wrap.className = 'flex flex-col md:flex-row gap-2 md:items-center mb-3 mobile-stack';
+            wrap.innerHTML = `
+                <label class="text-sm font-bold text-gray-600">Paparan</label>
+                <select id="sejarahStatusV5" onchange="sejarahStatusV5=this.value; janaSistem();" class="p-2 border rounded">
+                    <option value="belum">BELUM DILULUSKAN SAHAJA</option>
+                    <option value="semua">PAPAR SEMUA</option>
+                </select>
+                <label class="text-sm font-bold text-gray-600 md:ml-3">Jumlah</label>
+                <select id="sejarahLimitV5" onchange="sejarahLimitV5=parseInt(this.value); janaSistem();" class="p-2 border rounded">
+                    <option value="10">10</option><option value="50">50</option><option value="100">100</option>
+                </select>`;
+            h3.parentElement?.parentElement?.insertAdjacentElement('afterend', wrap);
+        }
+
+        window.batalTempahanPenggunaV5 = async function(idT){
+            const t = DB_Tempahan.find(x => x.idT === idT);
+            if(!t) return alert('Tempahan tidak ditemui.');
+            if(!confirm('Adakah anda pasti mahu membatalkan tempahan ini?')) return;
+            try {
+                await updateDoc(doc(db, 'tempahan', idT), { status: 'Dibatalkan oleh Pengguna', batalOleh: profilSemasa.emel || '-', tBatal: new Date().toISOString() });
+                if(t.kenderaanDipilih && t.kenderaanDipilih !== 'Belum Ditetapkan') {
+                    const k = DB_Kenderaan.find(v => v.plat === t.kenderaanDipilih);
+                    if(k && k.status === 'Ditempah' && k.tempahOleh === t.nama) {
+                        await updateDoc(doc(db, 'kenderaan', k.plat), { status:'Available', pengguna:'-', noTelPengguna:'-', tempahOleh:'-', unit:'-', tujuan:'-', lokasiTujuan:'-', tMula:'-', tTamat:'-', masaAmbil:null });
+                    }
+                }
+                notif('Tempahan telah dibatalkan.');
+                janaSistem(); kemaskiniBadgeAmbilV5();
+            } catch(err) { console.error(err); alert('Gagal membatalkan tempahan. Sila cuba lagi.'); }
+        };
+
+        window.tidakLulusTempahanV5 = async function(idT){
+            if(!aksesAdmin()) return alert('Hanya Admin / Super Admin dibenarkan.');
+            const sebab = prompt('Catatan tidak diluluskan:', 'Kenderaan penuh ditempah / tidak tersedia') || 'Tidak diluluskan';
+            try {
+                await updateDoc(doc(db, 'tempahan', idT), { status:'Tidak Diluluskan', catatanTidakLulus: sebab, tidakLulusOleh: profilSemasa.emel || '-', tTidakLulus: new Date().toISOString() });
+                notif('Tempahan telah ditanda sebagai tidak diluluskan.');
+                janaSistem();
+            } catch(err) { console.error(err); alert('Gagal mengemaskini status tidak lulus.'); }
+        };
+
+        // Paparan semasa: pengguna yang ada kenderaan diassign / sedang guna akan berada di atas.
+        janaSistem = function(){
+            siapV5();
+            const pendingCount = DB_Tempahan.filter(t => t.status === 'Menunggu Kelulusan').length;
+            const badge = document.getElementById('badgeTempahan');
+            if(badge) {
+                if(pendingCount > 0 && aksesAdmin()) { badge.innerText = pendingCount; badge.classList.remove('hilang'); }
+                else badge.classList.add('hilang');
+            }
+            kemaskiniBadgeAmbilV5();
+            janaSenaraiAssignBerkalaV5();
+            const panelAssign = document.getElementById('panelAssignBerkalaV5');
+            if(panelAssign) { aksesAdmin() ? panelAssign.classList.remove('hilang') : panelAssign.classList.add('hilang'); }
+
+            const tbDash = document.getElementById('jadualDashboard');
+            if(tbDash) {
+                tbDash.innerHTML = '';
+                let kenderaanDipapar = DB_Kenderaan.slice();
+                const q = (window.dashboardQueryV3 || '').toLowerCase();
+                if(q) kenderaanDipapar = kenderaanDipapar.filter(k => String(k.plat || '').toLowerCase().includes(q) || String(k.jenama || '').toLowerCase().includes(q) || String(k.jenis || '').toLowerCase().includes(q));
+                if(profilSemasa.peranan === 'pengguna' || profilSemasa.peranan === 'penumpang') {
+                    document.getElementById('dashboardSummary')?.classList.add('hilang');
+                    document.getElementById('tajukDashboard').innerText = 'Status Kenderaan Sedang Ditempah / Digunakan';
+                    kenderaanDipapar = kenderaanDipapar.filter(k => k.status === 'Ditempah' || k.status === 'Sedang Digunakan' || aktifAssignBerkalaUntukPlatV5(k.plat));
+                } else {
+                    document.getElementById('dashboardSummary')?.classList.remove('hilang');
+                    document.getElementById('tajukDashboard').innerText = 'Status Semasa Semua Kenderaan';
+                    const setText = (id,v)=>{ const el=document.getElementById(id); if(el) el.innerText=v; };
+                    setText('sumTotal', DB_Kenderaan.length);
+                    setText('sumAvailable', DB_Kenderaan.filter(k => k.status === 'Available').length);
+                    setText('sumDitempah', DB_Kenderaan.filter(k => k.status === 'Ditempah').length);
+                    setText('sumSedangGuna', DB_Kenderaan.filter(k => k.status === 'Sedang Digunakan').length);
+                }
+                const nama = profilSemasa?.nama || '';
+                kenderaanDipapar.sort((a,b)=>{
+                    const aw = (a.status === 'Ditempah' && a.tempahOleh === nama) || (a.status === 'Sedang Digunakan' && a.pengguna === nama) ? 0 : 1;
+                    const bw = (b.status === 'Ditempah' && b.tempahOleh === nama) || (b.status === 'Sedang Digunakan' && b.pengguna === nama) ? 0 : 1;
+                    if(aw !== bw) return aw - bw;
+                    return String(a.plat || '').localeCompare(String(b.plat || ''));
+                });
+                if(kenderaanDipapar.length === 0) {
+                    tbDash.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-gray-500 font-semibold bg-gray-50">Tiada kenderaan sepadan untuk paparan ini.</td></tr>';
+                } else {
+                    kenderaanDipapar.forEach((k,i)=>{
+                        const assign = aktifAssignBerkalaUntukPlatV5(k.plat);
+                        let statusPapar = k.status || 'Available';
+                        let bg = statusPapar === 'Available' ? 'bg-green-100 text-green-700' : (statusPapar === 'Ditempah' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-700');
+                        if(assign && statusPapar === 'Available') { statusPapar = 'BERKALA'; bg = 'bg-cyan-100 text-cyan-800'; }
+                        let textP = '-', textTel='-', unit = k.unit || '-', tujuan = k.tujuan || '-', lokasi = k.lokasiTujuan || '-';
+                        if(k.status === 'Ditempah') { textP = `(Ditempah) ${k.tempahOleh || '-'}`; textTel = k.noTelPengguna || '-'; }
+                        else if(k.status === 'Sedang Digunakan') { textP = k.pengguna || '-'; textTel = k.noTelPengguna || '-'; }
+                        else if(assign) { textP = `Assign berkala: ${assign.pengguna && assign.pengguna !== '-' ? assign.pengguna : assign.unit}`; textTel='-'; unit=assign.unit || '-'; tujuan='Kegunaan berkala'; lokasi=`${formatTarikhMY(assign.tarikhMula)} - ${formatTarikhMY(assign.tarikhAkhir)}`; }
+                        const textMula = k.status === 'Sedang Digunakan' ? formatMasa(k.masaAmbil) : formatTarikhMY(k.tMula);
+                        const textTamat = formatTarikhMY(k.tTamat);
+                        tbDash.innerHTML += `<tr class="border-b hover:bg-gray-50 ${((k.status==='Ditempah'&&k.tempahOleh===nama)||(k.status==='Sedang Digunakan'&&k.pengguna===nama))?'bg-blue-50':''}">
+                            <td class="p-3 align-top">${i+1}</td>
+                            <td class="p-3 align-top"><strong class="text-gray-800 block">${escapeHtml(k.plat || '-')}</strong><span class="text-xs text-gray-500">${escapeHtml(k.jenama || '-')}</span></td>
+                            <td class="p-3 align-top"><span class="font-bold text-blue-700">${escapeHtml(textP)}</span><br><span class="text-xs text-gray-600">📞 ${escapeHtml(textTel)}</span></td>
+                            <td class="p-3 align-top"><span class="block">${escapeHtml(unit)}</span><span class="text-xs text-gray-500 block">${escapeHtml(tujuan)}</span><span class="text-xs font-bold text-gray-600">📍 ${escapeHtml(lokasi)}</span></td>
+                            <td class="p-3 align-top text-gray-600 text-xs">Mula: <strong class="block">${escapeHtml(textMula)}</strong>Pulang: <strong class="block">${escapeHtml(textTamat)}</strong></td>
+                            <td class="p-3 align-top"><span class="px-2 py-1 rounded text-xs font-bold border ${bg}">${escapeHtml(statusPapar)}</span>${assign && k.status==='Available' ? '<br><span class="text-[11px] text-cyan-700 font-bold">Setting berkala aktif</span>' : ''}</td>
+                        </tr>`;
+                    });
+                }
+            }
+
+            const tbPeng = document.getElementById('jadualPengguna');
+            if(tbPeng) {
+                const my = DB_Tempahan.filter(t => t.emel === profilSemasa.emel).sort((a,b)=>String(b.createdAt||b.tLulus||'').localeCompare(String(a.createdAt||a.tLulus||'')));
+                tbPeng.innerHTML = '';
+                if(!my.length) tbPeng.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500 bg-gray-50">Tiada permohonan.</td></tr>';
+                my.forEach(t => {
+                    const bolehBatal = ['Menunggu Kelulusan','Lulus'].includes(t.status || '');
+                    tbPeng.innerHTML += `<tr class="border-b"><td class="p-3">${escapeHtml(t.lokasi || t.tujuan || '-')}</td><td class="p-3">${escapeHtml(formatTarikhMY(t.tMula || '-'))}</td><td class="p-3 font-bold">${escapeHtml(t.kenderaanDipilih || '-')}</td><td class="p-3">${escapeHtml(t.status || '-')}</td><td class="p-3">${bolehBatal ? `<button onclick="batalTempahanPenggunaV5('${escapeHtml(t.idT)}')" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 rounded">BATAL TEMPAHAN</button>` : '-'}</td></tr>`;
+                });
+                const theadRow = tbPeng.closest('table')?.querySelector('thead tr');
+                if(theadRow && theadRow.children.length < 5) theadRow.insertAdjacentHTML('beforeend','<th class="p-3 border-b">Tindakan</th>');
+            }
+
+            const tbAdmin = document.getElementById('jadualAdmin');
+            if(tbAdmin) {
+                tbAdmin.innerHTML = '';
+                DB_Tempahan.filter(t => t.status === 'Menunggu Kelulusan').sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))).forEach(t => {
+                    let jarak = t.jarakPerjalanan || 100;
+                    let opts = '<option value="">-- Tetapkan Kenderaan --</option>';
+                    DB_Kenderaan.filter(k => k.status === 'Available').forEach(k => {
+                        const assign = aktifAssignBerkalaUntukPlatV5(k.plat);
+                        let baki = (Number(k.mileageServis || k.odometerNextServis || 0) - Number(k.mileage || 0));
+                        const labelAssign = assign ? ` | Berkala: ${assign.unit}` : '';
+                        if(baki >= jarak || !baki) opts += `<option value="${escapeHtml(k.plat)}">✅ ${escapeHtml(k.plat)} (Baki: ${baki || '-'}km${escapeHtml(labelAssign)})</option>`;
+                        else opts += `<option value="${escapeHtml(k.plat)}" disabled class="text-red-500">❌ ${escapeHtml(k.plat)} (Baki: ${baki}km${escapeHtml(labelAssign)})</option>`;
+                    });
+                    tbAdmin.innerHTML += `<tr class="border-b"><td class="p-3">${escapeHtml(t.nama || '-')}<br><span class="text-xs text-gray-500">${escapeHtml(t.unit || '-')}</span></td><td class="p-3"><b>${escapeHtml(t.lokasi || '-')}</b><br><span class="text-xs">${escapeHtml(formatTarikhMY(t.tMula || '-'))} - ${escapeHtml(formatTarikhMY(t.tTamat || '-'))}</span></td><td class="p-3">${escapeHtml(t.cadangan || '-')}</td><td class="p-3"><div class="text-xs text-blue-700 mb-1">📍 Jarak OSM: ${escapeHtml(formatOdometer0(jarak))} km</div><select id="pilih_kereta_${escapeHtml(t.idT)}" onchange="document.getElementById('bx_${escapeHtml(t.idT)}').classList.remove('hilang')" class="w-full p-2 border rounded">${opts}</select><div id="bx_${escapeHtml(t.idT)}" class="hilang mt-1 mb-2 bg-red-50 p-2 border border-red-200"><label><input type="checkbox" onchange="let s=document.getElementById('pilih_kereta_${escapeHtml(t.idT)}'); for(let i=0;i<s.options.length;i++) s.options[i].disabled=false;"> Abaikan Amaran Servis</label></div><button onclick="luluskanTempahan('${escapeHtml(t.idT)}')" class="bg-blue-600 text-white w-full py-2 rounded mt-1 shadow hover:bg-blue-700">SAHKAN KELULUSAN</button><button onclick="tidakLulusTempahanV5('${escapeHtml(t.idT)}')" class="bg-red-600 text-white w-full py-2 rounded mt-2 shadow hover:bg-red-700">TIDAK DILULUSKAN</button></td></tr>`;
+                });
+                if(!tbAdmin.innerHTML) tbAdmin.innerHTML = '<tr><td colspan="4" class="p-5 text-center text-gray-500 bg-gray-50">Tiada tempahan menunggu kelulusan.</td></tr>';
+            }
+
+            const tbSejarah = document.getElementById('jadualSejarahKelulusan');
+            if(tbSejarah) {
+                let data = DB_Tempahan.slice().sort((a,b)=>String(b.createdAt||b.tLulus||b.tTidakLulus||'').localeCompare(String(a.createdAt||a.tLulus||a.tTidakLulus||'')));
+                if(sejarahStatusV5 === 'belum') data = data.filter(t => t.status === 'Menunggu Kelulusan');
+                data = data.slice(0, sejarahLimitV5);
+                tbSejarah.innerHTML = '';
+                if(!data.length) tbSejarah.innerHTML = '<tr><td colspan="5" class="p-5 text-center text-gray-500 bg-gray-50">Tiada rekod untuk paparan ini.</td></tr>';
+                data.forEach(t => {
+                    tbSejarah.innerHTML += `<tr class="border-b hover:bg-gray-100"><td class="p-3 font-semibold">${escapeHtml(t.nama || '-')}<br><span class="text-xs text-gray-500">${escapeHtml(t.unit || '-')}</span></td><td class="p-3 text-gray-700">${escapeHtml(t.lokasi || '-')}<br><span class="text-xs">Mohon: ${escapeHtml(formatTarikhMY(t.tMula || '-'))}</span></td><td class="p-3 font-bold text-blue-700">${escapeHtml(t.kenderaanDipilih || '-')}<br><span class="text-xs text-gray-500 font-normal">${escapeHtml(t.status || '-')}</span></td><td class="p-3 text-xs">${escapeHtml(formatTarikhTimeMY(t.createdAt || t.tLulus || t.tTidakLulus || '-'))}</td><td class="p-3 text-xs text-blue-700 font-bold">${escapeHtml(t.lulusOleh || t.tidakLulusOleh || '-')}</td></tr>`;
+                });
+            }
+        };
+
+        // Admin/Super Admin masih boleh tempah, ambil dan pulang seperti pengguna.
+        const tukarPenggunaAkaunV4Ref = window.tukarPenggunaAkaun;
+        window.tukarPenggunaAkaun = function(emel){
+            tukarPenggunaAkaunV4Ref(emel);
+            setTabVisible('tabBackup', aksesAdmin());
+            setTabVisible('tabAmbil', profilSemasa.peranan !== 'penumpang');
+            setTabVisible('tabPulang', profilSemasa.peranan !== 'penumpang');
+            kemaskiniBadgeAmbilV5();
+            janaSistem();
+        };
+
+        // Rebuild tab navigation supaya semua reset, termasuk paparan V5.
+        window.paparTab = function(tabId){
+            resetPaparanSementara(tabId);
+            if(document.startViewTransition) document.startViewTransition(() => tukarPaparanV5(tabId)); else tukarPaparanV5(tabId);
+        };
+        function tukarPaparanV5(tabId){
+            ['viewDashboard','viewOperasi','viewAmbil','viewPulang','viewSelenggara','viewSelenggaraKenderaan','viewRekodKad','viewRekodSelenggara','viewLaporan','viewBackup'].forEach(id => document.getElementById(id)?.classList.add('hilang'));
+            ['tabDashboard','tabOperasi','tabAmbil','tabPulang','tabSelenggara','tabSelenggaraKenderaan','tabRekodKad','tabRekodSelenggara','tabLaporan','tabBackup'].forEach(id => { const el=document.getElementById(id); if(el){ el.classList.remove('tab-aktif'); el.classList.add('tab-pasif'); } });
+            let idAktif='';
+            if(tabId === 'dashboard') { document.getElementById('viewDashboard')?.classList.remove('hilang'); idAktif='tabDashboard'; janaSistem(); }
+            else if(tabId === 'operasi') { document.getElementById('viewOperasi')?.classList.remove('hilang'); idAktif='tabOperasi'; kemaskiniBorang(); janaSistem(); }
+            else if(tabId === 'ambil') { document.getElementById('viewAmbil')?.classList.remove('hilang'); window.janaDropdownAmbil(); idAktif='tabAmbil'; }
+            else if(tabId === 'pulang') { document.getElementById('viewPulang')?.classList.remove('hilang'); window.janaBorangPulang(); idAktif='tabPulang'; }
+            else if(tabId === 'selenggara') { if(profilSemasa.peranan !== 'superadmin') return window.paparTab('dashboard'); document.getElementById('viewSelenggara')?.classList.remove('hilang'); idAktif='tabSelenggara'; }
+            else if(tabId === 'selenggaraKenderaan') { if(!aksesAdmin()) return window.paparTab('dashboard'); document.getElementById('viewSelenggaraKenderaan')?.classList.remove('hilang'); autoIsiMaklumatKadKenderaan(); idAktif='tabSelenggaraKenderaan'; }
+            else if(tabId === 'rekodKad') { if(!aksesAdmin()) return window.paparTab('dashboard'); document.getElementById('viewRekodKad')?.classList.remove('hilang'); janaPilihanKenderaanKad(); janaRekodKad(); idAktif='tabRekodKad'; }
+            else if(tabId === 'rekodSelenggara') { if(!aksesAdmin()) return window.paparTab('dashboard'); document.getElementById('viewRekodSelenggara')?.classList.remove('hilang'); kemaskiniSelenggaraAuto(); idAktif='tabRekodSelenggara'; }
+            else if(tabId === 'laporan') { if(!aksesAdmin()) return window.paparTab('dashboard'); document.getElementById('viewLaporan')?.classList.remove('hilang'); janaPilihanFilterLaporan(); mesejLaporan('Sila masukkan tapisan dan tekan CARI / TAPIS.'); idAktif='tabLaporan'; }
+            else if(tabId === 'backup') { if(!aksesAdmin()) return window.paparTab('dashboard'); document.getElementById('viewBackup')?.classList.remove('hilang'); isiTetapanBackup(); idAktif='tabBackup'; }
+            const elAktif=document.getElementById(idAktif); if(elAktif){ elAktif.classList.remove('tab-pasif'); elAktif.classList.add('tab-aktif'); }
+            kemasMenuHurufBesar(); kemaskiniMenuV5(); kemaskiniBadgeAmbilV5();
+        }
+
+        // Pastikan dropdown ambil juga mengira admin/super admin berdasarkan nama pengguna semasa.
+        const janaDropdownAmbilV4Ref = window.janaDropdownAmbil;
+        window.janaDropdownAmbil = function(){
+            janaDropdownAmbilV4Ref();
+            kemaskiniBadgeAmbilV5();
+        };
+
+        // Jenis minyak auto naik berdasarkan kad inden dipilih; bukan dropdown jenis minyak.
+        window.autoJenisMinyakPulang = function(){
+            pastikanInputJenisMinyakReadonly();
+            const jenisEl = document.getElementById('indenJenisMinyak');
+            const kad = dapatKadIndenDipilih();
+            if(jenisEl) jenisEl.value = kad ? (kad.jenisMinyak || '-') : '';
+            const stesenEl = document.getElementById('indenStesen');
+            if(stesenEl && kad) stesenEl.dataset.jenamaStesen = kad.jenamaStesen || '-';
+        };
+
+        // Buku log di paparan pengguna: hanya kenderaan semasa yang dipulangkan.
+        const janaBorangPulangV4Ref = window.janaBorangPulang;
+        window.janaBorangPulang = function(){
+            janaBorangPulangV4Ref();
+            const k = dapatKenderaanPulangSemasa();
+            const kotak = document.getElementById('kotakLogPulang');
+            const tb = document.getElementById('jadualLogPulang');
+            const teks = document.getElementById('teksLogPulang');
+            if(!k) {
+                if(kotak) kotak.classList.add('hilang');
+                if(tb) tb.innerHTML = '<tr><td colspan="12" class="p-4 text-center text-gray-500 bg-gray-50">Tiada kenderaan semasa untuk dipulangkan.</td></tr>';
+                return;
+            }
+            const kad = dapatkanKadUntukKenderaan(k.plat);
+            const s = document.getElementById('indenStesen');
+            if(s) {
+                s.innerHTML = '<option value="">-- Tiada Pengisian --</option>' + (kad.semuaInden || []).map(x => `<option value="${escapeHtml(x.id || x.noKad || x.jenamaStesen || '')}">${escapeHtml(x.jenamaStesen || '-')} - ${escapeHtml(x.noKad || '-')}</option>`).join('');
+                delete s.dataset.jenamaStesen;
+            }
+            const jenisEl = document.getElementById('indenJenisMinyak'); if(jenisEl) jenisEl.value = '';
+            if(kotak) kotak.classList.remove('hilang');
+            if(teks) teks.innerText = `Rekod perjalanan hanya untuk kenderaan semasa yang sedang dipulangkan: ${k.plat} - ${k.jenama || '-'}.`;
+            janaLogPulang();
+        };
+        window.janaLogPulang = function(){
+            const tb = document.getElementById('jadualLogPulang'); if(!tb) return;
+            const k = dapatKenderaanPulangSemasa();
+            if(!k) { tb.innerHTML = '<tr><td colspan="12" class="p-4 text-center text-gray-500 bg-gray-50">Tiada kenderaan semasa untuk dipulangkan.</td></tr>'; return; }
+            const data = DB_LogKenderaan.filter(l => String(l.noPendaftaran || '').toUpperCase() === String(k.plat || '').toUpperCase()).sort((a,b)=>String(b.timestampPulang||b.createdAt||'').localeCompare(String(a.timestampPulang||a.createdAt||''))).slice(0,30);
+            if(!data.length) { tb.innerHTML = `<tr><td colspan="12" class="p-4 text-center text-gray-500 bg-gray-50">Tiada rekod perjalanan terdahulu untuk ${escapeHtml(k.plat)}.</td></tr>`; return; }
+            tb.innerHTML = data.map(l => `<tr class="border-b hover:bg-gray-50"><td class="p-2">${escapeHtml(formatTarikhDDMMYYYY(l.tarikh || l.timestampPulang))}</td><td class="p-2">${escapeHtml(l.masaMula || '-')}</td><td class="p-2">${escapeHtml(l.masaAkhir || '-')}</td><td class="p-2">${escapeHtml(l.namaPengguna || '-')}</td><td class="p-2 font-bold text-blue-700">${escapeHtml(l.noPendaftaran || '-')}</td><td class="p-2">${escapeHtml(l.tujuan || '-')}</td><td class="p-2">${escapeHtml(l.lokasi || '-')}</td><td class="p-2">${escapeHtml(formatOdometer0(l.odometerAkhir || 0))}</td><td class="p-2">${escapeHtml(formatOdometer0(l.penggunaanOdometer || 0))}</td><td class="p-2">${escapeHtml(l.penggunaanKadInden || 'Tidak')}<br><span class="text-[11px] text-gray-500">${escapeHtml(l.jenamaStesen || '-')} ${escapeHtml(l.jenisMinyak || '')}<br>${escapeHtml((l.nilaiRM && l.nilaiRM !== '-') ? formatRM2(l.nilaiRM) : '')} ${escapeHtml((l.jumlahLiter && l.jumlahLiter !== '-') ? '/ ' + formatLiter3(l.jumlahLiter) + ' L' : '')}</span></td><td class="p-2">${escapeHtml(l.penggunaanTNG || 'Tidak')}</td><td class="p-2">${escapeHtml(l.catatanPengguna || '-')}</td></tr>`).join('');
+        };
+
+        // Pengesahan pulang dibuat semula supaya lebih stabil.
+        window.semakPulangKenderaan = function(){
+            const k = dapatKenderaanPulangSemasa();
+            if(!k) return alert('Tiada kenderaan semasa untuk dipulangkan.');
+            autoJenisMinyakPulang();
+            const mS = Math.round(nomborBersih(document.getElementById('inputMileageSelepas')?.value || 0));
+            const mA = Math.round(nomborBersih(document.getElementById('pulangMileageSebelum')?.dataset.nilaiAsal || k.mileage || 0));
+            if(!mS || mS < mA) return alert('Ralat: Sila masukkan odometer akhir yang betul. Odometer akhir tidak boleh kurang daripada odometer mula.');
+            const kad = dapatKadIndenDipilih();
+            const stesen = kad ? (kad.jenamaStesen || '-') : '-';
+            const jenisMinyak = kad ? (kad.jenisMinyak || '-') : '-';
+            const noKadInden = kad ? (kad.noKad || '-') : '-';
+            const inv = document.getElementById('indenInvoice')?.value || '-';
+            const rmVal = document.getElementById('indenRM')?.value;
+            const litVal = document.getElementById('indenLiter')?.value;
+            const rm = rmVal ? Number(nomborBersih(rmVal)).toFixed(2) : '-';
+            const liter = litVal ? Number(nomborBersih(litVal)).toFixed(3) : '-';
+            if(document.getElementById('indenRM') && rm !== '-') document.getElementById('indenRM').value = rm;
+            if(document.getElementById('indenLiter') && liter !== '-') document.getElementById('indenLiter').value = liter;
+            document.getElementById('inputMileageSelepas').value = String(mS);
+            const jarakGuna = mS - mA;
+            const tempahanAktif = DB_Tempahan.find(t => t.kenderaanDipilih === k.plat && t.status === 'Lulus' && (t.emel === profilSemasa.emel || t.nama === profilSemasa.nama));
+            const kadAuto = dapatkanKadUntukKenderaan(k.plat);
+            window.rekodPulangSemasa = {
+                plat: k.plat, mileageBaru: mS, odometerMula: mA, penggunaanOdometer: jarakGuna,
+                stesen, jenisMinyak, inv, rm, liter,
+                infoMinyak: (rm !== '-' || liter !== '-') ? `${rm !== '-' ? formatRM2(rm) : 'RM 0.00'} / ${liter !== '-' ? formatLiter3(liter) : '0.000'} liter` : 'Tiada pengisian',
+                tng: document.getElementById('gunaTNG')?.checked ? 'Digunakan' : 'Tidak Digunakan',
+                tempohDigunakan: document.getElementById('pulangTempohMasa')?.dataset.tempoh || kiraTempoh(k.masaAmbil),
+                pnum: document.getElementById('namaPenumpang')?.value || 'Tiada Penumpang Rekod',
+                catatan: document.getElementById('catatanPengguna')?.value || '-',
+                kadInden: noKadInden, noKadTNG: kadAuto.tng || k.tng || '-', tempahanId: tempahanAktif ? tempahanAktif.idT : null
+            };
+            document.getElementById('modalKenderaan').innerText = `${k.jenama || '-'} (${k.plat})`;
+            document.getElementById('modalTempoh').innerText = window.rekodPulangSemasa.tempohDigunakan;
+            document.getElementById('modalJarak').innerText = formatOdometer0(jarakGuna);
+            document.getElementById('modalStesen').innerText = stesen;
+            document.getElementById('modalJenisMinyak').innerText = jenisMinyak;
+            document.getElementById('modalInvoice').innerText = inv;
+            document.getElementById('modalMinyak').innerText = window.rekodPulangSemasa.infoMinyak;
+            document.getElementById('modalPenumpangModal').innerText = window.rekodPulangSemasa.pnum;
+            document.getElementById('modalTNG').innerText = window.rekodPulangSemasa.tng;
+            document.getElementById('modalCatatan').innerText = window.rekodPulangSemasa.catatan;
+            document.getElementById('modalKonfirmasiPulang').classList.remove('hilang');
+        };
+
+        window.sahkanPulangKenderaan = async function(){
+            if(!window.rekodPulangSemasa || !window.rekodPulangSemasa.plat) return alert('Tiada rekod pemulangan untuk disahkan. Sila tekan PULANGKAN KENDERAAN semula.');
+            const btn = [...document.querySelectorAll('button')].find(b => b.textContent.includes('YA, SAHKAN'));
+            if(btn) { btn.disabled = true; btn.innerText = 'MENYIMPAN...'; }
+            try {
+                const r = window.rekodPulangSemasa;
+                const k = DB_Kenderaan.find(v => v.plat === r.plat);
+                if(!k) throw new Error('Kenderaan tidak ditemui.');
+                const tempahanSelesai = DB_Tempahan.find(t => t.kenderaanDipilih === k.plat && t.status === 'Lulus' && (t.emel === profilSemasa.emel || t.nama === profilSemasa.nama));
+                const pelulus = DB_Pengguna.find(p => p.emel === (tempahanSelesai ? tempahanSelesai.lulusOleh : ''));
+                const sekarang = new Date();
+                const logData = {
+                    createdAt: sekarang.toISOString(), timestampPulang: sekarang.toISOString(), tarikh: sekarang.toISOString().slice(0,10),
+                    masaMula: fmtMasaISO(k.masaAmbil), masaAkhir: fmtMasaISO(sekarang.toISOString()),
+                    namaPengguna: profilSemasa.nama || k.pengguna || '-', emelPengguna: profilSemasa.emel || '-', unit: profilSemasa.unit || k.unit || '-',
+                    tujuan: k.tujuan || (tempahanSelesai ? tempahanSelesai.tujuan : '-') || '-', lokasi: k.lokasiTujuan || (tempahanSelesai ? tempahanSelesai.lokasi : '-') || '-',
+                    namaPelulus: pelulus ? pelulus.nama : (tempahanSelesai ? tempahanSelesai.lulusOleh : '-'), pelulusEmel: tempahanSelesai ? (tempahanSelesai.lulusOleh || '-') : '-',
+                    noPendaftaran: k.plat, jenisKenderaan: k.jenis || '-', modelKenderaan: k.jenama || '-',
+                    odometerMula: Math.round(nomborBersih(r.odometerMula)), odometerAkhir: Math.round(nomborBersih(r.mileageBaru)), penggunaanOdometer: Math.round(nomborBersih(r.penggunaanOdometer)),
+                    penggunaanKadInden: r.stesen && r.stesen !== '-' ? 'Ya' : 'Tidak', noKadInden: r.kadInden || '-', jenamaStesen: r.stesen || '-', jenisMinyak: r.jenisMinyak || '-', noInv: r.inv || '-',
+                    nilaiRM: r.rm || '-', jumlahLiter: r.liter || '-', penggunaanTNG: r.tng === 'Digunakan' ? 'Ya' : 'Tidak', noKadTNG: r.noKadTNG || '-',
+                    penumpang: r.pnum || '-', catatanPengguna: r.catatan || '-', tempohDigunakan: r.tempohDigunakan || '-', tempahanId: r.tempahanId || '-'
+                };
+                await addDoc(collection(db, 'log_kenderaan'), logData);
+                await updateDoc(doc(db, 'kenderaan', r.plat), { status:'Available', mileage: logData.odometerAkhir, pengguna:'-', noTelPengguna:'-', unit:'-', tujuan:'-', lokasiTujuan:'-', tMula:'-', tTamat:'-', masaAmbil:null });
+                if(tempahanSelesai) await updateDoc(doc(db, 'tempahan', tempahanSelesai.idT), { status:'Selesai', logKenderaan: logData, tSelesai: sekarang.toISOString() });
+                window.tutupModalPulang();
+                window.rekodPulangSemasa = null;
+                ['indenStesen','indenJenisMinyak','indenInvoice','namaPenumpang','indenRM','indenLiter','inputMileageSelepas','catatanPengguna'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+                const ck = document.getElementById('gunaTNG'); if(ck) ck.checked = false;
+                notif('Berjaya memulangkan kenderaan dan buku log digital telah dijana.');
+                window.paparTab('pulang');
+            } catch(err) {
+                console.error(err);
+                alert('Pengesahan pemulangan gagal disimpan. Sila semak sambungan Firestore / permission rules dan cuba lagi.');
+            } finally {
+                if(btn) { btn.disabled = false; btn.innerText = 'YA, SAHKAN'; }
+            }
+        };
+
+        // Hantar tempahan + reminder WhatsApp universal.
+        window.hantarTempahan = async function(e) {
+            e.preventDefault();
+            const btnSahkan = document.getElementById('btnSahkan');
+            btnSahkan.innerText = '⏳ Menghitung Jarak OSRM...'; btnSahkan.disabled = true;
+            try {
+                const lokasiDituju = document.getElementById('lokasi').value;
+                const jarakKiraan = await kiraJarakSebenarOSRM(lokasiDituju);
+                const dataBaru = {
+                    emel: profilSemasa.emel || 'tiada@emel.com', nama: profilSemasa.nama || 'Tanpa Nama', tel: profilSemasa.tel || '-', unit: profilSemasa.unit || '-',
+                    tujuan: document.getElementById('tujuan').value || '-', lokasi: lokasiDituju || '-', jarakPerjalanan: Number(jarakKiraan) || 100,
+                    tMula: document.getElementById('tarikhGuna').value || '-', tTamat: document.getElementById('tarikhPulang').value || '-', cadangan: document.getElementById('cadanganKenderaan').value || 'Sedan',
+                    kenderaanDipilih: 'Belum Ditetapkan', status: 'Menunggu Kelulusan', createdAt: new Date().toISOString()
+                };
+                await addDoc(collection(db, 'tempahan'), dataBaru);
+                document.getElementById('borangTempahan').reset();
+                btnSahkan.innerText = 'Hantar Permohonan'; btnSahkan.disabled = false;
+                notif('Permohonan dihantar.');
+                janaSistem();
+                const msg = `Ada 1 tempahan kenderaan baharu dibuat oleh ${dataBaru.nama} (${dataBaru.emel}). Sila semak sistem E-SILO.`;
+                if(confirm('Tempahan telah berjaya dihantar. Mahu hantar reminder WhatsApp kepada Admin sekarang?')) {
+                    bukaWhatsappUniversalV5(msg, DB_BackupConfig.whatsapp || '');
+                }
+            } catch(err) {
+                console.error('Ralat Hantar Tempahan:', err);
+                alert('Sistem mengalami sedikit masalah. Sila pastikan ruangan borang diisi dengan lengkap dan cuba lagi.');
+                btnSahkan.innerText = 'Hantar Permohonan'; btnSahkan.disabled = false;
+            }
+        };
+
+        // Backup WhatsApp juga guna pilihan universal.
+        window.hantarWhatsappBackup = function(){
+            const tel = (document.getElementById('backupWhatsapp')?.value || DB_BackupConfig.whatsapp || '').replace(/[^0-9]/g,'');
+            const msg = `Backup sistem E-SILO tersedia. Ringkasan: Kenderaan ${DB_Kenderaan.length}, Tempahan ${DB_Tempahan.length}, Pengguna ${DB_Pengguna.length}, Rekod Kad ${DB_RekodKad.length}, Log ${DB_LogKenderaan.length}.`;
+            bukaWhatsappUniversalV5(msg, tel);
+        };
+
+        // Pastikan UI V5 refresh apabila data berubah melalui snapshot asal.
+        const janaSistemV5Interval = setInterval(() => {
+            if(document.getElementById('jadualDashboard')) { kemaskiniBadgeAmbilV5(); janaSenaraiAssignBerkalaV5(); }
+        }, 3000);
+
     </script>
 </body>
 </html>
