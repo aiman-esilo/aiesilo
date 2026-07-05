@@ -13,7 +13,7 @@
             to { transform: translateX(0); opacity: 1; }
         }
         .emel-masuk { animation: slideIn 0.5s ease-out forwards; }
-        #viewDashboard, #viewOperasi, #viewAmbil, #viewPulang, #viewSelenggara, #viewSelenggaraKenderaan, #viewRekodKad, #viewRekodSelenggara, #viewLaporan, #viewBackup {
+        #viewDashboard, #viewOperasi, #viewAmbil, #viewPulang, #viewSelenggara, #viewSelenggaraKenderaan, #viewRekodKad, #viewRekodSelenggara, #viewLaporan, #viewBackup, #viewTetapanUtama {
             view-transition-name: paparan-esilo;
         }
         ::view-transition-old(paparan-esilo),
@@ -117,6 +117,7 @@
             <button onclick="paparTab('rekodSelenggara')" id="tabRekodSelenggara" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center hilang">🛠️ REKOD SELENGGARA</button>
             <button onclick="paparTab('laporan')" id="tabLaporan" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center hilang">📊 LAPORAN</button>
             <button onclick="paparTab('backup')" id="tabBackup" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center hilang">💾 BACKUP</button>
+            <button onclick="paparTab('tetapanUtama')" id="tabTetapanUtama" class="tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center hilang">⚙️ TETAPAN UTAMA</button>
         </div>
     </div>
 
@@ -707,7 +708,10 @@
         </div>
 
         <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-gray-700">
-            <h3 class="text-xl font-bold mb-4 text-gray-800">HASIL CARIAN</h3>
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                <h3 class="text-xl font-bold text-gray-800">HASIL CARIAN</h3>
+                <button onclick="muatTurunHasilCarianV61()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded font-bold shadow">MUAT TURUN HASIL CARIAN</button>
+            </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse text-xs">
                     <thead class="bg-gray-800 text-white"><tr><th class="p-2">Tarikh</th><th class="p-2">Masa Mula</th><th class="p-2">Masa Akhir</th><th class="p-2">Nama Pengguna</th><th class="p-2">Tujuan</th><th class="p-2">Lokasi</th><th class="p-2">Nama Pelulus</th><th class="p-2">No Kenderaan</th><th class="p-2">Odometer</th><th class="p-2">KM</th><th class="p-2">Inden</th><th class="p-2">Inv</th><th class="p-2">Liter</th><th class="p-2">Catatan</th></tr></thead>
@@ -764,6 +768,81 @@
                         <b>Status:</b> <span id="statusBackup">Sila tetapkan emel backup dan jana fail backup secara berkala.</span>
                     </div>
                     <pre id="previewBackup" class="mt-4 bg-slate-900 text-slate-100 text-xs p-4 rounded overflow-auto max-h-72"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- TAB 11: TETAPAN UTAMA (V6.1 REPAIR) -->
+    <div id="viewTetapanUtama" class="container mx-auto p-6 hilang">
+        <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-slate-700 mb-6">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                <div>
+                    <h2 class="text-2xl font-black text-gray-800">TETAPAN UTAMA</h2>
+                    <p class="text-sm text-gray-500">Kemaskini senarai rujukan utama tanpa mengganggu fungsi V5.2: jenama stesen minyak, tujuan penggunaan, unit, tempat bertugas, jenis kenderaan, milikan aset, jenis minyak, kategori kad dan bengkel.</p>
+                </div>
+                <button onclick="muatSemulaTetapanUtamaV61()" class="bg-gray-800 hover:bg-black text-white px-4 py-2 rounded font-bold">REFRESH</button>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-slate-50 p-4 rounded border border-slate-200">
+                    <h3 class="font-black text-gray-800 mb-3">BORANG TETAPAN</h3>
+                    <input type="hidden" id="tetapanIdV61">
+                    <div class="mb-3">
+                        <label class="block text-sm font-bold mb-1">Kategori Rekod</label>
+                        <select id="tetapanKategoriV61" onchange="renderTetapanUtamaV61(); resetBorangTetapanV61(false);" class="w-full p-2 border rounded font-bold">
+                            <option value="jenama_stesen_minyak">Jenama Stesen Minyak / Kad Inden</option>
+                            <option value="tujuan_penggunaan">Tujuan Penggunaan</option>
+                            <option value="unit_jabatan">Unit / Jabatan</option>
+                            <option value="tempat_bertugas">Tempat Bertugas</option>
+                            <option value="jenis_kenderaan">Jenis Kenderaan</option>
+                            <option value="milikan_aset">Milikan Aset</option>
+                            <option value="jenis_minyak">Jenis Minyak</option>
+                            <option value="kategori_kad">Kategori Kad</option>
+                            <option value="bengkel">Bengkel</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="block text-sm font-bold mb-1">Nama / Nilai Tetapan</label>
+                        <input id="tetapanNamaV61" class="w-full p-2 border rounded font-bold" placeholder="Contoh: Petronas / DOT / RON95 / Bengkel A">
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-bold mb-1">Alamat Bengkel</label>
+                            <input id="tetapanAlamatV61" class="w-full p-2 border rounded" placeholder="Jika kategori bengkel">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-1">No Telefon Bengkel</label>
+                            <input id="tetapanTelefonV61" class="w-full p-2 border rounded" placeholder="Jika kategori bengkel">
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="block text-sm font-bold mb-1">Status</label>
+                        <select id="tetapanStatusV61" class="w-full p-2 border rounded font-bold">
+                            <option value="aktif">AKTIF</option>
+                            <option value="tidak aktif">TIDAK AKTIF</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mt-5">
+                        <button type="button" onclick="baruTetapanUtamaV61()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 rounded">BARU</button>
+                        <button type="button" onclick="simpanTetapanUtamaV61()" class="bg-slate-700 hover:bg-slate-800 text-white font-bold py-2 rounded">SIMPAN</button>
+                        <button type="button" onclick="kemaskiniTetapanUtamaV61()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded">KEMASKINI</button>
+                        <button type="button" onclick="padamTetapanUtamaV61()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded">PADAM</button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-3">Butang KEMASKINI menggunakan rekod yang dipilih daripada jadual sebelah kanan.</p>
+                </div>
+                <div class="lg:col-span-2 bg-white rounded border border-slate-200 overflow-hidden">
+                    <div class="p-4 bg-slate-800 text-white flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                        <h3 class="font-black">SENARAI TETAPAN AKTIF / TIDAK AKTIF</h3>
+                        <input id="carianTetapanV61" oninput="renderTetapanUtamaV61()" class="p-2 rounded text-black text-sm" placeholder="Cari tetapan...">
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead class="bg-gray-100"><tr><th class="p-3">Nama</th><th class="p-3">Alamat / Telefon</th><th class="p-3">Status</th><th class="p-3">Tindakan</th></tr></thead>
+                            <tbody id="jadualTetapanUtamaV61"><tr><td colspan="4" class="p-6 text-center text-gray-500">Memuatkan tetapan...</td></tr></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -3446,295 +3525,207 @@
         }, 3000);
 
 
-        // ================= PATCH V6: TETAPAN UTAMA, ASSIGN BERKALA, LAPORAN & SELENGGARA =================
-        let DB_TetapanUtama = [];
-        let tetapanDipilihV6 = '';
-
-        const DEFAULT_TETAPAN_V6 = {
-            jenama_stesen_minyak: ['Petronas', 'Petron', 'Shell'],
-            tujuan_penggunaan: ['Mesyuarat', 'Pemeriksaan', 'Operasi', 'Tugasan Unit', 'Naziran', 'Program Rasmi'],
-            unit_jabatan: ['Unit Logistik', 'Unit Penguatkuasaan', 'Unit PDN', 'DOT', 'Pentadbiran'],
-            tempat_bertugas: ['KPDN Pulau Pinang', 'Seberang Perai', 'Timur Laut', 'Barat Daya'],
-            jenis_kenderaan: ['Sedan', '4x4', 'Van', 'Lori'],
-            milikan_aset: ['Aset Jabatan', 'Spanco'],
-            jenis_minyak: ['RON95', 'Diesel'],
-            kategori_kad: ['Kad Inden Minyak', "Kad Touch 'n Go"],
-            bengkel: []
+        // ================= PATCH V6.1 REPAIR: BERASASKAN V5.2, TANPA BUANG FUNGSI LAMA =================
+        // Nota: patch ini sengaja diletakkan di hujung script supaya fungsi asal V5.2 kekal.
+        let DB_TetapanUtamaV61 = [];
+        const DEFAULT_TETAPAN_V61 = {
+            jenama_stesen_minyak: [{nama:'Petronas'}, {nama:'Petron'}, {nama:'Shell'}],
+            tujuan_penggunaan: [{nama:'Mesyuarat'}, {nama:'Naziran'}, {nama:'Pemeriksaan'}, {nama:'Operasi'}, {nama:'Tugasan Rasmi'}, {nama:'Penggunaan Berkala'}],
+            unit_jabatan: [{nama:'Unit Logistik'}, {nama:'Unit Penguatkuasa'}, {nama:'DOT'}, {nama:'Unit IT'}],
+            tempat_bertugas: [{nama:'KPDN Pulau Pinang'}, {nama:'Cawangan Butterworth'}, {nama:'Cawangan Seberang Jaya'}],
+            jenis_kenderaan: [{nama:'Sedan'}, {nama:'4x4'}, {nama:'Van'}, {nama:'Lori'}],
+            milikan_aset: [{nama:'Aset Jabatan'}, {nama:'Spanco'}],
+            jenis_minyak: [{nama:'RON95'}, {nama:'Diesel'}],
+            kategori_kad: [{nama:'inden'}, {nama:'tng'}],
+            bengkel: [
+                {nama:'Bengkel Panel Utama', alamat:'-', telefon:'-'},
+                {nama:'Bengkel Spanco', alamat:'-', telefon:'-'}
+            ]
         };
 
-        function normV6(v){ return String(v || '').trim().toLowerCase(); }
-        function titleCaseV6(str){
-            return String(str || '-').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
-        }
-        function formatTarikhDashV6(v){
+        function normKeyV61(s){ return String(s || '').trim().toLowerCase(); }
+        function capEachWordV61(s){ return String(s || '-').toLowerCase().replace(/\b\w/g, c => c.toUpperCase()); }
+        function formatTarikhDashV61(v){
             if(!v || v === '-') return '-';
-            let d = String(v).includes('T') ? new Date(v) : new Date(String(v) + 'T00:00:00');
-            if(isNaN(d)) return String(v);
-            return `${pad2(d.getDate())}-${pad2(d.getMonth()+1)}-${d.getFullYear()}`;
+            const s = String(v).slice(0,10);
+            const p = s.split('-');
+            return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : String(v);
         }
-        function nilaiTetapanV6(kategori){
-            const rekod = DB_TetapanUtama
-                .filter(x => x.kategori === kategori && (x.status || 'aktif') !== 'dipadam')
-                .sort((a,b) => String(a.nama || '').localeCompare(String(b.nama || '')));
-            if(rekod.length) return rekod.map(x => x.nama).filter(Boolean);
-            return DEFAULT_TETAPAN_V6[kategori] || [];
+        function tetapanAktifV61(kategori){
+            const data = DB_TetapanUtamaV61.filter(x => x.kategori === kategori && String(x.status || 'aktif').toLowerCase() !== 'padam');
+            const merged = [...(DEFAULT_TETAPAN_V61[kategori] || []).map(x => ({kategori, status:'aktif', sumber:'default', ...x})), ...data];
+            const map = new Map();
+            merged.forEach(x => {
+                const key = normKeyV61(x.nama);
+                if(!key) return;
+                if(!map.has(key) || x.sumber !== 'default') map.set(key, x);
+            });
+            return [...map.values()].filter(x => String(x.status || 'aktif').toLowerCase() === 'aktif').sort((a,b)=>String(a.nama).localeCompare(String(b.nama)));
         }
-        function rekodTetapanV6(kategori){
-            const rekod = DB_TetapanUtama
-                .filter(x => x.kategori === kategori && (x.status || 'aktif') !== 'dipadam')
-                .sort((a,b) => String(a.nama || '').localeCompare(String(b.nama || '')));
-            if(rekod.length) return rekod;
-            return (DEFAULT_TETAPAN_V6[kategori] || []).map(nama => ({ kategori, nama, alamat:'', telefon:'', status:'default' }));
+        function tetapanSemuaV61(kategori){
+            const data = DB_TetapanUtamaV61.filter(x => x.kategori === kategori && String(x.status || 'aktif').toLowerCase() !== 'padam');
+            const defaults = (DEFAULT_TETAPAN_V61[kategori] || []).map(x => ({kategori, id:'default_' + kategori + '_' + normKeyV61(x.nama).replace(/[^a-z0-9]+/g,'_'), status:'aktif', sumber:'default', ...x}));
+            const map = new Map();
+            [...defaults, ...data].forEach(x => { const key = normKeyV61(x.nama); if(key && (!map.has(key) || x.sumber !== 'default')) map.set(key, x); });
+            return [...map.values()].sort((a,b)=>String(a.nama).localeCompare(String(b.nama)));
         }
-        function setSelectOptionsV6(id, values, selected){
+        function optionHTMLV61(list, selected=''){
+            return list.map(x => `<option value="${escapeHtml(x.nama)}" ${String(selected).toLowerCase()===String(x.nama).toLowerCase()?'selected':''}>${escapeHtml(capEachWordV61(x.nama))}</option>`).join('');
+        }
+        function isiSelectOptionsV61(id, kategori, selected='', withBlank=false){
             const el = document.getElementById(id); if(!el) return;
-            const old = selected !== undefined ? selected : el.value;
-            el.innerHTML = (values || []).map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+            const old = selected || el.value || '';
+            el.innerHTML = (withBlank ? '<option value="">-- Pilih --</option>' : '') + optionHTMLV61(tetapanAktifV61(kategori), old);
             if([...el.options].some(o => o.value === old)) el.value = old;
         }
-        function setDatalistV6(id, values){
-            const el = document.getElementById(id); if(!el) return;
-            el.innerHTML = [...new Set((values || []).filter(Boolean))].map(v => `<option value="${escapeHtml(v)}"></option>`).join('');
-        }
-        function pastikanSelectTujuanV6(){
-            const old = document.getElementById('tujuan');
-            if(!old) return;
-            if(old.tagName === 'SELECT') return;
-            const sel = document.createElement('select');
-            sel.id = 'tujuan';
-            sel.className = old.className;
-            sel.required = true;
-            sel.innerHTML = '<option value="">-- Pilih Tujuan --</option>';
-            old.replaceWith(sel);
-        }
-        function pastikanTempatBertugasStafV6(){
-            if(document.getElementById('stafTempatBertugas')) return;
-            const unit = document.getElementById('stafUnit');
-            if(!unit) return;
-            unit.setAttribute('list', 'dlUnitJabatanV6');
-            const div = document.createElement('div');
-            div.className = 'mb-4';
-            div.innerHTML = `<label class="block text-sm font-bold mb-2">Tempat Bertugas</label><input type="text" id="stafTempatBertugas" list="dlTempatBertugasV6" class="w-full p-2 border rounded" placeholder="Contoh: KPDN Pulau Pinang"><datalist id="dlTempatBertugasV6"></datalist><datalist id="dlUnitJabatanV6"></datalist>`;
-            unit.closest('.mb-4')?.insertAdjacentElement('afterend', div);
-        }
-        function pastikanBengkelSelenggaraV6(){
-            if(document.getElementById('selNamaBengkel')) return;
-            const catatan = document.getElementById('selCatatan');
-            if(!catatan) return;
-            const div = document.createElement('div');
-            div.className = 'md:col-span-2';
-            div.innerHTML = `<label class="block text-sm font-bold mb-2">Nama Bengkel <span class="text-xs text-gray-500">(boleh pilih lebih daripada satu)</span></label><select id="selNamaBengkel" multiple size="4" class="w-full p-2 border rounded bg-white"></select><p class="text-xs text-gray-500 mt-1">Senarai bengkel dikemaskini melalui menu TETAPAN UTAMA.</p>`;
-            catatan.closest('.md\\:col-span-2, .md\:col-span-2')?.insertAdjacentElement('beforebegin', div);
-        }
-        function pastikanButangMuatTurunHasilV6(){
-            if(document.getElementById('btnMuatTurunHasilCarianV6')) return;
-            const tajuk = [...document.querySelectorAll('#viewLaporan h3')].find(h => h.textContent.trim().includes('HASIL CARIAN'));
-            if(!tajuk) return;
-            const wrap = document.createElement('div');
-            wrap.className = 'flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4';
-            const parent = tajuk.parentElement;
-            parent.insertBefore(wrap, tajuk);
-            wrap.appendChild(tajuk);
-            const btn = document.createElement('button');
-            btn.id = 'btnMuatTurunHasilCarianV6';
-            btn.className = 'bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded font-bold shadow';
-            btn.innerText = 'MUAT TURUN HASIL CARIAN';
-            btn.onclick = () => muatTurunLaporanCSV();
-            wrap.appendChild(btn);
+        function pastikanDatalistV61(id, kategori){
+            let dl = document.getElementById(id);
+            if(!dl){ dl = document.createElement('datalist'); dl.id = id; document.body.appendChild(dl); }
+            dl.innerHTML = tetapanAktifV61(kategori).map(x => `<option value="${escapeHtml(x.nama)}">`).join('');
+            return dl;
         }
 
-        function applyTetapanUtamaKeBorangV6(){
-            pastikanSelectTujuanV6();
-            pastikanTempatBertugasStafV6();
-            pastikanBengkelSelenggaraV6();
-            pastikanButangMuatTurunHasilV6();
-            setSelectOptionsV6('kadJenamaStesen', nilaiTetapanV6('jenama_stesen_minyak'));
-            setSelectOptionsV6('kadJenisMinyak', nilaiTetapanV6('jenis_minyak'));
+        // Listener tetapan utama. Jika rules belum ada, sistem tetap gunakan default.
+        try {
+            onSnapshot(collection(db, 'tetapan_utama'), (snapshot) => {
+                DB_TetapanUtamaV61 = [];
+                snapshot.forEach(x => DB_TetapanUtamaV61.push({ id: x.id, ...x.data() }));
+                applyTetapanUtamaV61();
+                renderTetapanUtamaV61();
+                janaRekodSelenggara();
+            }, (err) => {
+                console.warn('Tetapan utama tidak dapat dibaca, guna default:', err);
+                applyTetapanUtamaV61();
+            });
+        } catch(e) { console.warn('Tetapan utama listener gagal:', e); }
+
+        function pasangMedanTambahanV61(){
+            // Tempat bertugas di borang staf.
+            if(!document.getElementById('stafTempatBertugas')){
+                const unit = document.getElementById('stafUnit');
+                if(unit){
+                    const wrap = document.createElement('div');
+                    wrap.className = 'mb-4';
+                    wrap.innerHTML = `<label class="block text-sm font-bold mb-2">Tempat Bertugas</label><input type="text" id="stafTempatBertugas" list="dlTempatBertugasV61" class="w-full p-2 border rounded" placeholder="Contoh: KPDN Pulau Pinang">`;
+                    unit.closest('.mb-4')?.insertAdjacentElement('afterend', wrap);
+                }
+            }
+            // Nama bengkel di rekod selenggara, boleh pilih lebih 1.
+            if(!document.getElementById('selNamaBengkel')){
+                const catatan = document.getElementById('selCatatan');
+                if(catatan){
+                    const wrap = document.createElement('div');
+                    wrap.id = 'ruangNamaBengkelV61';
+                    wrap.className = 'md:col-span-2';
+                    wrap.innerHTML = `<label class="block text-sm font-bold mb-2">Nama Bengkel <span class="text-xs text-gray-500">(boleh pilih lebih daripada satu)</span></label><select id="selNamaBengkel" multiple size="4" class="w-full p-2 border rounded bg-white"></select><p class="text-xs text-gray-500 mt-1">Senarai bengkel dikemaskini melalui menu TETAPAN UTAMA.</p>`;
+                    catatan.closest('.md\\:col-span-2')?.insertAdjacentElement('beforebegin', wrap);
+                }
+            }
+        }
+
+        function applyTetapanUtamaV61(){
+            pasangMedanTambahanV61();
+            // Rekod kad
+            isiSelectOptionsV61('kadJenamaStesen', 'jenama_stesen_minyak');
+            isiSelectOptionsV61('kadJenisMinyak', 'jenis_minyak');
+            const katKad = document.getElementById('kadKategori');
+            if(katKad){
+                const old = katKad.value || 'inden';
+                katKad.innerHTML = '<option value="inden">Kad Inden Minyak</option><option value="tng">Kad Touch \'n Go</option>';
+                if(old) katKad.value = old;
+            }
+            // Borang tempahan: tukar tujuan kepada dropdown tetapi kekal id tujuan.
             const tujuan = document.getElementById('tujuan');
-            if(tujuan && tujuan.tagName === 'SELECT') {
-                const old = tujuan.value;
-                tujuan.innerHTML = '<option value="">-- Pilih Tujuan --</option>' + nilaiTetapanV6('tujuan_penggunaan').map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
-                if([...tujuan.options].some(o => o.value === old)) tujuan.value = old;
+            if(tujuan && tujuan.tagName !== 'SELECT'){
+                const sel = document.createElement('select');
+                sel.id = 'tujuan'; sel.className = tujuan.className || 'w-full p-2 border rounded'; sel.required = true;
+                tujuan.replaceWith(sel);
             }
-            setDatalistV6('dlUnitJabatanV6', nilaiTetapanV6('unit_jabatan'));
-            setDatalistV6('dlTempatBertugasV6', nilaiTetapanV6('tempat_bertugas'));
-            setSelectOptionsV6('k_jenis', nilaiTetapanV6('jenis_kenderaan'));
-            setSelectOptionsV6('k_milikan', nilaiTetapanV6('milikan_aset'));
-            const bengkel = document.getElementById('selNamaBengkel');
-            if(bengkel) {
-                const chosen = [...bengkel.selectedOptions].map(o => o.value);
-                bengkel.innerHTML = rekodTetapanV6('bengkel').map(b => `<option value="${escapeHtml(b.nama)}">${escapeHtml(b.nama)}${b.alamat ? ' - ' + escapeHtml(b.alamat) : ''}${b.telefon ? ' (' + escapeHtml(b.telefon) + ')' : ''}</option>`).join('');
-                [...bengkel.options].forEach(o => { if(chosen.includes(o.value)) o.selected = true; });
+            isiSelectOptionsV61('tujuan', 'tujuan_penggunaan', '', true);
+            // Staf
+            const stafUnit = document.getElementById('stafUnit'); if(stafUnit) stafUnit.setAttribute('list','dlUnitJabatanV61');
+            pastikanDatalistV61('dlUnitJabatanV61', 'unit_jabatan');
+            pastikanDatalistV61('dlTempatBertugasV61', 'tempat_bertugas');
+            // Kenderaan
+            isiSelectOptionsV61('k_jenis', 'jenis_kenderaan');
+            isiSelectOptionsV61('k_milikan', 'milikan_aset');
+            // Assign berkala unit datalist
+            const assignUnit = document.getElementById('assignUnitV5'); if(assignUnit) assignUnit.setAttribute('list','dlUnitJabatanV61');
+            // Bengkel
+            const bengkelSel = document.getElementById('selNamaBengkel');
+            if(bengkelSel){
+                const selected = Array.from(bengkelSel.selectedOptions || []).map(o=>o.value);
+                bengkelSel.innerHTML = tetapanAktifV61('bengkel').map(x => `<option value="${escapeHtml(x.nama)}" ${selected.includes(x.nama)?'selected':''}>${escapeHtml(x.nama)}${x.telefon && x.telefon !== '-' ? ' - ' + escapeHtml(x.telefon) : ''}</option>`).join('');
             }
-            janaTetapanUtamaV6();
+            // Laporan datalist tambahan
+            pastikanDatalistV61('dlJenisKenderaan', 'jenis_kenderaan');
+            pastikanDatalistV61('dlJenisKadInden', 'jenama_stesen_minyak');
         }
 
-        function pastikanTetapanUtamaUIV6(){
-            if(!document.getElementById('tabTetapanUtama')) {
-                const btn = document.createElement('button');
-                btn.onclick = () => paparTab('tetapanUtama');
-                btn.id = 'tabTetapanUtama';
-                btn.className = 'tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center hilang';
-                btn.innerText = '⚙️ TETAPAN UTAMA';
-                const backup = document.getElementById('tabBackup');
-                if(backup) backup.insertAdjacentElement('beforebegin', btn); else document.getElementById('menuTabs')?.appendChild(btn);
-            }
-            if(!document.getElementById('viewTetapanUtama')) {
-                const view = document.createElement('div');
-                view.id = 'viewTetapanUtama';
-                view.className = 'container mx-auto p-6 hilang';
-                view.innerHTML = `
-                <div class="bg-white p-6 rounded-lg shadow-lg border-t-4 border-slate-700 mb-6 mobile-card">
-                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5 mobile-stack">
-                        <div><h2 class="text-2xl font-black text-gray-800">TETAPAN UTAMA</h2><p class="text-sm text-gray-500">Kemaskini senarai rujukan utama yang digunakan oleh Rekod Kad, Borang Tempahan, Staf, Kenderaan dan Rekod Selenggara.</p></div>
-                        <button onclick="baruTetapanUtamaV6()" class="bg-slate-700 hover:bg-slate-800 text-white font-bold px-5 py-3 rounded shadow mobile-full">BARU</button>
-                    </div>
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div class="bg-slate-50 p-5 rounded-lg border border-slate-200 lg:col-span-1">
-                            <input type="hidden" id="tetapanIdV6">
-                            <label class="block text-sm font-bold mb-2">Jenis Rekod Utama</label>
-                            <select id="tetapanKategoriV6" onchange="tukarKategoriTetapanUtamaV6()" class="w-full p-3 border rounded mb-3 font-bold">
-                                <option value="jenama_stesen_minyak">Jenama Stesen Minyak</option>
-                                <option value="tujuan_penggunaan">Tujuan Penggunaan</option>
-                                <option value="unit_jabatan">Unit / Jabatan</option>
-                                <option value="tempat_bertugas">Tempat Bertugas</option>
-                                <option value="jenis_kenderaan">Jenis Kenderaan</option>
-                                <option value="milikan_aset">Milikan Aset</option>
-                                <option value="jenis_minyak">Jenis Minyak</option>
-                                <option value="kategori_kad">Kategori Kad</option>
-                                <option value="bengkel">Bengkel</option>
-                            </select>
-                            <label class="block text-sm font-bold mb-2">Nama / Nilai Rekod</label>
-                            <input type="text" id="tetapanNamaV6" class="w-full p-3 border rounded mb-3" placeholder="Contoh: Petronas / Operasi / DOT">
-                            <div id="tetapanBengkelFieldsV6" class="hilang">
-                                <label class="block text-sm font-bold mb-2">Alamat Bengkel</label>
-                                <textarea id="tetapanAlamatV6" rows="3" class="w-full p-3 border rounded mb-3" placeholder="Alamat bengkel"></textarea>
-                                <label class="block text-sm font-bold mb-2">No Telefon Bengkel</label>
-                                <input type="text" id="tetapanTelefonV6" class="w-full p-3 border rounded mb-3" placeholder="Contoh: 04-1234567">
-                            </div>
-                            <div class="grid grid-cols-3 gap-2">
-                                <button onclick="baruTetapanUtamaV6()" class="bg-gray-300 text-gray-800 font-bold py-2 rounded">BARU</button>
-                                <button onclick="simpanTetapanUtamaV6()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded">KEMASKINI</button>
-                                <button onclick="simpanTetapanUtamaV6()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded">SIMPAN</button>
-                            </div>
-                            <button onclick="padamTetapanUtamaV6()" class="w-full mt-2 bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded">PADAM REKOD DIPILIH</button>
-                        </div>
-                        <div class="lg:col-span-2 bg-white rounded-lg border border-gray-200 overflow-hidden">
-                            <div class="bg-gray-800 text-white p-3 font-bold">SENARAI REKOD UTAMA</div>
-                            <div class="overflow-x-auto"><table class="w-full text-left border-collapse text-sm"><thead class="bg-gray-100"><tr><th class="p-3">Kategori</th><th class="p-3">Nama / Nilai</th><th class="p-3">Butiran</th><th class="p-3 text-center">Tindakan</th></tr></thead><tbody id="jadualTetapanUtamaV6"></tbody></table></div>
-                        </div>
-                    </div>
-                </div>`;
-                const backupView = document.getElementById('viewBackup');
-                if(backupView) backupView.insertAdjacentElement('beforebegin', view); else document.body.appendChild(view);
-            }
-            tukarKategoriTetapanUtamaV6();
+        window.muatSemulaTetapanUtamaV61 = function(){ applyTetapanUtamaV61(); renderTetapanUtamaV61(); notif('Tetapan utama dimuat semula.'); };
+        function resetBorangTetapanV61(clearKategori=true){
+            if(clearKategori) { const id=document.getElementById('tetapanIdV61'); if(id) id.value=''; }
+            ['tetapanNamaV61','tetapanAlamatV61','tetapanTelefonV61'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+            const st=document.getElementById('tetapanStatusV61'); if(st) st.value='aktif';
         }
-
-        window.tukarKategoriTetapanUtamaV6 = function(){
-            const kat = document.getElementById('tetapanKategoriV6')?.value || 'jenama_stesen_minyak';
-            const fields = document.getElementById('tetapanBengkelFieldsV6');
-            if(fields) { if(kat === 'bengkel') fields.classList.remove('hilang'); else fields.classList.add('hilang'); }
-            janaTetapanUtamaV6();
+        window.baruTetapanUtamaV61 = function(){ resetBorangTetapanV61(true); document.getElementById('tetapanNamaV61')?.focus(); };
+        window.pilihTetapanUtamaV61 = function(id){
+            const r = DB_TetapanUtamaV61.find(x => x.id === id) || Object.values(DEFAULT_TETAPAN_V61).flat().find(x => 'default_'+normKeyV61(x.nama) === id);
+            if(!r) return;
+            document.getElementById('tetapanIdV61').value = r.id || '';
+            document.getElementById('tetapanNamaV61').value = r.nama || '';
+            document.getElementById('tetapanAlamatV61').value = r.alamat || '';
+            document.getElementById('tetapanTelefonV61').value = r.telefon || '';
+            document.getElementById('tetapanStatusV61').value = String(r.status || 'aktif').toLowerCase();
+            if(r.kategori) document.getElementById('tetapanKategoriV61').value = r.kategori;
         };
-        window.baruTetapanUtamaV6 = function(){
-            tetapanDipilihV6 = '';
-            ['tetapanIdV6','tetapanNamaV6','tetapanAlamatV6','tetapanTelefonV6'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-        };
-        window.pilihTetapanUtamaV6 = function(id){
-            const r = DB_TetapanUtama.find(x => x.id === id); if(!r) return;
-            tetapanDipilihV6 = id;
-            document.getElementById('tetapanIdV6').value = id;
-            document.getElementById('tetapanKategoriV6').value = r.kategori || 'jenama_stesen_minyak';
-            document.getElementById('tetapanNamaV6').value = r.nama || '';
-            document.getElementById('tetapanAlamatV6').value = r.alamat || '';
-            document.getElementById('tetapanTelefonV6').value = r.telefon || '';
-            tukarKategoriTetapanUtamaV6();
-        };
-        window.simpanTetapanUtamaV6 = async function(){
+        window.simpanTetapanUtamaV61 = async function(){
             if(!aksesAdmin()) return alert('Hanya Admin / Super Admin dibenarkan.');
-            const kategori = document.getElementById('tetapanKategoriV6')?.value || '';
-            const nama = (document.getElementById('tetapanNamaV6')?.value || '').trim();
-            const alamat = (document.getElementById('tetapanAlamatV6')?.value || '').trim();
-            const telefon = (document.getElementById('tetapanTelefonV6')?.value || '').trim();
-            if(!kategori || !nama) return alert('Sila pilih jenis rekod dan isi nama/nilai rekod.');
-            const id = (tetapanDipilihV6 || `${kategori}_${nama}`).replace(/[^A-Za-z0-9_-]/g, '_');
-            await setDoc(doc(db, 'tetapan_utama', id), { kategori, nama, alamat, telefon, status:'aktif', updatedAt:new Date().toISOString(), updatedBy:profilSemasa.emel || '-' }, { merge:true });
-            notif('Tetapan utama berjaya disimpan.');
-            baruTetapanUtamaV6();
+            const kategori = document.getElementById('tetapanKategoriV61')?.value || '';
+            const nama = document.getElementById('tetapanNamaV61')?.value.trim() || '';
+            if(!kategori || !nama) return alert('Sila pilih kategori dan masukkan nama/nilai tetapan.');
+            const id = kategori + '_' + nama.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+            await setDoc(doc(db, 'tetapan_utama', id), {
+                kategori, nama,
+                alamat: document.getElementById('tetapanAlamatV61')?.value.trim() || '-',
+                telefon: document.getElementById('tetapanTelefonV61')?.value.trim() || '-',
+                status: document.getElementById('tetapanStatusV61')?.value || 'aktif',
+                updatedAt: new Date().toISOString(), updatedBy: profilSemasa.emel || '-'
+            }, { merge:true });
+            resetBorangTetapanV61(true); notif('Tetapan utama berjaya disimpan.');
         };
-        window.padamTetapanUtamaV6 = async function(idParam){
+        window.kemaskiniTetapanUtamaV61 = async function(){ await window.simpanTetapanUtamaV61(); };
+        window.padamTetapanUtamaV61 = async function(){
             if(!aksesAdmin()) return alert('Hanya Admin / Super Admin dibenarkan.');
-            const id = idParam || tetapanDipilihV6 || document.getElementById('tetapanIdV6')?.value;
-            if(!id) return alert('Sila pilih rekod untuk dipadam.');
-            if(!confirm('Padam rekod tetapan ini?')) return;
-            await deleteDoc(doc(db, 'tetapan_utama', id));
-            DB_TetapanUtama = DB_TetapanUtama.filter(x => x.id !== id);
-            notif('Rekod tetapan dipadam.');
-            baruTetapanUtamaV6();
-            applyTetapanUtamaKeBorangV6();
+            const id = document.getElementById('tetapanIdV61')?.value || '';
+            const nama = document.getElementById('tetapanNamaV61')?.value.trim() || '';
+            const kategori = document.getElementById('tetapanKategoriV61')?.value || '';
+            if(!id && !nama) return alert('Pilih rekod daripada jadual dahulu atau masukkan nama tetapan untuk dipadam.');
+            if(!confirm('Padam tetapan ini daripada paparan aktif?')) return;
+            try {
+                if(id && !id.startsWith('default_')) await deleteDoc(doc(db, 'tetapan_utama', id));
+                else if(nama) {
+                    const delId = kategori + '_' + nama.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+                    await setDoc(doc(db, 'tetapan_utama', delId), { kategori, nama, status:'padam', updatedAt:new Date().toISOString(), updatedBy:profilSemasa.emel || '-' }, { merge:true });
+                }
+                resetBorangTetapanV61(true); renderTetapanUtamaV61(); applyTetapanUtamaV61(); notif('Tetapan dipadam daripada paparan aktif.');
+            } catch(err){ console.error(err); alert('Gagal padam tetapan. Semak permission Firestore untuk delete/write.'); }
         };
-        window.janaTetapanUtamaV6 = function(){
-            const tb = document.getElementById('jadualTetapanUtamaV6'); if(!tb) return;
-            const kat = document.getElementById('tetapanKategoriV6')?.value || 'jenama_stesen_minyak';
-            const data = rekodTetapanV6(kat);
-            if(!data.length) { tb.innerHTML = '<tr><td colspan="4" class="p-5 text-center text-gray-500 bg-gray-50">Tiada rekod.</td></tr>'; return; }
-            tb.innerHTML = data.map(r => {
-                const butiran = r.kategori === 'bengkel' ? `${r.alamat || '-'}<br><span class="text-xs text-gray-500">${r.telefon || '-'}</span>` : '-';
-                const btn = r.status === 'default' ? '<span class="text-xs text-gray-400">Default</span>' : `<button onclick="pilihTetapanUtamaV6('${escapeHtml(r.id)}')" class="bg-blue-100 text-blue-700 px-3 py-1 rounded font-bold text-xs">Edit</button> <button onclick="padamTetapanUtamaV6('${escapeHtml(r.id)}')" class="bg-red-100 text-red-700 px-3 py-1 rounded font-bold text-xs">Padam</button>`;
-                return `<tr class="border-b hover:bg-gray-50"><td class="p-3 font-bold">${escapeHtml(titleCaseV6((r.kategori || '').replaceAll('_',' ')))}</td><td class="p-3">${escapeHtml(r.nama || '-')}</td><td class="p-3">${butiran}</td><td class="p-3 text-center">${btn}</td></tr>`;
+        window.renderTetapanUtamaV61 = function(){ renderTetapanUtamaV61(); };
+        function renderTetapanUtamaV61(){
+            const tb = document.getElementById('jadualTetapanUtamaV61'); if(!tb) return;
+            const kategori = document.getElementById('tetapanKategoriV61')?.value || 'jenama_stesen_minyak';
+            const q = (document.getElementById('carianTetapanV61')?.value || '').toLowerCase();
+            let data = tetapanSemuaV61(kategori).filter(x => !q || String(x.nama||'').toLowerCase().includes(q) || String(x.alamat||'').toLowerCase().includes(q) || String(x.telefon||'').toLowerCase().includes(q));
+            if(!data.length){ tb.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-gray-500">Tiada rekod tetapan.</td></tr>'; return; }
+            tb.innerHTML = data.map(x => {
+                const aktif = String(x.status || 'aktif').toLowerCase() === 'aktif';
+                const idSafe = escapeHtml(x.id || ('default_'+kategori+'_'+normKeyV61(x.nama).replace(/[^a-z0-9]+/g,'_')));
+                return `<tr class="border-b hover:bg-gray-50"><td class="p-3 font-bold text-slate-800">${escapeHtml(x.nama || '-')}<br><span class="text-[11px] text-gray-400">${escapeHtml(x.sumber || 'firestore')}</span></td><td class="p-3 text-xs">${escapeHtml(x.alamat || '-')}<br>${escapeHtml(x.telefon || '-')}</td><td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold ${aktif?'bg-green-100 text-green-700':'bg-red-100 text-red-700'}">${aktif?'AKTIF':'TIDAK AKTIF'}</span></td><td class="p-3"><button onclick="pilihTetapanUtamaV61('${idSafe}')" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded">PILIH / KEMASKINI</button></td></tr>`;
             }).join('');
-        };
-
-        // Firestore sync Tetapan Utama.
-        onSnapshot(collection(db, 'tetapan_utama'), (snapshot) => {
-            DB_TetapanUtama = [];
-            snapshot.forEach(x => DB_TetapanUtama.push({ id:x.id, ...x.data() }));
-            applyTetapanUtamaKeBorangV6();
-        }, (err) => console.warn('Tetapan utama tidak dapat dibaca:', err));
-
-        // Override role/tab supaya TETAPAN UTAMA muncul untuk Admin dan Super Admin sahaja.
-        const tukarPenggunaAkaunV6Ref = window.tukarPenggunaAkaun;
-        window.tukarPenggunaAkaun = function(emel){
-            pastikanTetapanUtamaUIV6();
-            tukarPenggunaAkaunV6Ref(emel);
-            setTabVisible('tabTetapanUtama', aksesAdmin());
-            applyTetapanUtamaKeBorangV6();
-        };
-
-        window.paparTab = function(tabId) {
-            pastikanTetapanUtamaUIV6();
-            resetPaparanSementara(tabId);
-            if (document.startViewTransition) { document.startViewTransition(() => tukarPaparanV6(tabId)); } else { tukarPaparanV6(tabId); }
-        };
-        function tukarPaparanV6(tabId) {
-            ['viewDashboard','viewOperasi','viewAmbil','viewPulang','viewSelenggara','viewSelenggaraKenderaan','viewRekodKad','viewRekodSelenggara','viewLaporan','viewBackup','viewTetapanUtama'].forEach(id => document.getElementById(id)?.classList.add('hilang'));
-            ['tabDashboard','tabOperasi','tabAmbil','tabPulang','tabSelenggara','tabSelenggaraKenderaan','tabRekodKad','tabRekodSelenggara','tabLaporan','tabBackup','tabTetapanUtama'].forEach(id => { const el=document.getElementById(id); if(el){ el.classList.remove('tab-aktif'); el.classList.add('tab-pasif'); }});
-            let idAktif = '';
-            if(tabId === 'dashboard') { document.getElementById('viewDashboard')?.classList.remove('hilang'); idAktif='tabDashboard'; janaSistem(); }
-            else if(tabId === 'operasi') { document.getElementById('viewOperasi')?.classList.remove('hilang'); idAktif='tabOperasi'; kemaskiniBorang(); }
-            else if(tabId === 'ambil') { document.getElementById('viewAmbil')?.classList.remove('hilang'); window.janaDropdownAmbil(); idAktif='tabAmbil'; }
-            else if(tabId === 'pulang') { document.getElementById('viewPulang')?.classList.remove('hilang'); window.janaBorangPulang(); idAktif='tabPulang'; }
-            else if(tabId === 'selenggara') { if(profilSemasa.peranan !== 'superadmin') return window.paparTab('dashboard'); document.getElementById('viewSelenggara')?.classList.remove('hilang'); idAktif='tabSelenggara'; }
-            else if(tabId === 'selenggaraKenderaan') { if(!aksesAdmin()) return window.paparTab('dashboard'); document.getElementById('viewSelenggaraKenderaan')?.classList.remove('hilang'); autoIsiMaklumatKadKenderaan(); idAktif='tabSelenggaraKenderaan'; }
-            else if(tabId === 'rekodKad') { if(!aksesAdmin()) return window.paparTab('dashboard'); document.getElementById('viewRekodKad')?.classList.remove('hilang'); janaPilihanKenderaanKad(); janaRekodKad(); idAktif='tabRekodKad'; }
-            else if(tabId === 'rekodSelenggara') { if(!aksesAdmin()) return window.paparTab('dashboard'); document.getElementById('viewRekodSelenggara')?.classList.remove('hilang'); kemaskiniSelenggaraAuto(); applyTetapanUtamaKeBorangV6(); idAktif='tabRekodSelenggara'; }
-            else if(tabId === 'laporan') { if(!aksesAdmin()) return window.paparTab('dashboard'); document.getElementById('viewLaporan')?.classList.remove('hilang'); janaPilihanFilterLaporan(); mesejLaporan('Sila masukkan tapisan dan tekan CARI / TAPIS.'); pastikanButangMuatTurunHasilV6(); idAktif='tabLaporan'; }
-            else if(tabId === 'backup') { if(!aksesAdmin()) return window.paparTab('dashboard'); document.getElementById('viewBackup')?.classList.remove('hilang'); kemaskiniPaparanBackup(); idAktif='tabBackup'; }
-            else if(tabId === 'tetapanUtama') { if(!aksesAdmin()) return window.paparTab('dashboard'); document.getElementById('viewTetapanUtama')?.classList.remove('hilang'); applyTetapanUtamaKeBorangV6(); idAktif='tabTetapanUtama'; }
-            const elAktif = document.getElementById(idAktif); if(elAktif){ elAktif.classList.remove('tab-pasif'); elAktif.classList.add('tab-aktif'); }
         }
 
-        // Tetapan Utama digunakan oleh Rekod Kad / Laporan.
-        janaPilihanFilterLaporan = function() {
-            setDataList('dlJenisKenderaan', nilaiTetapanV6('jenis_kenderaan').concat(DB_Kenderaan.map(k => k.jenis || '-')));
-            setDataList('dlNoKenderaan', DB_Kenderaan.map(k => k.plat || '-').concat(DB_LogKenderaan.map(l => l.noPendaftaran || '')));
-            setDataList('dlNamaPengguna', DB_LogKenderaan.map(l => l.namaPengguna || '').concat(DB_Pengguna.map(p => p.nama || '')));
-            setDataList('dlJenisKadInden', nilaiTetapanV6('jenama_stesen_minyak').concat(DB_LogKenderaan.map(l => l.jenamaStesen || '')));
-            janaPilihanKenderaanKad();
-        };
-
-        // Assign berkala: Unit atau Pengguna wajib salah satu sahaja. Batal akan hilang terus dari paparan.
+        // Override assign berkala V5.2: wajib salah satu Unit/Pengguna sahaja dan batal akan hilang dari paparan.
         window.simpanAssignBerkalaV5 = async function(){
             if(!aksesAdmin()) return alert('Hanya Admin / Super Admin dibenarkan.');
             const plat = document.getElementById('assignPlatV5')?.value || '';
@@ -3742,116 +3733,104 @@
             const pengguna = document.getElementById('assignPenggunaV5')?.value.trim() || '';
             const mula = document.getElementById('assignMulaV5')?.value || '';
             const akhir = document.getElementById('assignAkhirV5')?.value || '';
-            if(!plat || (!unit && !pengguna) || !mula || !akhir) return alert('Sila lengkapkan No. Pendaftaran, Tarikh Mula, Tarikh Akhir dan sekurang-kurangnya Unit Diassign atau Pengguna Assign.');
+            if(!plat || !mula || !akhir) return alert('Sila lengkapkan No. Pendaftaran, Tarikh Mula dan Tarikh Akhir.');
+            if(!unit && !pengguna) return alert('Sila isi salah satu: Unit Diassign atau Pengguna Assign.');
             if(akhir < mula) return alert('Tarikh akhir tidak boleh lebih awal daripada tarikh mula.');
             const id = plat.replace(/[^A-Za-z0-9_-]/g,'_');
-            await setDoc(doc(db, 'assign_berkala', id), { plat, unit: unit || '-', pengguna: pengguna || '-', tarikhMula: mula, tarikhAkhir: akhir, status:'Aktif', createdAt:new Date().toISOString(), updatedAt:new Date().toISOString(), oleh:profilSemasa.emel || '-' }, { merge:true });
-            notif(`Setting assign berkala untuk ${plat} berjaya disimpan.`);
+            await setDoc(doc(db, 'assign_berkala', id), { plat, unit: unit || '-', pengguna: pengguna || '-', tarikhMula: mula, tarikhAkhir: akhir, status:'Aktif', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), oleh: profilSemasa.emel || '-' }, { merge:true });
             ['assignUnitV5','assignPenggunaV5','assignMulaV5','assignAkhirV5'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-            janaSenaraiAssignBerkalaV5(); janaSistem();
+            notif(`Setting assign berkala untuk ${plat} berjaya disimpan.`); janaSenaraiAssignBerkalaV5(); janaSistem();
         };
         window.batalkanAssignBerkalaV5 = async function(id){
             if(!aksesAdmin()) return;
-            if(!confirm('Batalkan setting assign berkala ini? Rekod akan dipadam dari paparan ini.')) return;
-            await deleteDoc(doc(db, 'assign_berkala', id));
-            DB_AssignBerkala = DB_AssignBerkala.filter(x => x.id !== id);
-            janaSenaraiAssignBerkalaV5(); janaSistem();
-            notif('Setting assign berkala telah dibatalkan dan dipadam dari paparan.');
+            if(!confirm('Batalkan setting assign berkala ini? Rekod akan dipadam daripada paparan aktif.')) return;
+            try { await deleteDoc(doc(db, 'assign_berkala', id)); }
+            catch(err){ await updateDoc(doc(db, 'assign_berkala', id), { status:'Dibatalkan', updatedAt:new Date().toISOString(), batalOleh:profilSemasa.emel || '-' }); }
+            DB_AssignBerkala = DB_AssignBerkala.filter(x => x.id !== id && x.status === 'Aktif');
+            notif('Setting assign berkala telah dibatalkan dan dipadam daripada paparan.'); janaSenaraiAssignBerkalaV5(); janaSistem();
         };
         janaSenaraiAssignBerkalaV5 = function(){
             janaPilihanAssignBerkalaV5();
             const tb = document.getElementById('jadualAssignBerkalaV5'); if(!tb) return;
             const data = DB_AssignBerkala.filter(a => a.status === 'Aktif').slice(0,50);
-            if(!data.length) { tb.innerHTML = '<tr><td colspan="5" class="p-5 text-center text-gray-500 bg-gray-50">Tiada setting assign berkala aktif.</td></tr>'; return; }
+            if(!data.length){ tb.innerHTML = '<tr><td colspan="5" class="p-5 text-center text-gray-500 bg-gray-50">Tiada setting assign berkala aktif.</td></tr>'; return; }
             tb.innerHTML = data.map(a => {
                 const aktif = aktifAssignBerkalaUntukPlatV5(a.plat);
                 const cls = aktif ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-800';
                 const teks = aktif ? 'AKTIF SEKARANG' : 'BELUM / LUAR TEMPOH';
-                return `<tr class="border-b hover:bg-gray-50"><td class="p-3 font-bold text-blue-700">${escapeHtml(a.plat || '-')}</td><td class="p-3">Unit: ${escapeHtml(a.unit || '-')}<br><span class="text-xs text-gray-500">Pengguna: ${escapeHtml(a.pengguna || '-')}</span></td><td class="p-3">${escapeHtml(formatTarikhMY(a.tarikhMula || '-'))} - ${escapeHtml(formatTarikhMY(a.tarikhAkhir || '-'))}</td><td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold ${cls}">${teks}</span></td><td class="p-3"><button onclick="batalkanAssignBerkalaV5('${escapeHtml(a.id)}')" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 rounded">BATALKAN</button></td></tr>`;
+                const penerima = `${a.unit && a.unit !== '-' ? a.unit : ''}${a.unit && a.unit !== '-' && a.pengguna && a.pengguna !== '-' ? '<br>' : ''}${a.pengguna && a.pengguna !== '-' ? '<span class="text-xs text-gray-500">'+escapeHtml(a.pengguna)+'</span>' : ''}` || '-';
+                return `<tr class="border-b hover:bg-gray-50"><td class="p-3 font-bold text-blue-700">${escapeHtml(a.plat || '-')}</td><td class="p-3">${penerima}</td><td class="p-3">${escapeHtml(formatTarikhMY(a.tarikhMula || '-'))} - ${escapeHtml(formatTarikhMY(a.tarikhAkhir || '-'))}</td><td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold ${cls}">${teks}</span></td><td class="p-3"><button onclick="batalkanAssignBerkalaV5('${escapeHtml(a.id)}')" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 rounded">BATALKAN</button></td></tr>`;
             }).join('');
         };
-        function penggunaLayakAssignBerkalaV6(a){
-            const unitA = normV6(a.unit); const penggunaA = normV6(a.pengguna);
-            const unitU = normV6(profilSemasa.unit); const namaU = normV6(profilSemasa.nama);
-            return (unitA && unitA !== '-' && unitA === unitU) || (penggunaA && penggunaA !== '-' && penggunaA === namaU);
+        function padanAssignDenganProfilV61(assign){
+            if(!assign || assign.status !== 'Aktif') return false;
+            const unit = normKeyV61(profilSemasa.unit);
+            const nama = normKeyV61(profilSemasa.nama);
+            const unitA = normKeyV61(assign.unit);
+            const penggunaA = normKeyV61(assign.pengguna);
+            return (!!unitA && unitA !== '-' && unitA === unit) || (!!penggunaA && penggunaA !== '-' && penggunaA === nama);
         }
-        function senaraiKenderaanAmbilBerkalaV6(){
-            return DB_Kenderaan.filter(k => {
-                const a = aktifAssignBerkalaUntukPlatV5(k.plat);
-                return a && penggunaLayakAssignBerkalaV6(a) && k.status === 'Available';
-            });
-        }
+
+        // Ambil kenderaan: boleh ambil kenderaan assign berkala tanpa tempahan.
         window.janaDropdownAmbil = function(){
-            let s = document.getElementById('pilihanAmbilKenderaan'); if(!s) return;
+            const s = document.getElementById('pilihanAmbilKenderaan'); if(!s) return;
             s.innerHTML = '<option value="">-- Pilih --</option>';
-            const tempahan = DB_Kenderaan.filter(k => k.status === 'Ditempah' && k.tempahOleh === profilSemasa.nama);
-            const berkala = senaraiKenderaanAmbilBerkalaV6();
-            const list = [...tempahan, ...berkala.filter(b => !tempahan.some(t => t.plat === b.plat))];
-            if(list.length === 0) {
+            const listTempah = DB_Kenderaan.filter(k => k.status === 'Ditempah' && k.tempahOleh === profilSemasa.nama);
+            const listBerkala = DB_Kenderaan.filter(k => k.status === 'Available' && padanAssignDenganProfilV61(aktifAssignBerkalaUntukPlatV5(k.plat)));
+            const list = [...listTempah, ...listBerkala.filter(b => !listTempah.some(t => t.plat === b.plat))];
+            if(list.length === 0){
                 document.getElementById('tiadaKenderaanAmbil')?.classList.remove('hilang');
                 document.getElementById('ruanganPilihAmbil')?.classList.add('hilang');
             } else {
                 document.getElementById('tiadaKenderaanAmbil')?.classList.add('hilang');
                 document.getElementById('ruanganPilihAmbil')?.classList.remove('hilang');
                 list.forEach(k => {
-                    const a = aktifAssignBerkalaUntukPlatV5(k.plat);
-                    const label = k.status === 'Available' && a ? `BERKALA - ${k.jenama} (${k.plat}) | ${a.unit !== '-' ? a.unit : a.pengguna}` : `${k.jenama} (${k.plat})`;
-                    s.innerHTML += `<option value="${escapeHtml(k.plat)}">${escapeHtml(label)}</option>`;
+                    const assign = aktifAssignBerkalaUntukPlatV5(k.plat);
+                    const label = k.status === 'Available' && padanAssignDenganProfilV61(assign) ? ' [ASSIGN BERKALA]' : '';
+                    s.innerHTML += `<option value="${escapeHtml(k.plat)}">${escapeHtml(k.jenama || '-') } (${escapeHtml(k.plat)})${label}</option>`;
                 });
             }
             document.getElementById('kadMaklumatKenderaan')?.classList.add('hilang');
-            kemaskiniBadgeAmbilV5();
         };
         window.sahkanAmbilKenderaan = async function(){
             const plat = document.getElementById('pilihanAmbilKenderaan')?.value || '';
-            const k = DB_Kenderaan.find(v => v.plat === plat);
-            if(!k) return alert('Sila pilih kenderaan dahulu.');
+            if(!plat) return alert('Sila pilih kenderaan dahulu.');
+            const k = DB_Kenderaan.find(v => v.plat === plat); if(!k) return alert('Rekod kenderaan tidak ditemui.');
             const assign = aktifAssignBerkalaUntukPlatV5(plat);
-            const tempahanAktif = DB_Tempahan.find(t => t.kenderaanDipilih === plat && t.status === 'Lulus' && t.emel === profilSemasa.emel);
-            if(k.status === 'Available' && assign && penggunaLayakAssignBerkalaV6(assign)) {
-                await updateDoc(doc(db, 'kenderaan', plat), { status:'Sedang Digunakan', pengguna:profilSemasa.nama || '-', noTelPengguna:profilSemasa.tel || '-', tempahOleh:'-', unit:assign.unit !== '-' ? assign.unit : (profilSemasa.unit || '-'), tujuan:'Penggunaan Berkala', lokasiTujuan:`Assign berkala ${formatTarikhMY(assign.tarikhMula)} - ${formatTarikhMY(assign.tarikhAkhir)}`, tMula:new Date().toISOString().slice(0,10), tTamat:assign.tarikhAkhir || '-', masaAmbil:new Date().toISOString(), sumberPenggunaan:'assign_berkala', idAssignBerkala:assign.id || '-' });
-                notif(`Berjaya ambil kenderaan berkala ${plat}.`);
-                return window.paparTab('pulang');
+            if(k.status === 'Available' && padanAssignDenganProfilV61(assign)){
+                await updateDoc(doc(db, 'kenderaan', plat), { status:'Sedang Digunakan', pengguna: profilSemasa.nama || '-', noTelPengguna: profilSemasa.tel || '-', tempahOleh:'-', unit: profilSemasa.unit || assign.unit || '-', tujuan:'Penggunaan Berkala', lokasiTujuan: assign.unit || profilSemasa.unit || '-', tMula: assign.tarikhMula || '-', tTamat: assign.tarikhAkhir || '-', masaAmbil: new Date().toISOString(), sumberAmbil:'assign_berkala' });
+                window.paparTab('pulang'); notif(`Berjaya ambil kenderaan berkala ${plat}`); return;
             }
-            await updateDoc(doc(db, 'kenderaan', plat), { status:'Sedang Digunakan', pengguna:k.tempahOleh || profilSemasa.nama || '-', tempahOleh:'-', masaAmbil:new Date().toISOString() });
-            if(tempahanAktif) await updateDoc(doc(db, 'tempahan', tempahanAktif.idT), { status:'Sedang Digunakan', masaAmbil:new Date().toISOString() });
+            await updateDoc(doc(db, 'kenderaan', plat), { status:'Sedang Digunakan', pengguna: k.tempahOleh || profilSemasa.nama || '-', noTelPengguna: k.noTelPengguna || profilSemasa.tel || '-', tempahOleh:'-', masaAmbil:new Date().toISOString(), sumberAmbil:'tempahan' });
             window.paparTab('operasi'); notif(`Berjaya ambil kenderaan ${plat}`);
         };
 
-        // Staf menyimpan tempat bertugas.
+        // Staf: simpan tempat bertugas tanpa menghapus field lama.
+        const simpanStafAsalV61 = window.simpanStaf;
         window.simpanStaf = async function(e){
             e.preventDefault();
             try {
                 const emel = document.getElementById('stafEmel').value.trim();
-                const dataStaf = { nama:document.getElementById('stafNama').value || '-', emel, tel:document.getElementById('stafTel').value || '-', unit:document.getElementById('stafUnit').value || '-', tempatBertugas:document.getElementById('stafTempatBertugas')?.value || '-', peranan:document.getElementById('stafPeranan').value || 'pengguna', gambar:document.getElementById('stafGambarBase64').value || '' };
-                await setDoc(doc(db, 'pengguna_esilo', emel), dataStaf);
+                const dataStaf = { nama: document.getElementById('stafNama').value || '-', emel, tel: document.getElementById('stafTel').value || '-', unit: document.getElementById('stafUnit').value || '-', tempatBertugas: document.getElementById('stafTempatBertugas')?.value || '-', peranan: document.getElementById('stafPeranan').value || 'pengguna', gambar: document.getElementById('stafGambarBase64').value || '' };
+                await setDoc(doc(db, 'pengguna_esilo', emel), dataStaf, { merge:true });
                 notif('Maklumat staf berjaya disimpan.'); resetBorangStaf();
-            } catch(err) { console.error('Ralat Simpan Staf:', err); alert('Gagal menyimpan rekod staf. Sila cuba lagi.'); }
+            } catch(err){ console.error(err); alert('Gagal menyimpan rekod staf. Sila cuba lagi.'); }
         };
-        const editStafV6Ref = window.editStaf;
+        const editStafAsalV61 = window.editStaf;
         window.editStaf = function(emel){
-            editStafV6Ref(emel);
+            editStafAsalV61(emel);
             const p = DB_Pengguna.find(u => u.emel === emel);
-            if(document.getElementById('stafTempatBertugas')) document.getElementById('stafTempatBertugas').value = p?.tempatBertugas || '';
+            if(p && document.getElementById('stafTempatBertugas')) document.getElementById('stafTempatBertugas').value = p.tempatBertugas || '';
         };
 
-        // Rekod Kad guna tetapan utama.
-        const resetRekodKadV6Ref = window.resetRekodKad;
-        window.resetRekodKad = function(){ resetRekodKadV6Ref(); applyTetapanUtamaKeBorangV6(); };
-        const editRekodKadV6Ref = window.editRekodKad;
-        window.editRekodKad = function(id){ editRekodKadV6Ref(id); applyTetapanUtamaKeBorangV6(); const r = DB_RekodKad.find(x => x.id === id); if(r?.kategori === 'inden') { const js=document.getElementById('kadJenamaStesen'); if(js) js.value = r.jenamaStesen || js.value; const jm=document.getElementById('kadJenisMinyak'); if(jm) jm.value = r.jenisMinyak || jm.value; } };
-
-        // Selenggara: Nama Bengkel, tarikh DD-MM-YYYY dan status Capitalize Each Word.
-        const cariRekodSelenggaraV6Ref = window.cariRekodSelenggara;
+        // Rekod selenggara: bengkel, format tarikh DD-MM-YYYY dan Capitalize Each Word.
+        const cariRekodSelenggaraAsalV61 = window.cariRekodSelenggara;
         window.cariRekodSelenggara = function(){
-            cariRekodSelenggaraV6Ref();
+            cariRekodSelenggaraAsalV61();
             const plat = (document.getElementById('selCariPlat')?.value || '').trim().toUpperCase();
             const k = DB_Kenderaan.find(v => (v.plat || '').toUpperCase() === plat);
             const sel = document.getElementById('selNamaBengkel');
-            if(sel && k) {
-                const nama = Array.isArray(k.namaBengkel) ? k.namaBengkel : String(k.namaBengkel || '').split('|').map(x=>x.trim()).filter(Boolean);
-                [...sel.options].forEach(o => o.selected = nama.includes(o.value));
-            }
+            if(sel){ Array.from(sel.options).forEach(o => o.selected = (Array.isArray(k?.namaBengkel) ? k.namaBengkel : String(k?.namaBengkel || '').split('|')).includes(o.value)); }
         };
         window.simpanRekodSelenggara = async function(e){
             e.preventDefault();
@@ -3859,46 +3838,105 @@
             const plat = document.getElementById('selPlatAktif').value;
             if(!plat) return alert('Sila cari dan pilih no kenderaan dahulu.');
             const statusSelenggara = document.getElementById('selStatusSelenggara').value;
-            const namaBengkel = [...(document.getElementById('selNamaBengkel')?.selectedOptions || [])].map(o => o.value);
-            const kLama = DB_Kenderaan.find(k => k.plat === plat) || {};
-            await updateDoc(doc(db, 'kenderaan', plat), { mileage:Number(document.getElementById('selOdometerSemasa').value || 0), tarikhServisSemasa:document.getElementById('selTarikhServisSemasa').value || '', odometerServisSemasa:Number(document.getElementById('selOdometerServisSemasa').value || 0), tarikhNextServis:document.getElementById('selTarikhNextServis').value || '', odometerNextServis:Number(document.getElementById('selOdometerNextServis').value || 0), mileageServis:Number(document.getElementById('selOdometerNextServis').value || 0), statusSelenggara, namaBengkel, catatanSelenggara:document.getElementById('selCatatan').value || '-', status:statusSelenggara === 'sedang diselenggara' ? 'Sedang Diselenggara' : (kLama.status === 'Sedang Diselenggara' ? 'Available' : kLama.status || 'Available'), updatedSelenggaraAt:new Date().toISOString(), updatedSelenggaraBy:profilSemasa.emel || '-' });
+            const bengkel = Array.from(document.getElementById('selNamaBengkel')?.selectedOptions || []).map(o=>o.value);
+            const existing = DB_Kenderaan.find(k => k.plat === plat) || {};
+            await updateDoc(doc(db, 'kenderaan', plat), {
+                mileage: Number(document.getElementById('selOdometerSemasa').value || 0),
+                tarikhServisSemasa: document.getElementById('selTarikhServisSemasa').value || '',
+                odometerServisSemasa: Number(document.getElementById('selOdometerServisSemasa').value || 0),
+                tarikhNextServis: document.getElementById('selTarikhNextServis').value || '',
+                odometerNextServis: Number(document.getElementById('selOdometerNextServis').value || 0),
+                mileageServis: Number(document.getElementById('selOdometerNextServis').value || 0),
+                namaBengkel: bengkel,
+                statusSelenggara,
+                catatanSelenggara: capEachWordV61(document.getElementById('selCatatan').value || '-'),
+                status: statusSelenggara === 'sedang diselenggara' ? 'Sedang Diselenggara' : (existing.status === 'Sedang Diselenggara' ? 'Available' : existing.status || 'Available'),
+                updatedSelenggaraAt: new Date().toISOString(), updatedSelenggaraBy: profilSemasa.emel || '-'
+            });
             notif('Rekod selenggara berjaya dikemaskini.');
         };
         janaRekodSelenggara = function(){
             const tb = document.getElementById('jadualRekodSelenggara');
-            isiDatalistSelenggara(); applyTetapanUtamaKeBorangV6();
-            const sumTotal = document.getElementById('selSumTotal'); if(sumTotal) sumTotal.innerText = DB_Kenderaan.length;
+            isiDatalistSelenggara(); applyTetapanUtamaV61();
+            const set = (id,v)=>{ const el=document.getElementById(id); if(el) el.innerText=v; };
+            set('selSumTotal', DB_Kenderaan.length);
             const statusList = DB_Kenderaan.map(k => ({k, st:kiraStatusServis(k)}));
             const hadKm = Number(document.getElementById('hadKmServis')?.value || 100);
             const hadHari = Number(document.getElementById('hadHariServis')?.value || 14);
-            const sedang = DB_Kenderaan.filter(k => k.status === 'Sedang Diselenggara' || k.statusSelenggara === 'sedang diselenggara').length;
-            const hampirKm = statusList.filter(x => x.st.bakiKm !== null && x.st.bakiKm <= hadKm && x.st.bakiKm >= 0).length;
-            const hampirHari = statusList.filter(x => x.st.bakiHari !== null && x.st.bakiHari <= hadHari && x.st.bakiHari >= 0).length;
-            const a=document.getElementById('selSumSedang'); if(a) a.innerText = sedang;
-            const b=document.getElementById('selSumKM'); if(b) b.innerText = hampirKm;
-            const c=document.getElementById('selSumTarikh'); if(c) c.innerText = hampirHari;
-            const labelKm=document.getElementById('labelSelSumKM'); if(labelKm) labelKm.innerText = `Kurang ${hadKm}km`;
-            const labelHari=document.getElementById('labelSelSumTarikh'); if(labelHari) labelHari.innerText = `Kurang ${hadHari} Hari`;
+            set('selSumSedang', DB_Kenderaan.filter(k => k.status === 'Sedang Diselenggara' || k.statusSelenggara === 'sedang diselenggara').length);
+            set('selSumKM', statusList.filter(x => x.st.bakiKm !== null && x.st.bakiKm <= hadKm && x.st.bakiKm >= 0).length);
+            set('selSumTarikh', statusList.filter(x => x.st.bakiHari !== null && x.st.bakiHari <= hadHari && x.st.bakiHari >= 0).length);
             if(!tb) return;
-            tb.innerHTML = '';
-            if(DB_Kenderaan.length === 0) { tb.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-gray-500 font-bold bg-gray-50">Tiada rekod kenderaan.</td></tr>'; return; }
-            statusList.forEach(({k,st}) => {
+            const thead = tb.closest('table')?.querySelector('thead tr');
+            if(thead && !thead.textContent.includes('Bengkel')) thead.innerHTML = '<th class="p-3">No / Model</th><th class="p-3">Odometer</th><th class="p-3">Next Servis</th><th class="p-3">Baki KM</th><th class="p-3">Baki Hari</th><th class="p-3">Reminder</th><th class="p-3">Status</th><th class="p-3">Nama Bengkel</th>';
+            if(DB_Kenderaan.length === 0){ tb.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-gray-500 font-bold bg-gray-50">Tiada rekod kenderaan.</td></tr>'; return; }
+            tb.innerHTML = statusList.map(({k,st}) => {
                 const cls = kelasServis(st.tahap);
                 const bengkel = Array.isArray(k.namaBengkel) ? k.namaBengkel.join(', ') : (k.namaBengkel || '-');
-                tb.innerHTML += `<tr class="border-b hover:bg-gray-50 ${cls}"><td class="p-3"><b>${escapeHtml(k.plat)}</b><br><span class="text-xs">${escapeHtml(k.jenama || '-')}</span></td><td class="p-3">${escapeHtml(formatOdometer0(k.mileage || 0))} km</td><td class="p-3">${escapeHtml(formatTarikhDashV6(k.tarikhNextServis || '-'))}<br><span class="text-xs">${escapeHtml(formatOdometer0(k.odometerNextServis || k.mileageServis || 0))} km</span></td><td class="p-3 font-bold">${st.bakiKm ?? '-'}</td><td class="p-3 font-bold">${st.bakiHari ?? '-'}</td><td class="p-3 font-bold">${escapeHtml(titleCaseV6(st.teks))}</td><td class="p-3">${escapeHtml(bengkel)}</td><td class="p-3">${escapeHtml(titleCaseV6(k.statusSelenggara || k.status || '-'))}</td></tr>`;
-            });
+                return `<tr class="border-b hover:bg-gray-50 ${cls}"><td class="p-3"><b>${escapeHtml(k.plat || '-')}</b><br><span class="text-xs">${escapeHtml(k.jenama || '-')}</span></td><td class="p-3">${escapeHtml(formatOdometer0(k.mileage || 0))} km</td><td class="p-3">${escapeHtml(formatTarikhDashV61(k.tarikhNextServis || '-'))}<br><span class="text-xs">${escapeHtml(formatOdometer0(k.odometerNextServis || k.mileageServis || 0))} km</span></td><td class="p-3 font-bold">${escapeHtml(st.bakiKm ?? '-')}</td><td class="p-3 font-bold">${escapeHtml(st.bakiHari ?? '-')}</td><td class="p-3 font-bold">${escapeHtml(capEachWordV61(st.teks))}</td><td class="p-3">${escapeHtml(capEachWordV61(k.statusSelenggara || k.status || '-'))}</td><td class="p-3 text-xs">${escapeHtml(bengkel)}</td></tr>`;
+            }).join('');
         };
-        // Header jadual selenggara ditambah Nama Bengkel.
-        const headSel = document.querySelector('#viewRekodSelenggara thead tr');
-        if(headSel && !headSel.textContent.includes('Nama Bengkel')) {
-            headSel.innerHTML = '<th class="p-3">No / Model</th><th class="p-3">Odometer</th><th class="p-3">Next Servis</th><th class="p-3">Baki KM</th><th class="p-3">Baki Hari</th><th class="p-3">Reminder</th><th class="p-3">Nama Bengkel</th><th class="p-3">Status</th>';
-        }
 
-        // Permulaan patch V6.
-        pastikanTetapanUtamaUIV6();
-        applyTetapanUtamaKeBorangV6();
-        setInterval(() => { if(aksesAdmin()) { setTabVisible('tabTetapanUtama', true); } applyTetapanUtamaKeBorangV6(); }, 4000);
+        // Rekod kad / pulang: stesen & jenis minyak ikut tetapan dan rekod kad.
+        const janaPilihanKenderaanKadAsalV61 = window.janaPilihanKenderaanKad || function(){};
+        window.janaPilihanKenderaanKad = function(){ janaPilihanKenderaanKadAsalV61(); applyTetapanUtamaV61(); };
+        const autoJenisMinyakPulangAsalV61 = window.autoJenisMinyakPulang || function(){};
+        window.autoJenisMinyakPulang = function(){
+            const stesen = document.getElementById('indenStesen')?.value || '';
+            const k = DB_Kenderaan.find(v => v.status === 'Sedang Digunakan' && v.pengguna === profilSemasa.nama);
+            const kad = DB_RekodKad.find(x => x.kategori === 'inden' && x.status === 'aktif' && x.platKenderaan === k?.plat && x.jenamaStesen === stesen);
+            const jenis = document.getElementById('indenJenisMinyak'); if(jenis) jenis.value = kad?.jenisMinyak || '';
+        };
 
+        // Laporan: butang muat turun hasil carian menggunakan laporanSemasa, bukan query semula jika sudah dipapar.
+        window.muatTurunHasilCarianV61 = function(){
+            if(!laporanSemasa || !laporanSemasa.length) return alert('Tiada hasil carian untuk dimuat turun. Sila tekan CARI / TAPIS dahulu.');
+            const headers = ['Tarikh','Masa Mula','Masa Akhir','Nama Pengguna','Tujuan','Lokasi','Nama Pelulus','No Kenderaan','Odometer Semasa','Penggunaan Odometer','Penggunaan Kad Inden','No Inv','Jenis Inden','Jumlah Liter','Jumlah RM','Catatan Pengguna'];
+            let content = headers.map(csvEscape).join(',') + '\n';
+            laporanSemasa.forEach(l => { content += [formatTarikhDDMMYYYY(l.tarikh),l.masaMula,l.masaAkhir,l.namaPengguna,l.tujuan,l.lokasi,l.namaPelulus || l.pelulusEmel,l.noPendaftaran,formatOdometer0(l.odometerAkhir || 0),formatOdometer0(l.penggunaanOdometer || 0),l.penggunaanKadInden,l.noInv,l.jenamaStesen,formatLiter3(l.jumlahLiter),formatRM2(l.nilaiRM || l.jumlahRM).replace('RM ',''),l.catatanPengguna].map(csvEscape).join(',') + '\n'; });
+            const blob = new Blob([content], { type:'text/csv;charset=utf-8;' });
+            const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'HASIL_CARIAN_ESILO.csv'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        };
+
+        // Navigasi tab: tambah TETAPAN UTAMA tanpa membuang tab V5.2.
+        const tukarPenggunaAkaunAsalV61 = window.tukarPenggunaAkaun;
+        window.tukarPenggunaAkaun = function(emel){
+            tukarPenggunaAkaunAsalV61(emel);
+            setTabVisible('tabTetapanUtama', aksesAdmin());
+            applyTetapanUtamaV61();
+        };
+        const paparTabAsalV61 = window.paparTab;
+        window.paparTab = function(tabId){
+            if(tabId !== 'tetapanUtama') return paparTabAsalV61(tabId);
+            resetPaparanSementara(tabId);
+            ['viewDashboard','viewOperasi','viewAmbil','viewPulang','viewSelenggara','viewSelenggaraKenderaan','viewRekodKad','viewRekodSelenggara','viewLaporan','viewBackup','viewTetapanUtama'].forEach(id => document.getElementById(id)?.classList.add('hilang'));
+            ['tabDashboard','tabOperasi','tabAmbil','tabPulang','tabSelenggara','tabSelenggaraKenderaan','tabRekodKad','tabRekodSelenggara','tabLaporan','tabBackup','tabTetapanUtama'].forEach(id => { const el=document.getElementById(id); if(el){ el.classList.remove('tab-aktif'); el.classList.add('tab-pasif'); } });
+            if(!aksesAdmin()) return paparTabAsalV61('dashboard');
+            document.getElementById('viewTetapanUtama')?.classList.remove('hilang');
+            const el=document.getElementById('tabTetapanUtama'); if(el){ el.classList.remove('tab-pasif'); el.classList.add('tab-aktif'); }
+            applyTetapanUtamaV61(); renderTetapanUtamaV61();
+        };
+
+        // Bootstrap V6.1 repair selepas semua patch V5.2 siap.
+        setTimeout(() => { pasangMedanTambahanV61(); applyTetapanUtamaV61(); setTabVisible('tabTetapanUtama', aksesAdmin()); renderTetapanUtamaV61(); }, 600);
+
+
+        // V6.1 minor repair: pilih default tetapan juga boleh dikemaskini/dipadamkan.
+        window.pilihTetapanUtamaV61 = function(id){
+            const kategori = document.getElementById('tetapanKategoriV61')?.value || 'jenama_stesen_minyak';
+            const data = tetapanSemuaV61(kategori);
+            const r = data.find(x => {
+                const xid = x.id || ('default_' + kategori + '_' + normKeyV61(x.nama).replace(/[^a-z0-9]+/g,'_'));
+                return xid === id;
+            });
+            if(!r) return alert('Rekod tetapan tidak ditemui.');
+            const rid = r.id || ('default_' + kategori + '_' + normKeyV61(r.nama).replace(/[^a-z0-9]+/g,'_'));
+            document.getElementById('tetapanIdV61').value = rid;
+            document.getElementById('tetapanNamaV61').value = r.nama || '';
+            document.getElementById('tetapanAlamatV61').value = r.alamat || '';
+            document.getElementById('tetapanTelefonV61').value = r.telefon || '';
+            document.getElementById('tetapanStatusV61').value = String(r.status || 'aktif').toLowerCase();
+        };
 
     </script>
 </body>
