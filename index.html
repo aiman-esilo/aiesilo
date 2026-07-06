@@ -949,7 +949,7 @@
                 for (let p of pekerjaAwal) { await setDoc(doc(db, "pengguna_esilo", p.emel), p); }
             }
         }
-        semakDataAwal();
+        if(localStorage.getItem('ESILO_SKIP_SEED_DEFAULT') !== '1') { semakDataAwal(); }
 
         function formatTarikhMY(t) { if(!t || t==="-") return "-"; let p=t.split('-'); return p.length===3 ? `${p[2]}/${p[1]}/${p[0]}` : t; }
         function formatTarikhTimeMY(iso) { 
@@ -4240,6 +4240,377 @@
             const kad = DB_RekodKad.find(x => x.kategori === 'inden' && String(x.statusKad || 'aktif').toLowerCase() === 'aktif' && String(x.plat || x.platKenderaan || '').toUpperCase() === String(k?.plat || '').toUpperCase() && (!stesen || x.jenamaStesen === stesen));
             const jenis = document.getElementById('indenJenisMinyak'); if(jenis) jenis.value = kad?.jenisMinyak || '';
         };
+
+
+        // ================= PATCH V6.3: RESET SUPER ADMIN, PADAM DATA, CARIAN, MENU KELULUSAN & FORMAT TELEFON =================
+        // Patch ini diletakkan di hujung supaya struktur dan kod penuh V6.2 kekal. Semua fungsi asal masih digunakan, hanya ditambah baik/override minimum.
+        const RESET_PHRASE_V63 = 'AIMANESILO2026';
+
+        function isSuperAdminV63(){ return profilSemasa && profilSemasa.peranan === 'superadmin'; }
+        function jsStringV63(v){ return String(v ?? '').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r?\n/g,' '); }
+        function safeDocIdV63(v){ return String(v || '').replace(/[^a-zA-Z0-9@._-]/g, '_'); }
+        function normalTelefonMYV63(input){
+            let d = String(input || '').trim().replace(/[^0-9]/g, '');
+            if(!d) return '-';
+            if(d.startsWith('00')) d = d.slice(2);
+            if(d.startsWith('60')) return d;
+            if(d.startsWith('0')) return '6' + d;
+            if(d.startsWith('1')) return '60' + d;
+            return d;
+        }
+
+        // 1) Carian dashboard utama: guna pemboleh ubah yang benar-benar dibaca oleh renderer terakhir.
+        window.jalankanCarianDashboard = function(){
+            const q = (document.getElementById('carianDashboardKenderaan')?.value || '').trim().toLowerCase();
+            carianDashboardAktif = q;
+            window.dashboardQueryV3 = q;
+            janaSistem();
+        };
+        window.resetCarianDashboard = function(){
+            const el = document.getElementById('carianDashboardKenderaan');
+            if(el) el.value = '';
+            carianDashboardAktif = '';
+            window.dashboardQueryV3 = '';
+            janaSistem();
+        };
+
+        // 2) Menu berasingan: TEMPAHAN dan KELULUSAN untuk Admin / Super Admin.
+        function pasangMenuKelulusanV63(){
+            const tabOperasi = document.getElementById('tabOperasi');
+            if(tabOperasi && !document.getElementById('tabKelulusan')){
+                const btn = document.createElement('button');
+                btn.id = 'tabKelulusan';
+                btn.type = 'button';
+                btn.onclick = () => window.paparTab('kelulusan');
+                btn.className = 'tab-pasif px-4 py-2 rounded-md font-semibold text-sm transition flex items-center relative hilang';
+                btn.innerHTML = `<span>📋 KELULUSAN</span><span id="badgeKelulusan" class="ml-2 bg-red-500 text-white rounded-full px-2 py-0.5 text-xs font-bold hilang">0</span>`;
+                tabOperasi.insertAdjacentElement('afterend', btn);
+            }
+            const teks = document.getElementById('teksTabOperasi');
+            if(teks) teks.innerText = '📝 TEMPAHAN';
+            const badgeTempahan = document.getElementById('badgeTempahan');
+            if(badgeTempahan) badgeTempahan.classList.add('hilang');
+            kemaskiniBadgeKelulusanV63();
+        }
+        function kemaskiniBadgeKelulusanV63(){
+            const pendingCount = DB_Tempahan.filter(t => t.status === 'Menunggu Kelulusan').length;
+            const b = document.getElementById('badgeKelulusan');
+            if(!b) return;
+            if(pendingCount > 0 && aksesAdmin()) { b.innerText = pendingCount; b.classList.remove('hilang'); }
+            else b.classList.add('hilang');
+        }
+        function setAktifTabV63(idAktif){
+            ['tabDashboard','tabOperasi','tabKelulusan','tabAmbil','tabPulang','tabSelenggara','tabSelenggaraKenderaan','tabRekodKad','tabRekodSelenggara','tabLaporan','tabBackup','tabTetapanUtama'].forEach(id => {
+                const el = document.getElementById(id);
+                if(!el) return;
+                el.classList.remove('tab-aktif');
+                el.classList.add('tab-pasif');
+            });
+            const a = document.getElementById(idAktif);
+            if(a){ a.classList.remove('tab-pasif'); a.classList.add('tab-aktif'); }
+        }
+        function paparModeOperasiV63(mode){
+            const pengguna = document.getElementById('paparanPengguna');
+            const admin = document.getElementById('paparanAdmin');
+            if(mode === 'kelulusan'){
+                if(pengguna) pengguna.classList.add('hilang');
+                if(admin) admin.classList.remove('hilang');
+                setAktifTabV63('tabKelulusan');
+            } else {
+                if(pengguna) pengguna.classList.remove('hilang');
+                if(admin) admin.classList.add('hilang');
+                setAktifTabV63('tabOperasi');
+            }
+        }
+
+        // 3) Tetapan Utama hanya Super Admin + bahagian RESET.
+        function pasangResetTetapanV63(){
+            const view = document.getElementById('viewTetapanUtama');
+            if(!view) return;
+            let blok = document.getElementById('blokResetDataV63');
+            if(!blok){
+                blok = document.createElement('div');
+                blok.id = 'blokResetDataV63';
+                blok.className = 'bg-white p-6 rounded-lg shadow-lg border-t-4 border-red-700 mb-6';
+                blok.innerHTML = `
+                    <div class="flex flex-col gap-4">
+                        <div>
+                            <h2 class="text-2xl font-black text-red-800">RESET DATA MENTAH UTAMA</h2>
+                            <p class="text-sm text-red-700 font-semibold mt-1">Arahan keselamatan: buat BACKUP dahulu di Dashboard Backup sebelum reset. Data yang dipadam akan dibuang daripada Firestore dan tidak boleh dipulihkan melalui sistem ini.</p>
+                        </div>
+                        <div class="bg-yellow-50 border border-yellow-300 text-yellow-900 p-4 rounded text-sm">
+                            <b>Wajib backup dahulu:</b> buka menu BACKUP dan tekan <b>MUAT TURUN JSON</b>. Selepas itu pilih data hendak direset dan masukkan frasa keselamatan.
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-red-50 p-4 rounded border border-red-200">
+                            <div>
+                                <label class="block text-xs font-bold mb-1 text-red-900">Data Hendak Direset</label>
+                                <select id="resetTargetV63" class="w-full p-3 border rounded font-bold text-red-800">
+                                    <option value="staf">Dashboard Staf sahaja</option>
+                                    <option value="kenderaan">Dashboard Kenderaan sahaja</option>
+                                    <option value="rekod_kad">Dashboard Rekod Kad sahaja</option>
+                                    <option value="rekod_selenggara">Dashboard Rekod Selenggara sahaja</option>
+                                    <option value="semua">SEMUA data mentah utama di atas</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold mb-1 text-red-900">Frasa Keselamatan</label>
+                                <input id="resetPhraseV63" type="password" class="w-full p-3 border rounded font-bold" placeholder="Masukkan frasa keselamatan">
+                            </div>
+                            <div class="flex items-end">
+                                <button type="button" onclick="resetDataMentahV63()" class="w-full bg-red-700 hover:bg-red-800 text-white font-black py-3 px-4 rounded shadow">RESET / CLEAR FIRESTORE</button>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-600">Nota: Reset Rekod Selenggara akan membersihkan medan selenggara dalam dokumen kenderaan. Reset Kenderaan pula memadam dokumen kenderaan sepenuhnya.</p>
+                    </div>`;
+                view.appendChild(blok);
+            }
+            if(isSuperAdminV63()) blok.classList.remove('hilang'); else blok.classList.add('hilang');
+        }
+        async function deleteCollectionDocsV63(collectionName){
+            const snap = await getDocs(collection(db, collectionName));
+            let count = 0;
+            for(const d of snap.docs){ await deleteDoc(doc(db, collectionName, d.id)); count++; }
+            return count;
+        }
+        async function resetRekodSelenggaraDocsV63(){
+            const snap = await getDocs(collection(db, 'kenderaan'));
+            let count = 0;
+            for(const d of snap.docs){
+                const data = d.data() || {};
+                await updateDoc(doc(db, 'kenderaan', d.id), {
+                    tarikhServisSemasa: '',
+                    odometerServisSemasa: 0,
+                    tarikhNextServis: '',
+                    odometerNextServis: 0,
+                    mileageServis: 0,
+                    namaBengkel: [],
+                    statusSelenggara: 'normal',
+                    catatanSelenggara: '-',
+                    status: data.status === 'Sedang Diselenggara' ? 'Available' : (data.status || 'Available'),
+                    resetSelenggaraAt: new Date().toISOString(),
+                    resetSelenggaraBy: profilSemasa.emel || '-'
+                });
+                count++;
+            }
+            return count;
+        }
+        window.resetDataMentahV63 = async function(){
+            if(!isSuperAdminV63()) return alert('RESET hanya dibenarkan untuk SUPER ADMIN sahaja.');
+            const target = document.getElementById('resetTargetV63')?.value || '';
+            const phrase = document.getElementById('resetPhraseV63')?.value || '';
+            if(phrase !== RESET_PHRASE_V63) return alert('Frasa keselamatan tidak tepat. Data tidak direset.');
+            const label = document.getElementById('resetTargetV63')?.selectedOptions?.[0]?.textContent || target;
+            if(!confirm(`Pastikan backup sudah dibuat. Teruskan RESET untuk: ${label}?`)) return;
+            if(!confirm('Pengesahan terakhir: data yang direset akan dipadam/diclear di Firestore. Teruskan?')) return;
+            try{
+                localStorage.setItem('ESILO_SKIP_SEED_DEFAULT','1');
+                let msg = [];
+                if(target === 'staf' || target === 'semua') msg.push(`Staf: ${await deleteCollectionDocsV63('pengguna_esilo')} rekod dipadam`);
+                if(target === 'kenderaan' || target === 'semua') msg.push(`Kenderaan: ${await deleteCollectionDocsV63('kenderaan')} rekod dipadam`);
+                if(target === 'rekod_kad' || target === 'semua') msg.push(`Rekod Kad: ${await deleteCollectionDocsV63('rekod_kad')} rekod dipadam`);
+                if(target === 'rekod_selenggara' && target !== 'semua') msg.push(`Rekod Selenggara: ${await resetRekodSelenggaraDocsV63()} rekod kenderaan dibersihkan`);
+                await setDoc(doc(db, 'system_flags', 'last_reset'), { target, resetBy: profilSemasa.emel || '-', resetAt: new Date().toISOString(), seedDefaultDisabled: true }, { merge:true });
+                const input = document.getElementById('resetPhraseV63'); if(input) input.value = '';
+                notif('RESET selesai. ' + msg.join(' | '));
+                alert('RESET selesai.\n\n' + msg.join('\n'));
+            } catch(err){ console.error(err); alert('RESET gagal. Semak permission Firestore delete/update untuk akaun ini.'); }
+        };
+
+        // 4) Butang PADAM di dashboard Staf, Kenderaan, Rekod Kad dan Rekod Selenggara.
+        window.padamStafV63 = async function(emel){
+            if(!isSuperAdminV63()) return alert('Padam staf hanya untuk Super Admin.');
+            if(!emel) return;
+            if(!confirm(`Padam rekod staf ${emel}?`)) return;
+            await deleteDoc(doc(db, 'pengguna_esilo', emel));
+            notif('Rekod staf telah dipadam.');
+        };
+        window.padamKenderaanV63 = async function(plat){
+            if(!aksesAdmin()) return alert('Padam kenderaan hanya untuk Admin / Super Admin.');
+            if(!plat) return;
+            if(!confirm(`Padam rekod kenderaan ${plat}?`)) return;
+            await deleteDoc(doc(db, 'kenderaan', plat));
+            notif('Rekod kenderaan telah dipadam.');
+        };
+        window.padamRekodKadV63 = async function(id, noKad){
+            if(!aksesAdmin()) return alert('Padam rekod kad hanya untuk Admin / Super Admin.');
+            if(!id) return;
+            if(!confirm(`Padam rekod kad ${noKad || id}?`)) return;
+            await deleteDoc(doc(db, 'rekod_kad', id));
+            notif('Rekod kad telah dipadam.');
+        };
+        window.padamRekodSelenggaraV63 = async function(plat){
+            if(!aksesAdmin()) return alert('Padam rekod selenggara hanya untuk Admin / Super Admin.');
+            if(!plat) return;
+            if(!confirm(`Padam / kosongkan rekod selenggara untuk ${plat}?`)) return;
+            const k = DB_Kenderaan.find(x => String(x.plat || '').toUpperCase() === String(plat || '').toUpperCase()) || {};
+            await updateDoc(doc(db, 'kenderaan', plat), {
+                tarikhServisSemasa: '', odometerServisSemasa: 0, tarikhNextServis: '', odometerNextServis: 0, mileageServis: 0,
+                namaBengkel: [], statusSelenggara: 'normal', catatanSelenggara: '-',
+                status: k.status === 'Sedang Diselenggara' ? 'Available' : (k.status || 'Available'),
+                resetSelenggaraAt: new Date().toISOString(), resetSelenggaraBy: profilSemasa.emel || '-'
+            });
+            notif('Rekod selenggara telah dikosongkan.');
+        };
+
+        janaSistemStaf = function(){
+            const tbody = document.getElementById('jadualSelenggaraStaf'); if(!tbody) return;
+            tbody.innerHTML = '';
+            if(DB_Pengguna.length === 0){ tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-500 bg-gray-50 font-bold">Tiada rekod staf.</td></tr>'; return; }
+            DB_Pengguna.forEach(p => {
+                let img = p.gambar || 'https://placehold.co/100x100/e2e8f0/64748b?text=U';
+                let perananColor = p.peranan === 'superadmin' ? 'text-red-700 bg-red-100' : 'text-purple-700 bg-purple-100';
+                tbody.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="p-2"><img src="${escapeHtml(img)}" class="w-10 h-10 rounded-full border object-contain bg-white"></td><td class="p-2"><strong>${escapeHtml(p.nama || '-')}</strong><br><span class="text-xs text-gray-500">${escapeHtml(p.emel || '-')}</span></td><td class="p-2">${escapeHtml(p.tel || '-')}</td><td class="p-2"><span>${escapeHtml(p.unit || '-')}</span><br><span class="text-xs uppercase font-bold px-2 rounded ${perananColor}">${escapeHtml(p.peranan || '-')}</span></td><td class="p-2 text-center"><div class="grid grid-cols-1 gap-1"><button onclick="editStaf('${jsStringV63(p.emel)}')" class="text-xs bg-blue-100 px-3 py-1 rounded font-bold hover:bg-blue-200 shadow">Edit</button><button onclick="padamStafV63('${jsStringV63(p.emel)}')" class="text-xs bg-red-600 text-white px-3 py-1 rounded font-bold hover:bg-red-700 shadow">PADAM</button></div></td></tr>`;
+            });
+        };
+
+        janaSistemKenderaan = function(){
+            const tbody = document.getElementById('jadualSelenggaraKenderaan');
+            const dl = document.getElementById('senaraiPlatKenderaan');
+            if(dl) dl.innerHTML = DB_Kenderaan.map(k => `<option value="${escapeHtml(k.plat)}">${escapeHtml(k.jenama || '')}</option>`).join('');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            if(DB_Kenderaan.length === 0){ tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-500 bg-gray-50 font-bold">Tiada rekod kenderaan.</td></tr>'; return; }
+            DB_Kenderaan.forEach(k => {
+                let img = k.gambar || 'https://placehold.co/400x250/e2e8f0/64748b?text=Kereta';
+                let kadAuto = dapatkanKadUntukKenderaan(k.plat);
+                let indenList = kadAuto.semuaInden.length ? kadAuto.semuaInden.map(x => `${escapeHtml(x.jenamaStesen)} ${escapeHtml(x.jenisMinyak)}: <b>${escapeHtml(x.noKad)}</b>`).join('<br>') : (k.kadInden && k.kadInden !== '-' ? escapeHtml(k.kadInden) : '-');
+                let tngList = kadAuto.semuaTNG.length ? kadAuto.semuaTNG.map(x => `<b>${escapeHtml(x.noKad)}</b>`).join('<br>') : (k.tng && k.tng !== '-' ? escapeHtml(k.tng) : '-');
+                let infoKad = `<span class="text-xs text-blue-700 block mt-1">Inden:<br>${indenList}</span><span class="text-xs text-emerald-700 block mt-1">TNG:<br>${tngList}</span>`;
+                tbody.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="p-2"><img src="${escapeHtml(img)}" class="w-16 h-10 object-contain rounded border bg-white"></td><td class="p-2"><strong>${escapeHtml(k.plat || '-')}</strong><br><span class="text-xs text-gray-500">${escapeHtml(k.jenama || '-')}</span>${infoKad}</td><td class="p-2"><span>${escapeHtml(k.jenis || '-')}</span><br><span class="text-xs font-bold px-1 rounded bg-gray-100">${escapeHtml(k.milikan || '-')}</span></td><td class="p-2">${escapeHtml(k.noAset || '-')}</td><td class="p-2 text-center"><div class="grid grid-cols-1 gap-1"><button onclick="editKenderaan('${jsStringV63(k.plat)}')" class="text-xs bg-blue-100 px-3 py-1 rounded font-bold hover:bg-blue-200 shadow">Edit</button><button onclick="padamKenderaanV63('${jsStringV63(k.plat)}')" class="text-xs bg-red-600 text-white px-3 py-1 rounded font-bold hover:bg-red-700 shadow">PADAM</button></div></td></tr>`;
+            });
+        };
+
+        janaRekodKad = function(){
+            const tb = document.getElementById('jadualRekodKad');
+            if(!tb) return;
+            tb.innerHTML = '';
+            if(DB_RekodKad.length === 0){ tb.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-gray-500 font-bold bg-gray-50">Tiada rekod kad setakat ini.</td></tr>'; return; }
+            DB_RekodKad.forEach(r => {
+                const kategori = r.kategori === 'inden' ? 'Kad Inden' : "Touch 'n Go";
+                const warna = r.kategori === 'inden' ? 'bg-cyan-100 text-cyan-800' : 'bg-emerald-100 text-emerald-800';
+                const stat = (r.statusKad || 'aktif').toLowerCase();
+                const stClass = stat === 'aktif' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
+                const luput = statusLuputKad(r.tarikhLuput);
+                tb.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold ${warna}">${kategori}</span></td><td class="p-3 font-bold">${escapeHtml(r.noKad)}</td><td class="p-3">${escapeHtml(r.jenamaStesen || '-')}<br><span class="text-xs text-gray-500">${escapeHtml(r.jenisMinyak || '-')}</span></td><td class="p-3">${escapeHtml(r.tarikhLuput || '-')}</td><td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold ${stClass}">${escapeHtml(stat.toUpperCase())}</span><br><span class="inline-block mt-1 px-2 py-1 rounded text-xs font-bold ${luput.kelas}">${escapeHtml(luput.teks)}</span></td><td class="p-3 font-bold text-blue-700">${escapeHtml(r.plat || '-')}</td><td class="p-3 text-xs">${escapeHtml(r.ulasanTidakAktif || '-')}</td><td class="p-3 text-center"><div class="grid grid-cols-1 gap-1"><button onclick="editRekodKad('${jsStringV63(r.id)}')" class="text-xs bg-blue-100 px-3 py-1 rounded font-bold hover:bg-blue-200 shadow">Edit</button><button onclick="padamRekodKadV63('${jsStringV63(r.id)}','${jsStringV63(r.noKad)}')" class="text-xs bg-red-600 text-white px-3 py-1 rounded font-bold hover:bg-red-700 shadow">PADAM</button></div></td></tr>`;
+            });
+        };
+
+        const janaRekodSelenggaraSebelumV63 = janaRekodSelenggara;
+        janaRekodSelenggara = function(){
+            const tb = document.getElementById('jadualRekodSelenggara');
+            if(!tb) return janaRekodSelenggaraSebelumV63();
+            isiDatalistSelenggara(); applyTetapanUtamaV61();
+            const set = (id,v)=>{ const el=document.getElementById(id); if(el) el.innerText=v; };
+            set('selSumTotal', DB_Kenderaan.length);
+            const statusList = DB_Kenderaan.map(k => ({k, st:kiraStatusServis(k)}));
+            const hadKm = Number(document.getElementById('hadKmServis')?.value || 100);
+            const hadHari = Number(document.getElementById('hadHariServis')?.value || 14);
+            set('selSumSedang', DB_Kenderaan.filter(k => k.status === 'Sedang Diselenggara' || k.statusSelenggara === 'sedang diselenggara').length);
+            set('selSumKM', statusList.filter(x => x.st.bakiKm !== null && x.st.bakiKm <= hadKm && x.st.bakiKm >= 0).length);
+            set('selSumTarikh', statusList.filter(x => x.st.bakiHari !== null && x.st.bakiHari <= hadHari && x.st.bakiHari >= 0).length);
+            const thead = tb.closest('table')?.querySelector('thead tr');
+            if(thead) thead.innerHTML = '<th class="p-3">No / Model</th><th class="p-3">Odometer</th><th class="p-3">Next Servis</th><th class="p-3">Baki KM</th><th class="p-3">Baki Hari</th><th class="p-3">Reminder</th><th class="p-3">Status</th><th class="p-3">Nama Bengkel</th><th class="p-3 text-center">Tindakan</th>';
+            if(DB_Kenderaan.length === 0){ tb.innerHTML = '<tr><td colspan="9" class="p-6 text-center text-gray-500 font-bold bg-gray-50">Tiada rekod kenderaan.</td></tr>'; return; }
+            tb.innerHTML = statusList.map(({k,st}) => {
+                const cls = kelasServis(st.tahap);
+                const bengkel = Array.isArray(k.namaBengkel) ? k.namaBengkel.join(', ') : (k.namaBengkel || '-');
+                return `<tr class="border-b hover:bg-gray-50 ${cls}"><td class="p-3"><b>${escapeHtml(k.plat || '-')}</b><br><span class="text-xs">${escapeHtml(k.jenama || '-')}</span></td><td class="p-3">${escapeHtml(formatOdometer0(k.mileage || 0))} km</td><td class="p-3">${escapeHtml(formatTarikhDashV61(k.tarikhNextServis || '-'))}<br><span class="text-xs">${escapeHtml(formatOdometer0(k.odometerNextServis || k.mileageServis || 0))} km</span></td><td class="p-3 font-bold">${escapeHtml(st.bakiKm ?? '-')}</td><td class="p-3 font-bold">${escapeHtml(st.bakiHari ?? '-')}</td><td class="p-3 font-bold">${escapeHtml(capEachWordV61(st.teks))}</td><td class="p-3">${escapeHtml(capEachWordV61(k.statusSelenggara || k.status || '-'))}</td><td class="p-3 text-xs">${escapeHtml(bengkel)}</td><td class="p-3 text-center"><button onclick="padamRekodSelenggaraV63('${jsStringV63(k.plat)}')" class="text-xs bg-red-600 text-white px-3 py-1 rounded font-bold hover:bg-red-700 shadow">PADAM</button></td></tr>`;
+            }).join('');
+        };
+
+        // 5) Format nombor telefon upload/staf: 0194444282 -> 60194444282, 0194444-282 -> 60194444282, 0111-4568 5482 -> 6011145685482.
+        const simpanStafSebelumV63 = window.simpanStaf;
+        window.simpanStaf = async function(e){
+            const tel = document.getElementById('stafTel');
+            if(tel) tel.value = normalTelefonMYV63(tel.value);
+            return simpanStafSebelumV63(e);
+        };
+        window.muatNaikPukal = function(){
+            if(!isSuperAdminV63()) return alert('Upload bundle staf hanya untuk Super Admin.');
+            const fileInput = document.getElementById('excelFile');
+            if(!fileInput || fileInput.files.length === 0) return alert('Sila pilih fail CSV template terlebih dahulu!');
+            const reader = new FileReader();
+            reader.onload = async function(e){
+                const rows = parseCSVV62(e.target.result);
+                let kira = 0, gagal = 0;
+                for(const r of rows){
+                    const nama = nilaiHeaderV62(r, ['nama','nama_penuh']);
+                    const emel = nilaiHeaderV62(r, ['emel','email','emel_rasmi']).toLowerCase();
+                    if(!nama || !emel){ gagal++; continue; }
+                    const dataStaf = {
+                        nama,
+                        emel,
+                        tel: normalTelefonMYV63(nilaiHeaderV62(r, ['no_telefon','telefon','tel','no_hp','no_h/p'])),
+                        unit: nilaiHeaderV62(r, ['unit','unit_jabatan','jabatan'], '-'),
+                        tempatBertugas: nilaiHeaderV62(r, ['tempat_bertugas','lokasi_bertugas'], '-'),
+                        peranan: nilaiHeaderV62(r, ['peranan','role'], 'pengguna').toLowerCase(),
+                        gambar: ''
+                    };
+                    try { await setDoc(doc(db, 'pengguna_esilo', emel), dataStaf, { merge:true }); kira++; }
+                    catch(err){ console.error('Gagal upload staf', emel, err); gagal++; }
+                }
+                fileInput.value = '';
+                notif(`${kira} staf berjaya dimuat naik. ${gagal ? gagal + ' rekod gagal/diabaikan.' : ''}`);
+            };
+            reader.readAsText(fileInput.files[0]);
+        };
+        window.downloadTemplate = function(){
+            downloadCSVV62('template_staf_esilo.csv', [
+                ['Nama','Emel','No_Telefon','Unit','Tempat_Bertugas','Peranan'],
+                ['Ali Bin Ahmad','ali@esilo.my','0194444282','Unit IT','KPDN Pulau Pinang','pengguna'],
+                ['Zubair','zubair@esilo.my','0194444-282','Pentadbiran','KPDN Pulau Pinang','admin'],
+                ['Abu','abu@esilo.my','0111-4568 5482','Pembangunan','Cawangan Butterworth','penumpang']
+            ]);
+        };
+
+        // 6) Final wrappers supaya semua patch kekal selepas fungsi lama dipanggil.
+        const tukarPenggunaAkaunSebelumV63 = window.tukarPenggunaAkaun;
+        window.tukarPenggunaAkaun = function(emel){
+            tukarPenggunaAkaunSebelumV63(emel);
+            pasangMenuKelulusanV63();
+            const isAdmin = aksesAdmin();
+            setTabVisible('tabKelulusan', isAdmin);
+            setTabVisible('tabTetapanUtama', isSuperAdminV63());
+            const teks = document.getElementById('teksTabOperasi'); if(teks) teks.innerText = '📝 TEMPAHAN';
+            const b = document.getElementById('badgeTempahan'); if(b) b.classList.add('hilang');
+            pasangResetTetapanV63();
+            kemaskiniBadgeKelulusanV63();
+            janaSistemStaf(); janaSistemKenderaan(); janaRekodKad(); janaRekodSelenggara();
+        };
+        const paparTabSebelumV63 = window.paparTab;
+        window.paparTab = function(tabId){
+            pasangMenuKelulusanV63();
+            if(tabId === 'kelulusan'){
+                if(!aksesAdmin()) return paparTabSebelumV63('dashboard');
+                const result = paparTabSebelumV63('operasi');
+                paparModeOperasiV63('kelulusan');
+                kemaskiniBadgeKelulusanV63();
+                return result;
+            }
+            if(tabId === 'operasi'){
+                const result = paparTabSebelumV63('operasi');
+                paparModeOperasiV63('tempahan');
+                return result;
+            }
+            if(tabId === 'tetapanUtama'){
+                if(!isSuperAdminV63()) return paparTabSebelumV63('dashboard');
+                const result = paparTabSebelumV63('tetapanUtama');
+                pasangResetTetapanV63();
+                return result;
+            }
+            return paparTabSebelumV63(tabId);
+        };
+        const janaSistemSebelumV63 = janaSistem;
+        janaSistem = function(){
+            janaSistemSebelumV63();
+            pasangMenuKelulusanV63();
+            setTabVisible('tabTetapanUtama', isSuperAdminV63());
+            setTabVisible('tabKelulusan', aksesAdmin());
+            const b = document.getElementById('badgeTempahan'); if(b) b.classList.add('hilang');
+            kemaskiniBadgeKelulusanV63();
+        };
+
+        setTimeout(() => { pasangMenuKelulusanV63(); pasangResetTetapanV63(); setTabVisible('tabTetapanUtama', isSuperAdminV63()); setTabVisible('tabKelulusan', aksesAdmin()); janaSistem(); }, 1200);
 
         setTimeout(() => { applyTetapanUtamaV61(); susunDashboardMenegakV62(); pasangUploadBundleV62(); }, 900);
 
