@@ -905,6 +905,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, setDoc, getDocs, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref as storageRef, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyAjEvEA0MczAuwD3qKQAyP-finyiDmcIFM",
@@ -917,6 +918,7 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const storage = getStorage(app);
 
         let DB_Kenderaan = [];
         let DB_Tempahan = [];
@@ -4613,6 +4615,446 @@
         setTimeout(() => { pasangMenuKelulusanV63(); pasangResetTetapanV63(); setTabVisible('tabTetapanUtama', isSuperAdminV63()); setTabVisible('tabKelulusan', aksesAdmin()); janaSistem(); }, 1200);
 
         setTimeout(() => { applyTetapanUtamaV61(); susunDashboardMenegakV62(); pasangUploadBundleV62(); }, 900);
+
+
+
+        // ================= PATCH V6.4: OPTIMUM GAMBAR KENDERAAN + TAB REPAIR =================
+        // Kekal struktur V6.3. Tambahan ini diletakkan paling hujung supaya override patch terdahulu.
+
+        const MAX_KENDERAAN_IMG_W_V64 = 900;
+        const MAX_KENDERAAN_IMG_H_V64 = 650;
+        const KUALITI_GAMBAR_KENDERAAN_V64 = 0.68;
+        const HAD_SIMPAN_GAMBAR_KB_V64 = 360;
+
+        function saizBase64KBV64(dataUrl){
+            return Math.round((String(dataUrl || '').length * 3 / 4) / 1024);
+        }
+        function setNilaiV64(id, val){ const el = document.getElementById(id); if(el) el.value = val; }
+        function setSrcV64(id, val){ const el = document.getElementById(id); if(el) el.src = val; }
+
+        function optimumkanImejKenderaanV64(file, callback){
+            if(!file || !String(file.type || '').startsWith('image/')){
+                alert('Sila pilih fail gambar sahaja.');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(ev){
+                const img = new Image();
+                img.onload = function(){
+                    let w = img.naturalWidth || img.width || MAX_KENDERAAN_IMG_W_V64;
+                    let h = img.naturalHeight || img.height || MAX_KENDERAAN_IMG_H_V64;
+                    const ratio = Math.min(MAX_KENDERAAN_IMG_W_V64 / w, MAX_KENDERAAN_IMG_H_V64 / h, 1);
+                    w = Math.max(1, Math.round(w * ratio));
+                    h = Math.max(1, Math.round(h * ratio));
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w;
+                    canvas.height = h;
+                    const ctx = canvas.getContext('2d', { alpha:false });
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, w, h);
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(img, 0, 0, w, h);
+
+                    let q = KUALITI_GAMBAR_KENDERAAN_V64;
+                    let dataUrl = canvas.toDataURL('image/jpeg', q);
+                    while(saizBase64KBV64(dataUrl) > HAD_SIMPAN_GAMBAR_KB_V64 && q > 0.42){
+                        q -= 0.08;
+                        dataUrl = canvas.toDataURL('image/jpeg', q);
+                    }
+                    callback(dataUrl, { width:w, height:h, kb:saizBase64KBV64(dataUrl), quality:q });
+                };
+                img.onerror = function(){ alert('Gambar gagal dibaca. Sila cuba fail gambar lain.'); };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        window.prosesGambarKenderaanOptimumV64 = function(e){
+            const file = e?.target?.files?.[0];
+            if(!file) return;
+            optimumkanImejKenderaanV64(file, function(dataUrl, info){
+                setSrcV64('previewGambarKenderaan', dataUrl);
+                setNilaiV64('kenderaanGambarBase64', dataUrl);
+                const nota = document.getElementById('notaGambarKenderaanV64');
+                if(nota) nota.textContent = `Gambar telah dioptimumkan: ${info.width} x ${info.height}px, anggaran ${info.kb}KB. Sesuai untuk Firestore dan backup.`;
+            });
+        };
+
+        function pasangOptimumGambarKenderaanV64(){
+            const preview = document.getElementById('previewGambarKenderaan');
+            if(preview){
+                preview.className = 'w-full max-w-sm h-44 rounded border object-contain bg-white mx-auto';
+            }
+            const hidden = document.getElementById('kenderaanGambarBase64');
+            if(hidden && !document.getElementById('notaGambarKenderaanV64')){
+                const nota = document.createElement('p');
+                nota.id = 'notaGambarKenderaanV64';
+                nota.className = 'text-xs text-emerald-700 font-semibold mt-1';
+                nota.textContent = 'Gambar kenderaan akan dikecilkan secara automatik sebelum disimpan supaya sistem kekal laju.';
+                hidden.insertAdjacentElement('afterend', nota);
+            }
+            const form = document.getElementById('borangKenderaan');
+            const inputGambar = form ? form.querySelector('input[type="file"]') : null;
+            if(inputGambar){
+                inputGambar.setAttribute('accept', 'image/*');
+                inputGambar.onchange = window.prosesGambarKenderaanOptimumV64;
+            }
+        }
+
+        // Elak simpan gambar kenderaan yang terlalu besar jika pengguna edit data lama.
+        const simpanKenderaanSebelumV64 = window.simpanKenderaan;
+        window.simpanKenderaan = async function(e){
+            const b64 = document.getElementById('kenderaanGambarBase64');
+            if(b64 && b64.value && String(b64.value).startsWith('data:image/') && !String(b64.value).startsWith('data:image/jpeg') && saizBase64KBV64(b64.value) > HAD_SIMPAN_GAMBAR_KB_V64){
+                alert('Gambar ini masih besar. Sila pilih semula gambar kenderaan supaya sistem boleh optimumkan saiz sebelum simpan.');
+                if(e && typeof e.preventDefault === 'function') e.preventDefault();
+                return;
+            }
+            return simpanKenderaanSebelumV64(e);
+        };
+
+        // Paparan dashboard kenderaan: gambar sederhana, tidak terlalu kecil dan tidak berat.
+        try{
+            const janaSistemKenderaanSebelumV64 = janaSistemKenderaan;
+            janaSistemKenderaan = function(){
+                const tbody = document.getElementById('jadualSelenggaraKenderaan');
+                const dl = document.getElementById('senaraiPlatKenderaan');
+                if(dl) dl.innerHTML = DB_Kenderaan.map(k => `<option value="${escapeHtml(k.plat)}">${escapeHtml(k.jenama || '')}</option>`).join('');
+                if(!tbody) return janaSistemKenderaanSebelumV64();
+                tbody.innerHTML = '';
+                if(DB_Kenderaan.length === 0){
+                    tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-500 bg-gray-50 font-bold">Tiada rekod kenderaan.</td></tr>';
+                    return;
+                }
+                DB_Kenderaan.forEach(k => {
+                    let img = k.gambar || 'https://placehold.co/400x250/e2e8f0/64748b?text=Kereta';
+                    let kadAuto = dapatkanKadUntukKenderaan(k.plat);
+                    let indenList = kadAuto.semuaInden.length ? kadAuto.semuaInden.map(x => `${escapeHtml(x.jenamaStesen)} ${escapeHtml(x.jenisMinyak)}: <b>${escapeHtml(x.noKad)}</b>`).join('<br>') : (k.kadInden && k.kadInden !== '-' ? escapeHtml(k.kadInden) : '-');
+                    let tngList = kadAuto.semuaTNG.length ? kadAuto.semuaTNG.map(x => `<b>${escapeHtml(x.noKad)}</b>`).join('<br>') : (k.tng && k.tng !== '-' ? escapeHtml(k.tng) : '-');
+                    let infoKad = `<span class="text-xs text-blue-700 block mt-1">Inden:<br>${indenList}</span><span class="text-xs text-emerald-700 block mt-1">TNG:<br>${tngList}</span>`;
+                    tbody.innerHTML += `<tr class="border-b hover:bg-gray-50 align-top"><td class="p-2"><img src="${escapeHtml(img)}" loading="lazy" class="w-28 h-20 object-contain rounded border bg-white shadow-sm"></td><td class="p-2"><strong>${escapeHtml(k.plat || '-')}</strong><br><span class="text-xs text-gray-500">${escapeHtml(k.jenama || '-')}</span>${infoKad}</td><td class="p-2"><span>${escapeHtml(k.jenis || '-')}</span><br><span class="text-xs font-bold px-1 rounded bg-gray-100">${escapeHtml(k.milikan || '-')}</span></td><td class="p-2">${escapeHtml(k.noAset || '-')}</td><td class="p-2 text-center"><div class="grid grid-cols-1 gap-1"><button onclick="editKenderaan('${jsStringV63(k.plat)}')" class="text-xs bg-blue-100 px-3 py-1 rounded font-bold hover:bg-blue-200 shadow">Edit</button><button onclick="padamKenderaanV63('${jsStringV63(k.plat)}')" class="text-xs bg-red-600 text-white px-3 py-1 rounded font-bold hover:bg-red-700 shadow">PADAM</button></div></td></tr>`;
+                });
+            };
+        } catch(e){ console.warn('Patch paparan gambar kenderaan V6.4 tidak dapat override renderer:', e); }
+
+        // Label menu: pastikan butang utama tidak bertulis Tempahan/Kelulusan, hanya TEMPAHAN.
+        function normalLabelMenuV64(){
+            const teks = document.getElementById('teksTabOperasi');
+            if(teks) teks.innerText = '📝 TEMPAHAN';
+            const kel = document.getElementById('tabKelulusan');
+            const labelKel = kel ? kel.querySelector('span:not(#badgeKelulusan)') : null;
+            if(labelKel) labelKel.textContent = '📋 KELULUSAN';
+        }
+
+        // Repair tab aktif: butang Kelulusan tidak kekal biru selepas tekan tab lain.
+        function bersihkanAktifKelulusanV64(tabId){
+            const kel = document.getElementById('tabKelulusan');
+            if(kel && tabId !== 'kelulusan'){
+                kel.classList.remove('tab-aktif');
+                kel.classList.add('tab-pasif');
+            }
+        }
+        const paparTabSebelumV64 = window.paparTab;
+        window.paparTab = function(tabId){
+            normalLabelMenuV64();
+            const result = paparTabSebelumV64(tabId);
+            normalLabelMenuV64();
+            bersihkanAktifKelulusanV64(tabId);
+            return result;
+        };
+
+        const janaSistemSebelumV64 = janaSistem;
+        janaSistem = function(){
+            janaSistemSebelumV64();
+            pasangOptimumGambarKenderaanV64();
+            normalLabelMenuV64();
+            // Jika sistem refresh semasa user berada di tab lain, jangan biarkan Kelulusan melekat biru.
+            const kel = document.getElementById('tabKelulusan');
+            const viewOperasi = document.getElementById('viewOperasi');
+            const adminPanel = document.getElementById('paparanAdmin');
+            const sedangKelulusan = viewOperasi && !viewOperasi.classList.contains('hilang') && adminPanel && !adminPanel.classList.contains('hilang');
+            if(kel && !sedangKelulusan){ kel.classList.remove('tab-aktif'); kel.classList.add('tab-pasif'); }
+        };
+
+        setTimeout(() => { pasangOptimumGambarKenderaanV64(); normalLabelMenuV64(); janaSistem(); }, 1500);
+
+
+        // ================= ESILO_UPDATE_V1: AUDIT LOG, AUTO BACKUP RESET, STORAGE GAMBAR & PAGINATION =================
+        // Label rasmi kemaskini: esilo_update_v1. Kod V6.4 dikekalkan; patch ini hanya menambah baik fungsi keselamatan, prestasi dan rekod tindakan.
+
+        const ESILO_UPDATE_V1_LABEL = 'esilo_update_v1';
+        const LAPORAN_PAGE_SIZE_UPDATE_V1 = 25;
+        let DB_AuditLog_UpdateV1 = [];
+        let laporanPageUpdateV1 = 1;
+
+        function nowIsoUpdateV1(){ return new Date().toISOString(); }
+        function escapeAuditUpdateV1(v){ return escapeHtml(String(v ?? '-')); }
+        function namaFailMasaUpdateV1(){ return new Date().toISOString().replace(/[:.]/g,'-'); }
+        function getTargetTextUpdateV1(id){
+            const el = document.getElementById(id);
+            return el?.selectedOptions?.[0]?.textContent || el?.value || '-';
+        }
+        function ringkasButiranUpdateV1(obj){
+            try { return JSON.stringify(obj || {}).slice(0, 500); }
+            catch(e){ return String(obj || '-').slice(0, 500); }
+        }
+
+        async function catatAuditUpdateV1(aksi, modul, target='-', butiran={}){
+            try{
+                await addDoc(collection(db, 'audit_log'), {
+                    label: ESILO_UPDATE_V1_LABEL,
+                    aksi,
+                    modul,
+                    target: String(target || '-'),
+                    butiran: ringkasButiranUpdateV1(butiran),
+                    olehNama: profilSemasa?.nama || '-',
+                    olehEmel: profilSemasa?.emel || '-',
+                    peranan: profilSemasa?.peranan || '-',
+                    masa: nowIsoUpdateV1(),
+                    userAgent: navigator.userAgent || '-'
+                });
+            } catch(err){ console.warn('Audit log gagal direkodkan:', err); }
+        }
+
+        try{
+            onSnapshot(collection(db, 'audit_log'), (snapshot) => {
+                DB_AuditLog_UpdateV1 = [];
+                snapshot.forEach(d => DB_AuditLog_UpdateV1.push({ id:d.id, ...d.data() }));
+                DB_AuditLog_UpdateV1.sort((a,b)=>String(b.masa||'').localeCompare(String(a.masa||'')));
+                renderAuditPanelUpdateV1();
+                kemaskiniRingkasanBackupUpdateV1();
+            });
+        } catch(e){ console.warn('Listener audit log tidak aktif:', e); }
+
+        function pasangAuditPanelUpdateV1(){
+            const backup = document.getElementById('viewBackup');
+            if(!backup || document.getElementById('panelAuditLogUpdateV1')) return;
+            const panel = document.createElement('div');
+            panel.id = 'panelAuditLogUpdateV1';
+            panel.className = 'bg-white p-6 rounded-lg shadow-lg border-t-4 border-red-700 mt-6';
+            panel.innerHTML = `
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                    <div>
+                        <h2 class="text-2xl font-black text-gray-800">AUDIT LOG SISTEM</h2>
+                        <p class="text-sm text-gray-500">Rekod tindakan penting seperti SIMPAN, EDIT, PADAM dan RESET. Dipaparkan maksimum 30 rekod terkini.</p>
+                    </div>
+                    <button type="button" onclick="muatTurunAuditLogUpdateV1()" class="bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded font-bold shadow">MUAT TURUN AUDIT CSV</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead class="bg-gray-800 text-white"><tr><th class="p-2">Masa</th><th class="p-2">Aksi</th><th class="p-2">Modul</th><th class="p-2">Target</th><th class="p-2">Oleh</th><th class="p-2">Butiran</th></tr></thead>
+                        <tbody id="jadualAuditLogUpdateV1"><tr><td colspan="6" class="p-4 text-center text-gray-500 bg-gray-50">Tiada audit log.</td></tr></tbody>
+                    </table>
+                </div>`;
+            backup.appendChild(panel);
+            renderAuditPanelUpdateV1();
+        }
+
+        function renderAuditPanelUpdateV1(){
+            const tb = document.getElementById('jadualAuditLogUpdateV1');
+            if(!tb) return;
+            const data = DB_AuditLog_UpdateV1.slice(0, 30);
+            if(!data.length){ tb.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-gray-500 bg-gray-50">Tiada audit log.</td></tr>'; return; }
+            tb.innerHTML = data.map(a => `<tr class="border-b hover:bg-gray-50 align-top">
+                <td class="p-2 whitespace-nowrap">${escapeAuditUpdateV1(formatTarikhDDMMYYYY(a.masa))}<br><span class="text-[11px] text-gray-500">${escapeAuditUpdateV1(String(a.masa||'').slice(11,19))}</span></td>
+                <td class="p-2 font-black text-red-700">${escapeAuditUpdateV1(a.aksi)}</td>
+                <td class="p-2">${escapeAuditUpdateV1(a.modul)}</td>
+                <td class="p-2 font-bold">${escapeAuditUpdateV1(a.target)}</td>
+                <td class="p-2">${escapeAuditUpdateV1(a.olehNama)}<br><span class="text-[11px] text-gray-500">${escapeAuditUpdateV1(a.olehEmel)}</span></td>
+                <td class="p-2 max-w-md break-words">${escapeAuditUpdateV1(a.butiran)}</td>
+            </tr>`).join('');
+        }
+
+        window.muatTurunAuditLogUpdateV1 = function(){
+            const headers = ['Masa','Aksi','Modul','Target','Oleh Nama','Oleh Emel','Peranan','Butiran'];
+            let csv = headers.map(csvEscape).join(',') + '\n';
+            DB_AuditLog_UpdateV1.forEach(a => { csv += [a.masa,a.aksi,a.modul,a.target,a.olehNama,a.olehEmel,a.peranan,a.butiran].map(csvEscape).join(',') + '\n'; });
+            downloadText(`ESILO_AUDIT_LOG_${namaFailMasaUpdateV1()}.csv`, csv, 'text/csv;charset=utf-8');
+        };
+
+        function kemaskiniRingkasanBackupUpdateV1(){
+            const prev = document.getElementById('previewBackup');
+            if(prev) {
+                try{
+                    const asal = JSON.parse(prev.textContent || '{}');
+                    asal.auditLog = DB_AuditLog_UpdateV1.length;
+                    asal.labelUpdate = ESILO_UPDATE_V1_LABEL;
+                    prev.textContent = JSON.stringify(asal, null, 2);
+                } catch(e){}
+            }
+        }
+
+        const kumpulBackupDataSebelumUpdateV1 = typeof kumpulBackupData === 'function' ? kumpulBackupData : null;
+        if(kumpulBackupDataSebelumUpdateV1){
+            kumpulBackupData = function(){
+                const data = kumpulBackupDataSebelumUpdateV1();
+                data.auditLog = DB_AuditLog_UpdateV1;
+                data.meta = { ...(data.meta || {}), labelUpdate: ESILO_UPDATE_V1_LABEL, auditLog: DB_AuditLog_UpdateV1.length };
+                return data;
+            };
+        }
+
+        function muatTurunBackupAutoSebelumResetUpdateV1(target){
+            const data = kumpulBackupData ? kumpulBackupData() : { meta:{ sistem:'E-SILO', dijanaPada:nowIsoUpdateV1(), dijanaOleh:profilSemasa?.emel || '-' } };
+            data.meta = { ...(data.meta || {}), jenisBackup:'AUTO SEBELUM RESET', resetTarget:target, labelUpdate:ESILO_UPDATE_V1_LABEL };
+            downloadText(`ESILO_AUTO_BACKUP_SEBELUM_RESET_${target}_${namaFailMasaUpdateV1()}.json`, JSON.stringify(data, null, 2), 'application/json;charset=utf-8');
+            const st = document.getElementById('statusBackup');
+            if(st) st.innerText = `Auto backup sebelum reset telah dijana untuk ${target}.`;
+        }
+
+        const resetDataMentahSebelumUpdateV1 = window.resetDataMentahV63;
+        window.resetDataMentahV63 = async function(){
+            const target = document.getElementById('resetTargetV63')?.value || '-';
+            const phrase = document.getElementById('resetPhraseV63')?.value || '';
+            if(phrase === RESET_PHRASE_V63){
+                muatTurunBackupAutoSebelumResetUpdateV1(target);
+                await catatAuditUpdateV1('AUTO_BACKUP_SEBELUM_RESET', 'RESET', target, { arahan:'Auto backup dijana sebelum clear data Firestore.' });
+            }
+            await resetDataMentahSebelumUpdateV1();
+            if(phrase === RESET_PHRASE_V63){
+                await catatAuditUpdateV1('RESET', 'DATA_MENTAH', target, { targetText:getTargetTextUpdateV1('resetTargetV63') });
+            }
+        };
+
+        async function uploadGambarKenderaanStorageUpdateV1(plat, dataUrl){
+            if(!dataUrl || !String(dataUrl).startsWith('data:image/')) return dataUrl || '';
+            const path = `kenderaan/${safeDocIdV63(plat || 'TANPA_PLAT')}_${Date.now()}.jpg`;
+            try{
+                const r = storageRef(storage, path);
+                await uploadString(r, dataUrl, 'data_url');
+                const url = await getDownloadURL(r);
+                await catatAuditUpdateV1('UPLOAD_STORAGE', 'KENDERAAN_GAMBAR', plat, { path, nota:'Gambar disimpan di Firebase Storage; Firestore simpan URL sahaja.' });
+                return url;
+            } catch(err){
+                console.warn('Upload Firebase Storage gagal. Sistem fallback kepada gambar optimum dalam Firestore:', err);
+                await catatAuditUpdateV1('FALLBACK_BASE64', 'KENDERAAN_GAMBAR', plat, { sebab:String(err?.message || err).slice(0,200) });
+                return dataUrl;
+            }
+        }
+
+        const simpanStafSebelumUpdateV1 = window.simpanStaf;
+        window.simpanStaf = async function(e){
+            const emel = (document.getElementById('stafEmel')?.value || '').trim().toLowerCase();
+            const wujud = DB_Pengguna.some(p => String(p.emel||'').toLowerCase() === emel);
+            await simpanStafSebelumUpdateV1(e);
+            if(emel) await catatAuditUpdateV1(wujud ? 'EDIT' : 'TAMBAH', 'STAF', emel, { nama:document.getElementById('stafNama')?.value || '-' });
+        };
+
+        const simpanKenderaanSebelumUpdateV1 = window.simpanKenderaan;
+        window.simpanKenderaan = async function(e){
+            if(e && typeof e.preventDefault === 'function') e.preventDefault();
+            const plat = (document.getElementById('k_plat')?.value || '').trim().toUpperCase();
+            const wujud = DB_Kenderaan.some(k => String(k.plat||'').toUpperCase() === plat);
+            const hidden = document.getElementById('kenderaanGambarBase64');
+            if(hidden && hidden.value && String(hidden.value).startsWith('data:image/')){
+                hidden.value = await uploadGambarKenderaanStorageUpdateV1(plat, hidden.value);
+            }
+            await simpanKenderaanSebelumUpdateV1(e);
+            if(plat) await catatAuditUpdateV1(wujud ? 'EDIT' : 'TAMBAH', 'KENDERAAN', plat, { jenama:document.getElementById('k_jenama')?.value || '-' });
+        };
+
+        const simpanRekodKadSebelumUpdateV1 = window.simpanRekodKad;
+        window.simpanRekodKad = async function(e){
+            const noKad = document.getElementById('kadNo')?.value || '-';
+            const wujud = DB_RekodKad.some(k => String(k.noKad||'').toUpperCase() === String(noKad).toUpperCase());
+            await simpanRekodKadSebelumUpdateV1(e);
+            await catatAuditUpdateV1(wujud ? 'EDIT' : 'TAMBAH', 'REKOD_KAD', noKad, { kategori:document.getElementById('kadKategori')?.value || '-' });
+        };
+
+        const simpanRekodSelenggaraSebelumUpdateV1 = window.simpanRekodSelenggara;
+        window.simpanRekodSelenggara = async function(e){
+            const plat = document.getElementById('selNoKenderaan')?.value || document.getElementById('selPlatAktif')?.value || '-';
+            await simpanRekodSelenggaraSebelumUpdateV1(e);
+            await catatAuditUpdateV1('EDIT', 'REKOD_SELENGGARA', plat, { status:document.getElementById('selStatusSelenggara')?.value || '-' });
+        };
+
+        ['padamStafV63','padamKenderaanV63','padamRekodKadV63','padamRekodSelenggaraV63'].forEach(fnName => {
+            const asal = window[fnName];
+            if(typeof asal !== 'function') return;
+            window[fnName] = async function(...args){
+                const target = args.filter(Boolean).join(' / ') || '-';
+                await asal(...args);
+                const modul = fnName.replace('padam','').replace('V63','').toUpperCase();
+                await catatAuditUpdateV1('PADAM', modul, target, { fungsi:fnName });
+            };
+        });
+
+        function pastikanKawalanPaginationLaporanUpdateV1(){
+            const tb = document.getElementById('jadualLaporanDigital');
+            if(!tb || document.getElementById('paginationLaporanUpdateV1')) return;
+            const wrap = document.createElement('div');
+            wrap.id = 'paginationLaporanUpdateV1';
+            wrap.className = 'flex flex-col md:flex-row md:items-center md:justify-between gap-3 mt-4 bg-gray-50 border rounded p-3 text-sm';
+            wrap.innerHTML = `
+                <div id="paginationInfoUpdateV1" class="font-bold text-gray-700">Paparan laporan.</div>
+                <div class="flex gap-2">
+                    <button type="button" onclick="tukarPageLaporanUpdateV1(-1)" class="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded font-bold">SEBELUM</button>
+                    <button type="button" onclick="tukarPageLaporanUpdateV1(1)" class="bg-gray-800 hover:bg-black text-white px-4 py-2 rounded font-bold">SETERUSNYA</button>
+                </div>`;
+            const parentTable = tb.closest('table');
+            if(parentTable) parentTable.insertAdjacentElement('afterend', wrap);
+        }
+
+        function renderLaporanPageUpdateV1(){
+            const tb = document.getElementById('jadualLaporanDigital');
+            if(!tb) return;
+            pastikanKawalanPaginationLaporanUpdateV1();
+            const total = laporanSemasa?.length || 0;
+            const totalPage = Math.max(1, Math.ceil(total / LAPORAN_PAGE_SIZE_UPDATE_V1));
+            laporanPageUpdateV1 = Math.min(Math.max(1, laporanPageUpdateV1), totalPage);
+            const start = (laporanPageUpdateV1 - 1) * LAPORAN_PAGE_SIZE_UPDATE_V1;
+            const pageData = (laporanSemasa || []).slice(start, start + LAPORAN_PAGE_SIZE_UPDATE_V1);
+            const info = document.getElementById('paginationInfoUpdateV1');
+            if(info) info.textContent = total ? `Paparan ${start + 1} - ${Math.min(start + LAPORAN_PAGE_SIZE_UPDATE_V1, total)} daripada ${total} rekod | Halaman ${laporanPageUpdateV1}/${totalPage}` : 'Tiada rekod laporan.';
+            if(!total){
+                tb.innerHTML = '<tr><td colspan="14" class="p-6 text-center text-gray-500 font-bold bg-gray-50">Tiada rekod laporan ditemui berdasarkan tapisan semasa.</td></tr>';
+                return;
+            }
+            tb.innerHTML = pageData.map(l => `<tr class="border-b hover:bg-gray-50">
+                <td class="p-2">${escapeHtml(formatTarikhDDMMYYYY(l.tarikh || l.timestampPulang))}</td>
+                <td class="p-2">${escapeHtml(l.masaMula || '-')}</td>
+                <td class="p-2">${escapeHtml(l.masaAkhir || '-')}</td>
+                <td class="p-2 font-bold">${escapeHtml(l.namaPengguna || '-')}</td>
+                <td class="p-2">${escapeHtml(l.tujuan || '-')}</td>
+                <td class="p-2">${escapeHtml(l.lokasi || '-')}</td>
+                <td class="p-2">${escapeHtml(l.namaPelulus || l.pelulusEmel || '-')}</td>
+                <td class="p-2 font-bold text-blue-700">${escapeHtml(l.noPendaftaran || '-')}</td>
+                <td class="p-2">${escapeHtml(formatOdometer0(l.odometerAkhir || 0))}</td>
+                <td class="p-2">${escapeHtml(formatOdometer0(l.penggunaanOdometer || 0))}</td>
+                <td class="p-2">${escapeHtml(l.penggunaanKadInden || 'Tidak')}<br><span class="text-xs text-gray-500">${escapeHtml(l.jenamaStesen || '-')} ${escapeHtml(l.jenisMinyak || '')}</span><br><span class="text-[11px] text-gray-400">${escapeHtml((l.nilaiRM || l.jumlahRM) ? formatRM2(l.nilaiRM || l.jumlahRM) : '')}</span></td>
+                <td class="p-2">${escapeHtml(l.noInv || '-')}</td>
+                <td class="p-2">${escapeHtml(l.jumlahLiter ? formatLiter3(l.jumlahLiter) : '-')}</td>
+                <td class="p-2">${escapeHtml(l.catatanPengguna || '-')}</td>
+            </tr>`).join('');
+        }
+        window.tukarPageLaporanUpdateV1 = function(step){ laporanPageUpdateV1 += Number(step || 0); renderLaporanPageUpdateV1(); };
+
+        const janaLaporanDigitalSebelumUpdateV1 = window.janaLaporanDigital;
+        window.janaLaporanDigital = function(forceJenis){
+            janaLaporanDigitalSebelumUpdateV1(forceJenis);
+            laporanPageUpdateV1 = 1;
+            if(laporanSemasa && laporanSemasa.length > LAPORAN_PAGE_SIZE_UPDATE_V1) renderLaporanPageUpdateV1();
+            else pastikanKawalanPaginationLaporanUpdateV1();
+        };
+
+        const resetTapisanLaporanSebelumUpdateV1 = window.resetTapisanLaporan;
+        window.resetTapisanLaporan = function(){
+            resetTapisanLaporanSebelumUpdateV1();
+            laporanPageUpdateV1 = 1;
+            const info = document.getElementById('paginationInfoUpdateV1');
+            if(info) info.textContent = 'Paparan laporan.';
+        };
+
+        const janaSistemSebelumUpdateV1 = janaSistem;
+        janaSistem = function(){
+            janaSistemSebelumUpdateV1();
+            pasangAuditPanelUpdateV1();
+            pastikanKawalanPaginationLaporanUpdateV1();
+        };
+
+        setTimeout(() => { pasangAuditPanelUpdateV1(); pastikanKawalanPaginationLaporanUpdateV1(); kemaskiniRingkasanBackupUpdateV1(); }, 1800);
 
     </script>
 </body>
