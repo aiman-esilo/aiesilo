@@ -5056,6 +5056,180 @@
 
         setTimeout(() => { pasangAuditPanelUpdateV1(); pastikanKawalanPaginationLaporanUpdateV1(); kemaskiniRingkasanBackupUpdateV1(); }, 1800);
 
+
+        // ================= PATCH esilo_update_v1.1: REPAIR AKSES SUPER ADMIN ASSIGN =================
+        // Tujuan: jika peranan dimasukkan sebagai "Super Admin", "super admin", "super_admin" atau "superadmin",
+        // sistem tetap menganggap pengguna itu sebagai SUPER ADMIN dan memaparkan semua dashboard/settings yang sepatutnya.
+
+        function normalPerananEsiloV11(value){
+            let s = String(value || '').trim().toLowerCase();
+            s = s.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+            const compact = s.replace(/\s+/g, '');
+            if(compact === 'superadmin' || (s.includes('super') && s.includes('admin')) || s === 'ketua admin' || s === 'pentadbir utama') return 'superadmin';
+            if(compact === 'admin' || s.includes('admin') || s.includes('pentadbir')) return 'admin';
+            if(s.includes('penumpang') || s.includes('passenger')) return 'penumpang';
+            if(s.includes('pengguna') || s.includes('user')) return 'pengguna';
+            return compact || 'pengguna';
+        }
+
+        function labelPerananEsiloV11(role){
+            const r = normalPerananEsiloV11(role);
+            if(r === 'superadmin') return 'SUPER ADMIN';
+            if(r === 'admin') return 'ADMIN';
+            if(r === 'penumpang') return 'PENUMPANG';
+            return 'PENGGUNA';
+        }
+
+        function normalSemuaPerananDBV11(){
+            try{
+                if(Array.isArray(DB_Pengguna)){
+                    DB_Pengguna.forEach(p => {
+                        if(p && p.peranan) p.peranan = normalPerananEsiloV11(p.peranan);
+                    });
+                }
+                if(profilSemasa && profilSemasa.peranan) profilSemasa.peranan = normalPerananEsiloV11(profilSemasa.peranan);
+            } catch(e){ console.warn('Normalisasi peranan gagal:', e); }
+        }
+
+        // Override semakan akses supaya semua fungsi lama dan patch baharu membaca format peranan yang seragam.
+        try{
+            aksesAdmin = function(){
+                const r = normalPerananEsiloV11(profilSemasa?.peranan);
+                return r === 'admin' || r === 'superadmin';
+            };
+        } catch(e){ console.warn('Override aksesAdmin gagal:', e); }
+        try{
+            isSuperAdminV63 = function(){
+                return normalPerananEsiloV11(profilSemasa?.peranan) === 'superadmin';
+            };
+        } catch(e){ console.warn('Override isSuperAdminV63 gagal:', e); }
+
+        function refreshAksesMenuSuperAdminV11(){
+            normalSemuaPerananDBV11();
+            const role = normalPerananEsiloV11(profilSemasa?.peranan);
+            const isAdmin = role === 'admin' || role === 'superadmin';
+            const isSuper = role === 'superadmin';
+
+            const profilPerananEl = document.getElementById('profilPeranan');
+            if(profilPerananEl) profilPerananEl.innerText = labelPerananEsiloV11(role);
+
+            setTabVisible('tabDashboard', true);
+            setTabVisible('tabOperasi', true);
+            setTabVisible('tabAmbil', role !== 'penumpang');
+            setTabVisible('tabPulang', role !== 'penumpang');
+            setTabVisible('tabSelenggara', isSuper);
+            setTabVisible('tabSelenggaraKenderaan', isAdmin);
+            setTabVisible('tabRekodKad', isAdmin);
+            setTabVisible('tabRekodSelenggara', isAdmin);
+            setTabVisible('tabLaporan', isAdmin);
+            setTabVisible('tabBackup', isAdmin);
+            setTabVisible('tabKelulusan', isAdmin);
+            setTabVisible('tabTetapanUtama', isSuper);
+
+            const teks = document.getElementById('teksTabOperasi');
+            if(teks) teks.innerText = '📝 TEMPAHAN';
+            const badgeTempahan = document.getElementById('badgeTempahan');
+            if(badgeTempahan) badgeTempahan.classList.add('hilang');
+
+            if(typeof pasangMenuKelulusanV63 === 'function') pasangMenuKelulusanV63();
+            if(typeof pasangResetTetapanV63 === 'function') pasangResetTetapanV63();
+            if(typeof applyTetapanUtamaV61 === 'function') applyTetapanUtamaV61();
+            if(typeof renderTetapanUtamaV61 === 'function') renderTetapanUtamaV61();
+            if(typeof kemaskiniBadgeKelulusanV63 === 'function') kemaskiniBadgeKelulusanV63();
+        }
+
+        // Repair utama: selepas tukar pengguna, paksa semak semula akses menggunakan peranan yang telah dinormalisasi.
+        const tukarPenggunaAkaunSebelumV11 = window.tukarPenggunaAkaun;
+        window.tukarPenggunaAkaun = function(emel){
+            normalSemuaPerananDBV11();
+            const result = tukarPenggunaAkaunSebelumV11(emel);
+            normalSemuaPerananDBV11();
+            refreshAksesMenuSuperAdminV11();
+            return result;
+        };
+
+        // Repair paparan tab Tetapan Utama: hanya SUPER ADMIN, termasuk role "super admin" yang diassign.
+        const paparTabSebelumV11 = window.paparTab;
+        window.paparTab = function(tabId){
+            normalSemuaPerananDBV11();
+            if(tabId === 'tetapanUtama' && normalPerananEsiloV11(profilSemasa?.peranan) !== 'superadmin'){
+                return paparTabSebelumV11('dashboard');
+            }
+            const result = paparTabSebelumV11(tabId);
+            refreshAksesMenuSuperAdminV11();
+            return result;
+        };
+
+        // Simpan staf: pastikan apa-apa input peranan disimpan dalam format standard.
+        const simpanStafSebelumV11 = window.simpanStaf;
+        window.simpanStaf = async function(e){
+            const roleEl = document.getElementById('stafPeranan');
+            if(roleEl) roleEl.value = normalPerananEsiloV11(roleEl.value);
+            const result = await simpanStafSebelumV11(e);
+            normalSemuaPerananDBV11();
+            refreshAksesMenuSuperAdminV11();
+            return result;
+        };
+
+        // Upload bundle staf: terima Super Admin / super admin / super_admin dan simpan sebagai superadmin.
+        window.muatNaikPukal = function(){
+            if(normalPerananEsiloV11(profilSemasa?.peranan) !== 'superadmin') return alert('Upload bundle staf hanya untuk Super Admin.');
+            const fileInput = document.getElementById('excelFile');
+            if(!fileInput || fileInput.files.length === 0) return alert('Sila pilih fail CSV template terlebih dahulu!');
+            const reader = new FileReader();
+            reader.onload = async function(e){
+                const rows = parseCSVV62(e.target.result);
+                let kira = 0, gagal = 0;
+                for(const r of rows){
+                    const nama = nilaiHeaderV62(r, ['nama','nama_penuh']);
+                    const emel = nilaiHeaderV62(r, ['emel','email','emel_rasmi']).toLowerCase();
+                    if(!nama || !emel){ gagal++; continue; }
+                    const dataStaf = {
+                        nama,
+                        emel,
+                        tel: normalTelefonMYV63(nilaiHeaderV62(r, ['no_telefon','telefon','tel','no_hp','no_h/p'])),
+                        unit: nilaiHeaderV62(r, ['unit','unit_jabatan','jabatan'], '-'),
+                        tempatBertugas: nilaiHeaderV62(r, ['tempat_bertugas','lokasi_bertugas'], '-'),
+                        peranan: normalPerananEsiloV11(nilaiHeaderV62(r, ['peranan','role'], 'pengguna')),
+                        gambar: ''
+                    };
+                    try { await setDoc(doc(db, 'pengguna_esilo', emel), dataStaf, { merge:true }); kira++; }
+                    catch(err){ console.error('Gagal upload staf', emel, err); gagal++; }
+                }
+                fileInput.value = '';
+                normalSemuaPerananDBV11();
+                refreshAksesMenuSuperAdminV11();
+                notif(`${kira} staf berjaya dimuat naik. ${gagal ? gagal + ' rekod gagal/diabaikan.' : ''}`);
+            };
+            reader.readAsText(fileInput.files[0]);
+        };
+
+        // Template dikemaskini supaya jelas format role yang diterima.
+        window.downloadTemplate = function(){
+            downloadCSVV62('template_staf_esilo.csv', [
+                ['Nama','Emel','No_Telefon','Unit','Tempat_Bertugas','Peranan'],
+                ['Ali Bin Ahmad','ali@esilo.my','0194444282','Unit IT','KPDN Pulau Pinang','pengguna'],
+                ['Zubair','zubair@esilo.my','0194444-282','Pentadbiran','KPDN Pulau Pinang','admin'],
+                ['Aiman','aiman@esilo.my','0111-4568 5482','Logistik','KPDN Pulau Pinang','superadmin'],
+                ['Abu','abu@esilo.my','0111-4568 5482','Pembangunan','Cawangan Butterworth','penumpang']
+            ]);
+        };
+
+        const janaSistemSebelumV11 = janaSistem;
+        janaSistem = function(){
+            normalSemuaPerananDBV11();
+            janaSistemSebelumV11();
+            refreshAksesMenuSuperAdminV11();
+        };
+
+        setTimeout(() => {
+            normalSemuaPerananDBV11();
+            refreshAksesMenuSuperAdminV11();
+            const current = document.getElementById('pilihUjianUser')?.value;
+            if(current) window.tukarPenggunaAkaun(current);
+        }, 2000);
+
+
     </script>
 </body>
 </html>
