@@ -5539,6 +5539,284 @@
         setTimeout(pasangPaparanGambarKenderaanV12, 2200);
 
 
+        /* =====================================================================
+           ESILO UPDATE V1.3 - REKOD KAD SEARCH/LIMIT + KENDERAAN FULL CARD VIEW
+           Tarikh: 2026-07-06
+           Tujuan:
+           1) Senarai Kad Inden & Touch 'n Go: carian no kenderaan + pilihan 10/50/100.
+           2) Pangkalan Data Aset Kenderaan: papar keseluruhan Inden/TNG ikut no plat.
+           3) Paparan Utama: kenderaan yang ada status/aktiviti naik ke atas.
+           ===================================================================== */
+        const ESILO_UPDATE_V13_LABEL = 'esilo_update_v1.3_rekod_kad_kenderaan_dashboard';
+
+        function safeTextV13(v){
+            try { return escapeHtml(v == null || v === '' ? '-' : String(v)); }
+            catch(e){ return String(v == null || v === '' ? '-' : v).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+        }
+        function safeJsV13(v){
+            try { return jsStringV63(v == null ? '' : String(v)); }
+            catch(e){ return String(v == null ? '' : v).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,' '); }
+        }
+        function normPlatV13(v){ return String(v || '').trim().toUpperCase().replace(/\s+/g, ' '); }
+        function tarikhSortV13(v){
+            if(!v || v === '-') return 0;
+            const t = new Date(v).getTime();
+            return Number.isFinite(t) ? t : 0;
+        }
+        function capV13(v){
+            const s = String(v || '').trim();
+            return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '-';
+        }
+        function statusKadBadgeV13(st){
+            const s = String(st || 'aktif').toLowerCase();
+            return s === 'aktif'
+                ? '<span class="ml-1 px-1.5 py-0.5 rounded bg-green-100 text-green-700 text-[10px] font-black">AKTIF</span>'
+                : '<span class="ml-1 px-1.5 py-0.5 rounded bg-red-100 text-red-700 text-[10px] font-black">TIDAK AKTIF</span>';
+        }
+        function dapatkanSemuaKadUntukKenderaanV13(plat){
+            const p = normPlatV13(plat);
+            const padan = (r) => normPlatV13(r.plat) === p;
+            const sortKad = (a,b) => {
+                const sa = String(a.statusKad || 'aktif').toLowerCase() === 'aktif' ? 0 : 1;
+                const sb = String(b.statusKad || 'aktif').toLowerCase() === 'aktif' ? 0 : 1;
+                if(sa !== sb) return sa - sb;
+                return String(a.noKad || '').localeCompare(String(b.noKad || ''));
+            };
+            const semuaInden = DB_RekodKad.filter(r => String(r.kategori || '').toLowerCase() === 'inden' && padan(r)).sort(sortKad);
+            const semuaTNG = DB_RekodKad.filter(r => String(r.kategori || '').toLowerCase() === 'tng' && padan(r)).sort(sortKad);
+            return { semuaInden, semuaTNG };
+        }
+        function renderSenaraiKadRingkasV13(list, jenis, fallback){
+            if(list && list.length){
+                return `<div class="mt-1 space-y-1 max-h-40 overflow-y-auto pr-1">` + list.map((x, idx) => {
+                    const extra = jenis === 'inden'
+                        ? `<span class="text-gray-500">${safeTextV13(x.jenamaStesen || '-')} / ${safeTextV13(x.jenisMinyak || '-')}</span>`
+                        : `<span class="text-gray-500">Touch 'n Go</span>`;
+                    return `<div class="rounded border bg-white px-2 py-1 leading-snug">
+                        <span class="font-black text-gray-800">${idx+1}. ${safeTextV13(x.noKad || '-')}</span>${statusKadBadgeV13(x.statusKad)}<br>${extra}
+                        <span class="text-gray-400"> | Luput: ${safeTextV13(x.tarikhLuput || '-')}</span>
+                    </div>`;
+                }).join('') + `</div>`;
+            }
+            if(fallback && fallback !== '-') return `<div class="mt-1 rounded border bg-white px-2 py-1"><span class="font-black">${safeTextV13(fallback)}</span><span class="text-gray-500"> | rekod lama pada aset</span></div>`;
+            return '<span class="text-gray-400">Tiada rekod</span>';
+        }
+
+        function pasangKawalanRekodKadV13(){
+            const tb = document.getElementById('jadualRekodKad');
+            if(!tb) return;
+            const panel = tb.closest('.bg-white');
+            if(!panel || document.getElementById('rkKawalanV13')) return;
+            const overflow = tb.closest('.overflow-x-auto');
+            const html = `<div id="rkKawalanV13" class="bg-cyan-50 border border-cyan-200 rounded-lg p-3 mb-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-black text-cyan-900 mb-1 uppercase">Carian berdasarkan No Kenderaan</label>
+                        <input type="text" id="rkCariPlatV13" oninput="janaRekodKad()" class="w-full p-2 border rounded font-bold uppercase" placeholder="Contoh: BEE 1234 / WA 8888">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-black text-cyan-900 mb-1 uppercase">Lihat Rekod</label>
+                        <select id="rkLimitV13" onchange="janaRekodKad()" class="w-full p-2 border rounded font-bold">
+                            <option value="10" selected>10 rekod</option>
+                            <option value="50">50 rekod</option>
+                            <option value="100">100 rekod</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mt-2">
+                    <p id="rkInfoRingkasV13" class="text-xs text-cyan-900 font-semibold">Paparan lalai: 10 rekod terkini. Taip no kenderaan untuk tapis.</p>
+                    <button type="button" onclick="resetCarianRekodKadV13()" class="text-xs bg-white border border-cyan-300 text-cyan-800 px-3 py-1 rounded font-black hover:bg-cyan-100">RESET CARIAN</button>
+                </div>
+            </div>`;
+            if(overflow) overflow.insertAdjacentHTML('beforebegin', html);
+            else panel.insertAdjacentHTML('beforeend', html);
+        }
+        window.resetCarianRekodKadV13 = function(){
+            const q = document.getElementById('rkCariPlatV13');
+            const l = document.getElementById('rkLimitV13');
+            if(q) q.value = '';
+            if(l) l.value = '10';
+            janaRekodKad();
+        };
+
+        janaRekodKad = function(){
+            pasangKawalanRekodKadV13();
+            const tb = document.getElementById('jadualRekodKad');
+            if(!tb) return;
+            const queryPlat = normPlatV13(document.getElementById('rkCariPlatV13')?.value || '');
+            const limit = parseInt(document.getElementById('rkLimitV13')?.value || '10', 10) || 10;
+            let senarai = DB_RekodKad.slice().sort((a,b) => {
+                const ta = tarikhSortV13(a.updatedAt || a.createdAt || a.tarikhLuput);
+                const tb2 = tarikhSortV13(b.updatedAt || b.createdAt || b.tarikhLuput);
+                if(tb2 !== ta) return tb2 - ta;
+                return normPlatV13(a.plat).localeCompare(normPlatV13(b.plat));
+            });
+            if(queryPlat){
+                senarai = senarai.filter(r => normPlatV13(r.plat).includes(queryPlat));
+            }
+            const jumlahTapis = senarai.length;
+            senarai = senarai.slice(0, limit);
+            const info = document.getElementById('rkInfoRingkasV13');
+            if(info){
+                info.innerText = queryPlat
+                    ? `Carian ${queryPlat}: papar ${senarai.length} daripada ${jumlahTapis} rekod padanan. Jumlah semua rekod kad: ${DB_RekodKad.length}.`
+                    : `Paparan ${senarai.length} daripada ${DB_RekodKad.length} rekod kad. Tukar pilihan Lihat Rekod untuk 10, 50 atau 100.`;
+            }
+            tb.innerHTML = '';
+            if(DB_RekodKad.length === 0){
+                tb.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-gray-500 font-bold bg-gray-50">Tiada rekod kad setakat ini.</td></tr>';
+                return;
+            }
+            if(jumlahTapis === 0){
+                tb.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-gray-500 font-bold bg-gray-50">Tiada rekod kad ditemui untuk no kenderaan tersebut.</td></tr>';
+                return;
+            }
+            senarai.forEach(r => {
+                const kategori = String(r.kategori || '').toLowerCase() === 'inden' ? 'Kad Inden' : "Touch 'n Go";
+                const warna = String(r.kategori || '').toLowerCase() === 'inden' ? 'bg-cyan-100 text-cyan-800' : 'bg-emerald-100 text-emerald-800';
+                const stat = String(r.statusKad || 'aktif').toLowerCase();
+                const stClass = stat === 'aktif' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
+                const luput = statusLuputKad(r.tarikhLuput);
+                tb.innerHTML += `<tr class="border-b hover:bg-gray-50 align-top">
+                    <td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold ${warna}">${kategori}</span></td>
+                    <td class="p-3 font-bold">${safeTextV13(r.noKad)}</td>
+                    <td class="p-3">${safeTextV13(r.jenamaStesen || '-')}<br><span class="text-xs text-gray-500">${safeTextV13(r.jenisMinyak || '-')}</span></td>
+                    <td class="p-3">${safeTextV13(r.tarikhLuput || '-')}</td>
+                    <td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold ${stClass}">${safeTextV13(stat.toUpperCase())}</span><br><span class="inline-block mt-1 px-2 py-1 rounded text-xs font-bold ${luput.kelas}">${safeTextV13(luput.teks)}</span></td>
+                    <td class="p-3 font-black text-blue-700">${safeTextV13(r.plat || '-')}</td>
+                    <td class="p-3 text-xs">${safeTextV13(r.ulasanTidakAktif || '-')}</td>
+                    <td class="p-3 text-center"><div class="grid grid-cols-1 gap-1"><button onclick="editRekodKad('${safeJsV13(r.id)}')" class="text-xs bg-blue-100 px-3 py-1 rounded font-bold hover:bg-blue-200 shadow">Edit</button><button onclick="padamRekodKadV63('${safeJsV13(r.id)}','${safeJsV13(r.noKad)}')" class="text-xs bg-red-600 text-white px-3 py-1 rounded font-bold hover:bg-red-700 shadow">PADAM</button></div></td>
+                </tr>`;
+            });
+        };
+
+        janaSistemKenderaan = function(){
+            const tbody = document.getElementById('jadualSelenggaraKenderaan');
+            const dl = document.getElementById('senaraiPlatKenderaan');
+            if(dl) dl.innerHTML = DB_Kenderaan.map(k => `<option value="${safeTextV13(k.plat)}">${safeTextV13(k.jenama || '')}</option>`).join('');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            if(DB_Kenderaan.length === 0){
+                tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-500 bg-gray-50 font-bold">Tiada rekod kenderaan.</td></tr>';
+                return;
+            }
+            const list = DB_Kenderaan.slice().sort((a,b) => normPlatV13(a.plat).localeCompare(normPlatV13(b.plat)));
+            list.forEach(k => {
+                const img = k.gambar || 'https://placehold.co/640x360/e2e8f0/64748b?text=Kereta';
+                const semuaKad = dapatkanSemuaKadUntukKenderaanV13(k.plat);
+                const indenList = renderSenaraiKadRingkasV13(semuaKad.semuaInden, 'inden', k.kadInden);
+                const tngList = renderSenaraiKadRingkasV13(semuaKad.semuaTNG, 'tng', k.tng);
+                const infoKad = `<div class="mt-2 rounded bg-blue-50 border border-blue-100 p-2">
+                    <div class="text-xs font-black text-blue-800 uppercase">Inden Keseluruhan (${semuaKad.semuaInden.length || (k.kadInden && k.kadInden !== '-' ? 1 : 0)})</div>${indenList}
+                    <div class="text-xs font-black text-emerald-800 uppercase mt-2">Touch 'n Go Keseluruhan (${semuaKad.semuaTNG.length || (k.tng && k.tng !== '-' ? 1 : 0)})</div>${tngList}
+                </div>`;
+                tbody.innerHTML += `<tr class="border-b hover:bg-gray-50 align-top">
+                    <td class="p-2"><img src="${safeTextV13(img)}" loading="lazy" class="w-44 h-28 object-contain rounded border bg-white shadow-sm"></td>
+                    <td class="p-2"><strong class="text-gray-900">${safeTextV13(k.plat || '-')}</strong><br><span class="text-xs text-gray-500">${safeTextV13(k.jenama || '-')}</span>${infoKad}</td>
+                    <td class="p-2"><span>${safeTextV13(k.jenis || '-')}</span><br><span class="text-xs font-bold px-1 rounded bg-gray-100">${safeTextV13(k.milikan || '-')}</span></td>
+                    <td class="p-2">${safeTextV13(k.noAset || '-')}</td>
+                    <td class="p-2 text-center"><div class="grid grid-cols-1 gap-1"><button onclick="editKenderaan('${safeJsV13(k.plat)}')" class="text-xs bg-blue-100 px-3 py-1 rounded font-bold hover:bg-blue-200 shadow">Edit</button><button onclick="padamKenderaanV63('${safeJsV13(k.plat)}')" class="text-xs bg-red-600 text-white px-3 py-1 rounded font-bold hover:bg-red-700 shadow">PADAM</button></div></td>
+                </tr>`;
+            });
+        };
+
+        function statusPriorityDashboardV13(k){
+            const st = String(k.status || '').toLowerCase();
+            if(st === 'sedang digunakan') return 1;
+            if(st === 'ditempah') return 2;
+            if(st === 'sedang diselenggara') return 3;
+            if(st && st !== 'available') return 4;
+            return 9;
+        }
+        function masaAktivitiKenderaanV13(k){
+            return Math.max(
+                tarikhSortV13(k.updateMasa),
+                tarikhSortV13(k.updatedAt),
+                tarikhSortV13(k.masaAmbil),
+                tarikhSortV13(k.tMula),
+                tarikhSortV13(k.tTamat)
+            );
+        }
+
+        janaSistem = function(){
+            let pendingCount = DB_Tempahan.filter(t => t.status === "Menunggu Kelulusan").length;
+            let badge = document.getElementById('badgeTempahan');
+            if (badge) {
+                if (pendingCount > 0 && aksesAdmin()) { badge.innerText = pendingCount; badge.classList.remove('hilang'); }
+                else { badge.classList.add('hilang'); }
+            }
+            const tbDash = document.getElementById('jadualDashboard'); if(!tbDash) return; tbDash.innerHTML = '';
+            let kenderaanDipapar = DB_Kenderaan.slice();
+            const carian = (document.getElementById('carianDashboardKenderaan')?.value || '').toLowerCase().trim();
+            if(profilSemasa.peranan === 'pengguna' || profilSemasa.peranan === 'penumpang') {
+                document.getElementById('dashboardSummary')?.classList.add('hilang');
+                const tajuk = document.getElementById('tajukDashboard'); if(tajuk) tajuk.innerText = 'Status Kenderaan Sedang Ditempah / Digunakan';
+                kenderaanDipapar = kenderaanDipapar.filter(k => k.status === 'Ditempah' || k.status === 'Sedang Digunakan');
+            } else {
+                document.getElementById('dashboardSummary')?.classList.remove('hilang');
+                const tajuk = document.getElementById('tajukDashboard'); if(tajuk) tajuk.innerText = 'Status Semasa Semua Kenderaan';
+                const set = (id,v)=>{ const el=document.getElementById(id); if(el) el.innerText=v; };
+                set('sumTotal', DB_Kenderaan.length);
+                set('sumAvailable', DB_Kenderaan.filter(k => k.status === 'Available').length);
+                set('sumDitempah', DB_Kenderaan.filter(k => k.status === 'Ditempah').length);
+                set('sumSedangGuna', DB_Kenderaan.filter(k => k.status === 'Sedang Digunakan').length);
+            }
+            if(carian) {
+                kenderaanDipapar = kenderaanDipapar.filter(k =>
+                    String(k.plat || '').toLowerCase().includes(carian) ||
+                    String(k.jenama || '').toLowerCase().includes(carian) ||
+                    String(k.modelKenderaan || '').toLowerCase().includes(carian) ||
+                    String(k.jenis || '').toLowerCase().includes(carian) ||
+                    String(k.status || '').toLowerCase().includes(carian)
+                );
+            }
+            kenderaanDipapar.sort((a,b) => {
+                const pa = statusPriorityDashboardV13(a), pb = statusPriorityDashboardV13(b);
+                if(pa !== pb) return pa - pb;
+                const ma = masaAktivitiKenderaanV13(a), mb = masaAktivitiKenderaanV13(b);
+                if(mb !== ma) return mb - ma;
+                return normPlatV13(a.plat).localeCompare(normPlatV13(b.plat));
+            });
+            if (kenderaanDipapar.length === 0) {
+                tbDash.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-gray-500 font-semibold bg-gray-50">Tiada rekod kenderaan ditemui berdasarkan paparan / carian semasa.</td></tr>`;
+            } else {
+                kenderaanDipapar.forEach((k, i) => {
+                    let bg = k.status === 'Available' ? 'bg-green-100 text-green-700' : (k.status === 'Ditempah' ? 'bg-yellow-100 text-yellow-800' : (k.status === 'Sedang Diselenggara' ? 'bg-purple-100 text-purple-700' : 'bg-red-100 text-red-700'));
+                    let textP = '-'; let textTel = '-';
+                    if(k.status === 'Ditempah') { textP = `(Ditempah) ${k.tempahOleh || '-'}`; textTel = k.noTelPengguna || '-'; }
+                    else if(k.status === 'Sedang Digunakan') { textP = k.pengguna || '-'; textTel = k.noTelPengguna || '-'; }
+                    else if(k.status === 'Sedang Diselenggara') { textP = 'Dalam Selenggara'; textTel = '-'; }
+                    let textMasaMula = k.status === 'Sedang Digunakan' ? formatMasa(k.masaAmbil) : formatTarikhMY(k.tMula);
+                    let textMasaTamat = formatTarikhMY(k.tTamat);
+                    tbDash.innerHTML += `<tr class="border-b hover:bg-gray-50 align-top ${statusPriorityDashboardV13(k) < 9 ? 'bg-blue-50/30' : ''}">
+                        <td class="p-3 align-top">${i+1}</td>
+                        <td class="p-3 align-top"><strong class="text-gray-800 block">${safeTextV13(k.plat)}</strong><span class="text-xs text-gray-500">${safeTextV13(k.jenama)}</span></td>
+                        <td class="p-3 align-top"><span class="font-bold text-blue-700">${safeTextV13(textP)}</span><br><span class="text-xs text-gray-600">📞 ${safeTextV13(textTel)}</span></td>
+                        <td class="p-3 align-top"><span class="block">${safeTextV13(k.unit !== '-' ? k.unit : '-')}</span><span class="text-xs text-gray-500 block">${safeTextV13(k.tujuan !== '-' ? k.tujuan : '-')}</span><span class="text-xs font-bold text-gray-600">📍 ${safeTextV13(k.lokasiTujuan !== '-' ? k.lokasiTujuan : '-')}</span></td>
+                        <td class="p-3 align-top text-gray-600 text-xs">Mula: <strong class="block">${safeTextV13(textMasaMula)}</strong>Pulang: <strong class="block">${safeTextV13(textMasaTamat)}</strong></td>
+                        <td class="p-3 align-top"><span class="px-2 py-1 rounded text-xs font-bold border ${bg}">${safeTextV13(k.status || 'Available')}</span></td>
+                    </tr>`;
+                });
+            }
+            const tbPeng = document.getElementById('jadualPengguna');
+            if(tbPeng) {
+                tbPeng.innerHTML = '';
+                const mine = DB_Tempahan.filter(t => t.pemohon === profilSemasa.nama || t.emel === profilSemasa.emel).slice().sort((a,b)=>tarikhSortV13(b.createdAt || b.tarikhGuna) - tarikhSortV13(a.createdAt || a.tarikhGuna));
+                if(mine.length === 0) tbPeng.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-gray-500 bg-gray-50">Tiada permohonan ditemui.</td></tr>';
+                mine.forEach(t => tbPeng.innerHTML += `<tr class="border-b"><td class="p-3">${safeTextV13(t.tujuan)}</td><td class="p-3">${safeTextV13(formatTarikhMY(t.tarikhGuna))}</td><td class="p-3">${safeTextV13(t.kenderaanDiberi || '-')}</td><td class="p-3 font-bold">${safeTextV13(t.status || '-')}</td></tr>`);
+            }
+        };
+
+        try{
+            pasangKawalanRekodKadV13();
+            janaRekodKad();
+            janaSistemKenderaan();
+            janaSistem();
+        } catch(err){ console.warn('ESILO Update V1.3 gagal refresh awal:', err); }
+        setTimeout(() => { try{ pasangKawalanRekodKadV13(); janaRekodKad(); janaSistemKenderaan(); janaSistem(); } catch(e){} }, 800);
+        setTimeout(() => { try{ pasangKawalanRekodKadV13(); janaRekodKad(); janaSistemKenderaan(); janaSistem(); } catch(e){} }, 2500);
+
+
     </script>
 </body>
 </html>
