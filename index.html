@@ -459,8 +459,11 @@
                         <div class="mb-4">
                             <label class="block text-sm font-bold mb-2">Gambar Kenderaan</label>
                             <div class="flex flex-col space-y-2">
-                                <img id="previewGambarKenderaan" src="https://placehold.co/400x250/e2e8f0/64748b?text=Kereta" class="w-full h-32 rounded border object-contain bg-white">
-                                <input type="file" onchange="prosesGambar(event, 'previewGambarKenderaan', 'kenderaanGambarBase64')" class="text-xs">
+                                <img id="previewGambarKenderaan" src="https://placehold.co/640x360/e2e8f0/64748b?text=Kereta" class="w-full max-w-lg h-64 rounded border object-contain bg-white mx-auto shadow-sm">
+                                <input type="file" id="inputGambarKenderaan" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" onchange="prosesGambarKenderaanOptimumV12(event)" class="text-xs">
+                                <div id="infoFormatGambarKenderaanV12" class="text-xs text-gray-600 bg-emerald-50 border border-emerald-200 rounded p-2 leading-relaxed">
+                                    <b>Format gambar:</b> JPG, JPEG, PNG atau WEBP sahaja. Cadangan gambar asal bawah 8MB. Sistem akan auto kecilkan kepada JPEG optimum sebelum simpan ke Firestore supaya backup dan paparan kekal laju. Format PDF/HEIC tidak disokong.
+                                </div>
                             </div>
                             <input type="hidden" id="kenderaanGambarBase64">
                         </div>
@@ -5228,6 +5231,312 @@
             const current = document.getElementById('pilihUjianUser')?.value;
             if(current) window.tukarPenggunaAkaun(current);
         }, 2000);
+
+
+        /* =========================================================
+           ESILO_UPDATE_V1.2 - REPAIR GAMBAR KENDERAAN FIRESTORE
+           Kekal struktur asal. Fokus:
+           1) Paparan gambar kenderaan lebih besar.
+           2) Info format gambar yang dibenarkan.
+           3) Gambar disimpan stabil ke Firestore sebagai JPEG Base64 optimum.
+              Patch ini tidak mewajibkan Firebase Storage kerana rules/storage
+              yang belum dibuka boleh menyebabkan proses simpan gagal.
+        ========================================================= */
+        const ESILO_UPDATE_V12_LABEL = 'esilo_update_v1_repair_gambar_kenderaan';
+        const IMG_KENDERAAN_V12 = {
+            maxW: 1280,
+            maxH: 850,
+            targetKB: 220,
+            maxFinalKB: 650,
+            maxOriginalMB: 8,
+            qualityStart: 0.82,
+            qualityMin: 0.38,
+            allowedMime: ['image/jpeg', 'image/png', 'image/webp'],
+            allowedExt: ['jpg', 'jpeg', 'png', 'webp']
+        };
+        let statusGambarKenderaanV12 = 'idle';
+
+        function saizKBDataUrlV12(dataUrl){
+            if(!dataUrl) return 0;
+            const s = String(dataUrl);
+            const b64 = s.includes(',') ? s.split(',')[1] : s;
+            return Math.round((b64.length * 3 / 4) / 1024);
+        }
+
+        function formatKBV12(kb){ return `${Math.max(0, Number(kb)||0).toLocaleString('ms-MY')}KB`; }
+
+        function setNotaGambarKenderaanV12(msg, jenis='info'){
+            const warna = jenis === 'error' ? 'text-red-700 bg-red-50 border-red-200' : (jenis === 'ok' ? 'text-emerald-800 bg-emerald-50 border-emerald-200' : 'text-gray-700 bg-gray-50 border-gray-200');
+            let nota = document.getElementById('notaGambarKenderaanV12');
+            const hidden = document.getElementById('kenderaanGambarBase64');
+            if(!nota && hidden){
+                nota = document.createElement('div');
+                nota.id = 'notaGambarKenderaanV12';
+                hidden.insertAdjacentElement('afterend', nota);
+            }
+            if(nota){
+                nota.className = `text-xs mt-2 p-2 rounded border font-semibold ${warna}`;
+                nota.textContent = msg;
+            }
+        }
+
+        function semakFailGambarKenderaanV12(file){
+            if(!file) return 'Tiada fail gambar dipilih.';
+            const nama = String(file.name || '').toLowerCase();
+            const ext = nama.includes('.') ? nama.split('.').pop() : '';
+            const mimeOk = IMG_KENDERAAN_V12.allowedMime.includes(file.type || '');
+            const extOk = IMG_KENDERAAN_V12.allowedExt.includes(ext || '');
+            if(!mimeOk && !extOk){
+                return 'Format gambar tidak disokong. Sila pilih JPG, JPEG, PNG atau WEBP sahaja. PDF/HEIC tidak boleh disimpan sebagai gambar kenderaan.';
+            }
+            if(file.size > IMG_KENDERAAN_V12.maxOriginalMB * 1024 * 1024){
+                return `Saiz gambar asal terlalu besar (${(file.size/1024/1024).toFixed(1)}MB). Sila pilih gambar bawah ${IMG_KENDERAAN_V12.maxOriginalMB}MB.`;
+            }
+            return '';
+        }
+
+        function bacaFailSebagaiDataUrlV12(file){
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = ev => resolve(ev.target.result);
+                reader.onerror = () => reject(new Error('Fail gambar gagal dibaca.'));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function muatImejV12(dataUrl){
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => reject(new Error('Gambar gagal diproses. Sila cuba gambar JPG/PNG/WEBP lain.'));
+                img.src = dataUrl;
+            });
+        }
+
+        async function optimumkanDataUrlGambarKenderaanV12(dataUrl){
+            const img = await muatImejV12(dataUrl);
+            let w = img.naturalWidth || img.width || IMG_KENDERAAN_V12.maxW;
+            let h = img.naturalHeight || img.height || IMG_KENDERAAN_V12.maxH;
+            const asal = { w, h, kb: saizKBDataUrlV12(dataUrl) };
+
+            let scale = Math.min(IMG_KENDERAAN_V12.maxW / w, IMG_KENDERAAN_V12.maxH / h, 1);
+            let canvas, ctx, output = '';
+            let q = IMG_KENDERAAN_V12.qualityStart;
+
+            for(let pass = 0; pass < 4; pass++){
+                const cw = Math.max(1, Math.round(w * scale));
+                const ch = Math.max(1, Math.round(h * scale));
+                canvas = document.createElement('canvas');
+                canvas.width = cw;
+                canvas.height = ch;
+                ctx = canvas.getContext('2d', { alpha: false });
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, cw, ch);
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, 0, 0, cw, ch);
+
+                q = IMG_KENDERAAN_V12.qualityStart;
+                output = canvas.toDataURL('image/jpeg', q);
+                while(saizKBDataUrlV12(output) > IMG_KENDERAAN_V12.targetKB && q > IMG_KENDERAAN_V12.qualityMin){
+                    q = Math.max(IMG_KENDERAAN_V12.qualityMin, q - 0.08);
+                    output = canvas.toDataURL('image/jpeg', q);
+                }
+                if(saizKBDataUrlV12(output) <= IMG_KENDERAAN_V12.maxFinalKB) break;
+                scale *= 0.82;
+            }
+
+            return {
+                dataUrl: output,
+                width: canvas.width,
+                height: canvas.height,
+                kb: saizKBDataUrlV12(output),
+                quality: q,
+                asal
+            };
+        }
+
+        window.prosesGambarKenderaanOptimumV12 = async function(e){
+            const file = e?.target?.files?.[0];
+            const hidden = document.getElementById('kenderaanGambarBase64');
+            const preview = document.getElementById('previewGambarKenderaan');
+            const err = semakFailGambarKenderaanV12(file);
+            if(err){
+                statusGambarKenderaanV12 = 'error';
+                if(hidden) hidden.value = '';
+                setNotaGambarKenderaanV12(err, 'error');
+                alert(err);
+                return;
+            }
+
+            try{
+                statusGambarKenderaanV12 = 'processing';
+                setNotaGambarKenderaanV12('Gambar sedang diproses dan dikecilkan. Sila tunggu sebelum tekan Simpan Data...', 'info');
+                const raw = await bacaFailSebagaiDataUrlV12(file);
+                const info = await optimumkanDataUrlGambarKenderaanV12(raw);
+                if(hidden) hidden.value = info.dataUrl;
+                if(preview) preview.src = info.dataUrl;
+                statusGambarKenderaanV12 = 'done';
+                setNotaGambarKenderaanV12(`Gambar sedia disimpan: ${info.width} x ${info.height}px, ${formatKBV12(info.kb)}. Asal ${info.asal.w} x ${info.asal.h}px, ${formatKBV12(info.asal.kb)}.`, 'ok');
+            } catch(err){
+                console.error('Ralat proses gambar kenderaan:', err);
+                statusGambarKenderaanV12 = 'error';
+                if(hidden) hidden.value = '';
+                setNotaGambarKenderaanV12(err?.message || 'Gambar gagal diproses.', 'error');
+                alert(err?.message || 'Gambar gagal diproses. Sila cuba gambar lain.');
+            }
+        };
+
+        function pasangPaparanGambarKenderaanV12(){
+            const preview = document.getElementById('previewGambarKenderaan');
+            if(preview){
+                preview.className = 'w-full max-w-lg h-64 rounded border object-contain bg-white mx-auto shadow-sm';
+            }
+            const input = document.getElementById('inputGambarKenderaan') || document.querySelector('#borangKenderaan input[type="file"]');
+            if(input){
+                input.id = 'inputGambarKenderaan';
+                input.setAttribute('accept', '.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp');
+                input.onchange = window.prosesGambarKenderaanOptimumV12;
+            }
+            const info = document.getElementById('infoFormatGambarKenderaanV12');
+            if(!info && input){
+                input.insertAdjacentHTML('afterend', `<div id="infoFormatGambarKenderaanV12" class="text-xs text-gray-600 bg-emerald-50 border border-emerald-200 rounded p-2 leading-relaxed"><b>Format gambar:</b> JPG, JPEG, PNG atau WEBP sahaja. Cadangan gambar asal bawah 8MB. Sistem akan auto kecilkan kepada JPEG optimum sebelum simpan ke Firestore supaya backup dan paparan kekal laju. Format PDF/HEIC tidak disokong.</div>`);
+            }
+            setNotaGambarKenderaanV12('Gambar akan disimpan sebagai JPEG ringan dalam Firestore. Untuk paparan terbaik, guna gambar landskap JPG/PNG.', 'info');
+        }
+
+        // Override penuh fungsi simpan kenderaan supaya proses simpan tidak gagal akibat Firebase Storage/rules.
+        window.simpanKenderaan = async function(e){
+            if(e && typeof e.preventDefault === 'function') e.preventDefault();
+            try{
+                if(statusGambarKenderaanV12 === 'processing'){
+                    alert('Gambar masih diproses. Sila tunggu sehingga mesej "Gambar sedia disimpan" dipaparkan.');
+                    return;
+                }
+                const plat = (document.getElementById('k_plat')?.value || '').trim().toUpperCase();
+                if(!plat) return alert('Sila masukkan No. Plat kenderaan.');
+                const existing = DB_Kenderaan.find(k => String(k.plat || '').toUpperCase() === plat);
+                const hidden = document.getElementById('kenderaanGambarBase64');
+
+                // Jika data gambar lama masih terlalu besar, kecilkan semula sebelum simpan.
+                if(hidden && hidden.value && String(hidden.value).startsWith('data:image/') && saizKBDataUrlV12(hidden.value) > IMG_KENDERAAN_V12.maxFinalKB){
+                    setNotaGambarKenderaanV12('Gambar lama masih besar. Sistem sedang kecilkan semula sebelum simpan...', 'info');
+                    const fixed = await optimumkanDataUrlGambarKenderaanV12(hidden.value);
+                    hidden.value = fixed.dataUrl;
+                    const preview = document.getElementById('previewGambarKenderaan');
+                    if(preview) preview.src = fixed.dataUrl;
+                    setNotaGambarKenderaanV12(`Gambar dikemaskini: ${fixed.width} x ${fixed.height}px, ${formatKBV12(fixed.kb)}.`, 'ok');
+                }
+
+                const kadAuto = dapatkanKadUntukKenderaan(plat);
+                const dataK = {
+                    plat,
+                    jenama: document.getElementById('k_jenama')?.value || '-',
+                    jenis: document.getElementById('k_jenis')?.value || 'Sedan',
+                    milikan: document.getElementById('k_milikan')?.value || 'Aset Jabatan',
+                    noAset: document.getElementById('k_noAset')?.value || '-',
+                    kadInden: kadAuto.kadInden || document.getElementById('k_inden')?.value || '-',
+                    jenamaStesenInden: kadAuto.jenamaStesenInden || '-',
+                    jenisMinyakInden: kadAuto.jenisMinyakInden || '-',
+                    tarikhLuputInden: kadAuto.tarikhLuputInden || '-',
+                    tng: kadAuto.tng || document.getElementById('k_tng')?.value || '-',
+                    tarikhLuputTNG: kadAuto.tarikhLuputTNG || '-',
+                    mileage: parseInt(document.getElementById('k_mileage')?.value) || 0,
+                    mileageServis: parseInt(document.getElementById('k_servis')?.value) || 0,
+                    odometerNextServis: existing ? (existing.odometerNextServis || parseInt(document.getElementById('k_servis')?.value) || 0) : (parseInt(document.getElementById('k_servis')?.value) || 0),
+                    gambar: hidden?.value || (existing ? existing.gambar : ''),
+                    tarikhServisSemasa: existing ? (existing.tarikhServisSemasa || '') : '',
+                    odometerServisSemasa: existing ? (existing.odometerServisSemasa || 0) : 0,
+                    tarikhNextServis: existing ? (existing.tarikhNextServis || '') : '',
+                    statusSelenggara: existing ? (existing.statusSelenggara || 'normal') : 'normal',
+                    catatanSelenggara: existing ? (existing.catatanSelenggara || '-') : '-',
+                    status: existing ? existing.status : 'Available',
+                    pengguna: existing ? existing.pengguna : '-',
+                    noTelPengguna: existing ? existing.noTelPengguna : '-',
+                    tempahOleh: existing ? existing.tempahOleh : '-',
+                    unit: existing ? existing.unit : '-',
+                    tujuan: existing ? existing.tujuan : '-',
+                    lokasiTujuan: existing ? existing.lokasiTujuan : '-',
+                    tMula: existing ? existing.tMula : '-',
+                    tTamat: existing ? existing.tTamat : '-',
+                    masaAmbil: existing ? existing.masaAmbil : null,
+                    updateLabel: ESILO_UPDATE_V12_LABEL,
+                    updateMasa: new Date().toISOString()
+                };
+
+                const anggaranKB = saizKBDataUrlV12(dataK.gambar);
+                if(dataK.gambar && String(dataK.gambar).startsWith('data:image/') && anggaranKB > IMG_KENDERAAN_V12.maxFinalKB){
+                    alert(`Gambar masih terlalu besar (${formatKBV12(anggaranKB)}). Sila pilih gambar lain yang lebih kecil.`);
+                    return;
+                }
+
+                await setDoc(doc(db, 'kenderaan', plat), dataK);
+                try{
+                    if(typeof catatAuditUpdateV1 === 'function') await catatAuditUpdateV1(existing ? 'EDIT' : 'TAMBAH', 'KENDERAAN', plat, { jenama:dataK.jenama, gambarKB:anggaranKB, label:ESILO_UPDATE_V12_LABEL });
+                } catch(auditErr){ console.warn('Audit gambar kenderaan gagal direkod:', auditErr); }
+                notif(`Kenderaan ${plat} berjaya disimpan.`);
+                window.resetBorangKenderaan();
+                try{ janaSistem(); } catch(refreshErr){ console.warn('Refresh selepas simpan kenderaan gagal:', refreshErr); }
+            } catch(err){
+                console.error('Ralat Simpan Kenderaan V1.2:', err);
+                const msg = String(err?.message || err || '');
+                if(msg.toLowerCase().includes('larger than') || msg.toLowerCase().includes('maximum size') || msg.toLowerCase().includes('bytes')){
+                    alert('Gagal simpan kerana saiz data gambar masih terlalu besar untuk Firestore. Sila pilih gambar JPG/PNG yang lebih kecil.');
+                } else {
+                    alert('Gagal menyimpan rekod kenderaan. Sila semak sambungan internet / permission Firestore dan cuba lagi.');
+                }
+            }
+        };
+
+        const editKenderaanSebelumV12 = window.editKenderaan;
+        window.editKenderaan = function(plat){
+            editKenderaanSebelumV12(plat);
+            statusGambarKenderaanV12 = 'idle';
+            const preview = document.getElementById('previewGambarKenderaan');
+            if(preview) preview.className = 'w-full max-w-lg h-64 rounded border object-contain bg-white mx-auto shadow-sm';
+            setNotaGambarKenderaanV12('Jika gambar sedia ada tidak berubah, sistem akan kekalkan gambar lama semasa simpan.', 'info');
+        };
+
+        const resetBorangKenderaanSebelumV12 = window.resetBorangKenderaan;
+        window.resetBorangKenderaan = function(){
+            resetBorangKenderaanSebelumV12();
+            statusGambarKenderaanV12 = 'idle';
+            const preview = document.getElementById('previewGambarKenderaan');
+            if(preview){
+                preview.src = 'https://placehold.co/640x360/e2e8f0/64748b?text=Kereta';
+                preview.className = 'w-full max-w-lg h-64 rounded border object-contain bg-white mx-auto shadow-sm';
+            }
+            const input = document.getElementById('inputGambarKenderaan');
+            if(input) input.value = '';
+            setNotaGambarKenderaanV12('Gambar akan disimpan sebagai JPEG ringan dalam Firestore. Untuk paparan terbaik, guna gambar landskap JPG/PNG.', 'info');
+        };
+
+        // Paparan senarai kenderaan: gambar lebih besar tetapi lazy-load.
+        try{
+            janaSistemKenderaan = function(){
+                const tbody = document.getElementById('jadualSelenggaraKenderaan');
+                const dl = document.getElementById('senaraiPlatKenderaan');
+                if(dl) dl.innerHTML = DB_Kenderaan.map(k => `<option value="${escapeHtml(k.plat)}">${escapeHtml(k.jenama || '')}</option>`).join('');
+                if(!tbody) return;
+                tbody.innerHTML = '';
+                if(DB_Kenderaan.length === 0){
+                    tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-500 bg-gray-50 font-bold">Tiada rekod kenderaan.</td></tr>';
+                    return;
+                }
+                DB_Kenderaan.forEach(k => {
+                    const img = k.gambar || 'https://placehold.co/640x360/e2e8f0/64748b?text=Kereta';
+                    const kadAuto = dapatkanKadUntukKenderaan(k.plat);
+                    const indenList = kadAuto.semuaInden.length ? kadAuto.semuaInden.map(x => `${escapeHtml(x.jenamaStesen)} ${escapeHtml(x.jenisMinyak)}: <b>${escapeHtml(x.noKad)}</b>`).join('<br>') : (k.kadInden && k.kadInden !== '-' ? escapeHtml(k.kadInden) : '-');
+                    const tngList = kadAuto.semuaTNG.length ? kadAuto.semuaTNG.map(x => `<b>${escapeHtml(x.noKad)}</b>`).join('<br>') : (k.tng && k.tng !== '-' ? escapeHtml(k.tng) : '-');
+                    const infoKad = `<span class="text-xs text-blue-700 block mt-1">Inden:<br>${indenList}</span><span class="text-xs text-emerald-700 block mt-1">TNG:<br>${tngList}</span>`;
+                    tbody.innerHTML += `<tr class="border-b hover:bg-gray-50 align-top"><td class="p-2"><img src="${escapeHtml(img)}" loading="lazy" class="w-44 h-28 object-contain rounded border bg-white shadow-sm"></td><td class="p-2"><strong>${escapeHtml(k.plat || '-')}</strong><br><span class="text-xs text-gray-500">${escapeHtml(k.jenama || '-')}</span>${infoKad}</td><td class="p-2"><span>${escapeHtml(k.jenis || '-')}</span><br><span class="text-xs font-bold px-1 rounded bg-gray-100">${escapeHtml(k.milikan || '-')}</span></td><td class="p-2">${escapeHtml(k.noAset || '-')}</td><td class="p-2 text-center"><div class="grid grid-cols-1 gap-1"><button onclick="editKenderaan('${jsStringV63(k.plat)}')" class="text-xs bg-blue-100 px-3 py-1 rounded font-bold hover:bg-blue-200 shadow">Edit</button><button onclick="padamKenderaanV63('${jsStringV63(k.plat)}')" class="text-xs bg-red-600 text-white px-3 py-1 rounded font-bold hover:bg-red-700 shadow">PADAM</button></div></td></tr>`;
+                });
+            };
+        } catch(err){ console.warn('Renderer kenderaan V1.2 tidak dapat dipasang:', err); }
+
+        pasangPaparanGambarKenderaanV12();
+        setTimeout(pasangPaparanGambarKenderaanV12, 600);
+        setTimeout(pasangPaparanGambarKenderaanV12, 2200);
 
 
     </script>
