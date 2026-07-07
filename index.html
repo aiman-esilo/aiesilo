@@ -5816,6 +5816,308 @@
         setTimeout(() => { try{ pasangKawalanRekodKadV13(); janaRekodKad(); janaSistemKenderaan(); janaSistem(); } catch(e){} }, 800);
         setTimeout(() => { try{ pasangKawalanRekodKadV13(); janaRekodKad(); janaSistemKenderaan(); janaSistem(); } catch(e){} }, 2500);
 
+        /* =========================================================
+           ESILO_UPDATE_V1.4 - MENU TEMPATAN, DASHBOARD STAF SUMMARY + COLLAPSE,
+           REKOD KAD CARIAN + BUTANG LIHAT
+           Kekal kod penuh sedia ada. Patch ini hanya override bahagian UI yang diminta.
+        ========================================================= */
+        const ESILO_UPDATE_V14_LABEL = 'esilo_update_v1.4_menu_staf_rekodkad';
+        let rkLastQueryV14 = '';
+        let rkLastLimitV14 = 10;
+
+        function safeTextV14(v){
+            try { return escapeHtml(String(v ?? '-')); }
+            catch(e){ return String(v ?? '-').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch])); }
+        }
+        function safeJsV14(v){
+            return String(v ?? '').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,' ');
+        }
+        function normTextV14(v){ return String(v ?? '').toLowerCase().trim(); }
+        function normPlatV14(v){ return String(v ?? '').toUpperCase().replace(/[^A-Z0-9]/g,''); }
+        function tarikhSortV14(v){
+            const t = new Date(v || 0).getTime();
+            return Number.isFinite(t) ? t : 0;
+        }
+        function normalPerananV14(v){
+            const s = String(v ?? '').toLowerCase().trim().replace(/[\s_-]+/g,'');
+            if(s === 'superadmin') return 'superadmin';
+            if(s === 'admin') return 'admin';
+            if(s === 'penumpang') return 'penumpang';
+            return 'pengguna';
+        }
+
+        // 1) Kunci label butang menu utama supaya tidak kembali kepada "TEMPAHAN / KELULUSAN".
+        function kunciLabelMenuTempahanV14(){
+            const tabOperasi = document.getElementById('tabOperasi');
+            if(tabOperasi){
+                let teks = document.getElementById('teksTabOperasi');
+                if(!teks){
+                    teks = document.createElement('span');
+                    teks.id = 'teksTabOperasi';
+                    tabOperasi.prepend(teks);
+                }
+                teks.textContent = '📝 TEMPAHAN';
+                tabOperasi.childNodes.forEach(node => {
+                    if(node.nodeType === Node.TEXT_NODE && /kelulusan|tempahan/i.test(node.textContent || '')) node.textContent = '';
+                });
+            }
+            const kel = document.getElementById('tabKelulusan');
+            if(kel){
+                const label = kel.querySelector('span:not(#badgeKelulusan)') || kel.firstElementChild;
+                if(label) label.textContent = '📋 KELULUSAN';
+            }
+        }
+        function pasangObserverMenuV14(){
+            const menu = document.getElementById('menuTabs');
+            if(!menu || menu.dataset.v14Observer === '1') return;
+            menu.dataset.v14Observer = '1';
+            const obs = new MutationObserver(() => kunciLabelMenuTempahanV14());
+            obs.observe(menu, { childList:true, subtree:true, characterData:true });
+        }
+
+        // 2) Dashboard staf: summary + collapse borang Rekod Pegawai.
+        function kiraRoleStafV14(){
+            const list = Array.isArray(DB_Pengguna) ? DB_Pengguna : [];
+            return {
+                total: list.length,
+                pengguna: list.filter(p => normalPerananV14(p.peranan) === 'pengguna').length,
+                penumpang: list.filter(p => normalPerananV14(p.peranan) === 'penumpang').length,
+                admin: list.filter(p => normalPerananV14(p.peranan) === 'admin').length,
+                superadmin: list.filter(p => normalPerananV14(p.peranan) === 'superadmin').length
+            };
+        }
+        function templateKotakStafV14(id, label, warna){
+            return `<div class="${warna} p-4 rounded-lg border shadow-sm"><h3 class="text-xs font-black uppercase tracking-wide">${label}</h3><p id="${id}" class="text-3xl font-black mt-1">0</p></div>`;
+        }
+        function pasangDashboardStafV14(){
+            const view = document.getElementById('viewSelenggara');
+            const form = document.getElementById('borangStaf');
+            const tajuk = document.getElementById('tajukBorangStaf');
+            if(!view || !form) return;
+            const formCard = form.closest('.bg-white');
+            if(formCard){
+                formCard.id = 'kadBorangStafV14';
+                formCard.classList.add('hilang');
+            }
+            if(tajuk) tajuk.textContent = 'Rekod Pegawai';
+
+            if(!document.getElementById('summaryStafV14')){
+                const blok = document.createElement('div');
+                blok.id = 'summaryStafV14';
+                blok.className = 'mb-6';
+                blok.innerHTML = `
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+                        ${templateKotakStafV14('sumPegawaiV14','Jumlah Pegawai','bg-blue-100 border-blue-200 text-blue-900')}
+                        ${templateKotakStafV14('sumPenggunaV14','Jumlah Pengguna','bg-emerald-100 border-emerald-200 text-emerald-900')}
+                        ${templateKotakStafV14('sumPenumpangV14','Jumlah Penumpang','bg-amber-100 border-amber-200 text-amber-900')}
+                        ${templateKotakStafV14('sumAdminV14','Jumlah Admin','bg-purple-100 border-purple-200 text-purple-900')}
+                        ${templateKotakStafV14('sumSuperAdminV14','Jumlah Super Admin','bg-rose-100 border-rose-200 text-rose-900')}
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow border-l-4 border-purple-600 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                        <div>
+                            <h2 class="text-lg font-black text-gray-800">Dashboard Pegawai</h2>
+                            <p class="text-sm text-gray-500">Borang Rekod Pegawai disembunyikan untuk paparan lebih kemas. Tekan butang di sebelah untuk tambah rekod baharu, atau tekan Edit pada senarai pegawai.</p>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <button type="button" onclick="bukaBorangStafV14('baru')" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-black shadow">+ REKOD PEGAWAI</button>
+                            <button type="button" onclick="tutupBorangStafV14()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded font-black">TUTUP BORANG</button>
+                        </div>
+                    </div>`;
+                view.insertBefore(blok, view.firstChild);
+            }
+            kemaskiniSummaryStafV14();
+        }
+        function kemaskiniSummaryStafV14(){
+            const s = kiraRoleStafV14();
+            const set = (id,v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
+            set('sumPegawaiV14', s.total);
+            set('sumPenggunaV14', s.pengguna);
+            set('sumPenumpangV14', s.penumpang);
+            set('sumAdminV14', s.admin);
+            set('sumSuperAdminV14', s.superadmin);
+        }
+        window.bukaBorangStafV14 = function(mode='baru'){
+            const formCard = document.getElementById('kadBorangStafV14') || document.getElementById('borangStaf')?.closest('.bg-white');
+            if(mode === 'baru'){
+                const form = document.getElementById('borangStaf');
+                if(form) form.reset();
+                const emel = document.getElementById('stafEmel'); if(emel) emel.readOnly = false;
+                const hidden = document.getElementById('stafGambarBase64'); if(hidden) hidden.value = '';
+                const img = document.getElementById('previewGambarStaf'); if(img) img.src = 'https://placehold.co/100x100/e2e8f0/64748b?text=User';
+                const tajuk = document.getElementById('tajukBorangStaf'); if(tajuk) tajuk.textContent = 'Rekod Pegawai';
+            }
+            if(formCard) formCard.classList.remove('hilang');
+            setTimeout(() => formCard?.scrollIntoView({ behavior:'smooth', block:'start' }), 50);
+        };
+        window.tutupBorangStafV14 = function(){
+            const formCard = document.getElementById('kadBorangStafV14') || document.getElementById('borangStaf')?.closest('.bg-white');
+            if(formCard) formCard.classList.add('hilang');
+        };
+
+        const editStafSebelumV14 = window.editStaf;
+        window.editStaf = function(emel){
+            const result = editStafSebelumV14 ? editStafSebelumV14(emel) : undefined;
+            const tajuk = document.getElementById('tajukBorangStaf'); if(tajuk) tajuk.textContent = 'Rekod Pegawai';
+            window.bukaBorangStafV14('edit');
+            return result;
+        };
+        const resetBorangStafSebelumV14 = window.resetBorangStaf;
+        window.resetBorangStaf = function(){
+            const result = resetBorangStafSebelumV14 ? resetBorangStafSebelumV14() : undefined;
+            const tajuk = document.getElementById('tajukBorangStaf'); if(tajuk) tajuk.textContent = 'Rekod Pegawai';
+            window.tutupBorangStafV14();
+            kemaskiniSummaryStafV14();
+            return result;
+        };
+        const janaSistemStafSebelumV14 = janaSistemStaf;
+        janaSistemStaf = function(){
+            const result = janaSistemStafSebelumV14 ? janaSistemStafSebelumV14() : undefined;
+            pasangDashboardStafV14();
+            kemaskiniSummaryStafV14();
+            return result;
+        };
+
+        // 3) Rekod Kad: carian no kenderaan + pilihan 10/50/100 + butang LIHAT.
+        function pasangKawalanRekodKadV14(){
+            const tb = document.getElementById('jadualRekodKad');
+            if(!tb) return;
+            const old = document.getElementById('rkKawalanV13');
+            if(old) old.remove();
+            if(document.getElementById('rkKawalanV14')) return;
+            const overflow = tb.closest('.overflow-x-auto');
+            const html = `<div id="rkKawalanV14" class="bg-cyan-50 border border-cyan-200 rounded-lg p-4 mb-4">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-black text-cyan-900 mb-1 uppercase">Carian No Kenderaan</label>
+                        <input type="text" id="rkCariPlatV14" class="w-full p-2 border rounded font-bold uppercase" placeholder="Contoh: BEE 1234 / WA8888">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-black text-cyan-900 mb-1 uppercase">Lihat Rekod</label>
+                        <select id="rkLimitV14" class="w-full p-2 border rounded font-bold">
+                            <option value="10">10 rekod</option>
+                            <option value="50">50 rekod</option>
+                            <option value="100">100 rekod</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" onclick="lihatRekodKadV14()" class="bg-cyan-700 hover:bg-cyan-800 text-white px-4 py-2 rounded font-black shadow">LIHAT</button>
+                        <button type="button" onclick="resetCarianRekodKadV14()" class="bg-white border border-cyan-300 text-cyan-800 px-4 py-2 rounded font-black hover:bg-cyan-100">RESET</button>
+                    </div>
+                </div>
+                <p id="rkInfoRingkasV14" class="text-xs text-cyan-900 font-semibold mt-3">Paparan lalai: 10 rekod terkini. Pilih 10/50/100 dan tekan LIHAT.</p>
+            </div>`;
+            if(overflow) overflow.insertAdjacentHTML('beforebegin', html);
+        }
+        window.lihatRekodKadV14 = function(){
+            rkLastQueryV14 = document.getElementById('rkCariPlatV14')?.value || '';
+            rkLastLimitV14 = parseInt(document.getElementById('rkLimitV14')?.value || '10', 10) || 10;
+            renderRekodKadV14();
+        };
+        window.resetCarianRekodKadV14 = function(){
+            const q = document.getElementById('rkCariPlatV14'); if(q) q.value = '';
+            const l = document.getElementById('rkLimitV14'); if(l) l.value = '10';
+            rkLastQueryV14 = '';
+            rkLastLimitV14 = 10;
+            renderRekodKadV14();
+        };
+        function renderRekodKadV14(){
+            pasangKawalanRekodKadV14();
+            const tb = document.getElementById('jadualRekodKad');
+            if(!tb) return;
+            let senarai = (Array.isArray(DB_RekodKad) ? DB_RekodKad.slice() : []).sort((a,b) => {
+                const tb2 = tarikhSortV14(b.updatedAt || b.createdAt || b.updateMasa || b.tarikhLuput || b.id);
+                const ta = tarikhSortV14(a.updatedAt || a.createdAt || a.updateMasa || a.tarikhLuput || a.id);
+                if(tb2 !== ta) return tb2 - ta;
+                return normPlatV14(a.plat).localeCompare(normPlatV14(b.plat)) || String(a.noKad || '').localeCompare(String(b.noKad || ''));
+            });
+            const queryPlat = normPlatV14(rkLastQueryV14);
+            if(queryPlat) senarai = senarai.filter(r => normPlatV14(r.plat).includes(queryPlat));
+            const jumlahPadanan = senarai.length;
+            const limit = [10,50,100].includes(Number(rkLastLimitV14)) ? Number(rkLastLimitV14) : 10;
+            senarai = senarai.slice(0, limit);
+            const info = document.getElementById('rkInfoRingkasV14');
+            if(info){
+                info.textContent = queryPlat
+                    ? `Carian ${queryPlat}: papar ${senarai.length} daripada ${jumlahPadanan} rekod padanan. Jumlah semua rekod kad: ${DB_RekodKad.length}.`
+                    : `Papar ${senarai.length} daripada ${DB_RekodKad.length} rekod kad. Pilihan semasa: ${limit} rekod.`;
+            }
+            tb.innerHTML = '';
+            if(!DB_RekodKad.length){
+                tb.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-gray-500 font-bold bg-gray-50">Tiada rekod kad setakat ini.</td></tr>';
+                return;
+            }
+            if(!jumlahPadanan){
+                tb.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-gray-500 font-bold bg-gray-50">Tiada rekod kad ditemui untuk no kenderaan tersebut.</td></tr>';
+                return;
+            }
+            senarai.forEach(r => {
+                const katRaw = normTextV14(r.kategori);
+                const kategori = katRaw === 'inden' ? 'Kad Inden' : "Touch 'n Go";
+                const warna = katRaw === 'inden' ? 'bg-cyan-100 text-cyan-800' : 'bg-emerald-100 text-emerald-800';
+                const stat = normTextV14(r.statusKad || 'aktif');
+                const stClass = stat === 'aktif' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
+                let luput = { kelas:'bg-gray-100 text-gray-600', teks:'-' };
+                try{ luput = statusLuputKad(r.tarikhLuput); }catch(e){}
+                tb.innerHTML += `<tr class="border-b hover:bg-gray-50 align-top">
+                    <td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold ${warna}">${kategori}</span></td>
+                    <td class="p-3 font-bold">${safeTextV14(r.noKad)}</td>
+                    <td class="p-3">${safeTextV14(r.jenamaStesen || '-') }<br><span class="text-xs text-gray-500">${safeTextV14(r.jenisMinyak || '-')}</span></td>
+                    <td class="p-3">${safeTextV14(r.tarikhLuput || '-')}</td>
+                    <td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold ${stClass}">${safeTextV14(stat.toUpperCase())}</span><br><span class="inline-block mt-1 px-2 py-1 rounded text-xs font-bold ${luput.kelas}">${safeTextV14(luput.teks)}</span></td>
+                    <td class="p-3 font-black text-blue-700">${safeTextV14(r.plat || '-')}</td>
+                    <td class="p-3 text-xs">${safeTextV14(r.ulasanTidakAktif || '-')}</td>
+                    <td class="p-3 text-center"><div class="grid grid-cols-1 gap-1"><button onclick="editRekodKad('${safeJsV14(r.id)}')" class="text-xs bg-blue-100 px-3 py-1 rounded font-bold hover:bg-blue-200 shadow">Edit</button><button onclick="padamRekodKadV63('${safeJsV14(r.id)}','${safeJsV14(r.noKad)}')" class="text-xs bg-red-600 text-white px-3 py-1 rounded font-bold hover:bg-red-700 shadow">PADAM</button></div></td>
+                </tr>`;
+            });
+        }
+        janaRekodKad = function(){
+            pasangKawalanRekodKadV14();
+            renderRekodKadV14();
+        };
+
+        // Final wrappers supaya patch tidak dipadam oleh refresh sistem lama.
+        const paparTabSebelumV14 = window.paparTab;
+        window.paparTab = function(tabId){
+            kunciLabelMenuTempahanV14();
+            const result = paparTabSebelumV14 ? paparTabSebelumV14(tabId) : undefined;
+            kunciLabelMenuTempahanV14();
+            if(tabId === 'selenggara') pasangDashboardStafV14();
+            if(tabId === 'rekodKad') pasangKawalanRekodKadV14();
+            return result;
+        };
+        const tukarPenggunaAkaunSebelumV14 = window.tukarPenggunaAkaun;
+        window.tukarPenggunaAkaun = function(emel){
+            const result = tukarPenggunaAkaunSebelumV14 ? tukarPenggunaAkaunSebelumV14(emel) : undefined;
+            kunciLabelMenuTempahanV14();
+            pasangDashboardStafV14();
+            pasangKawalanRekodKadV14();
+            return result;
+        };
+        const janaSistemSebelumV14 = janaSistem;
+        janaSistem = function(){
+            const result = janaSistemSebelumV14 ? janaSistemSebelumV14() : undefined;
+            kunciLabelMenuTempahanV14();
+            pasangDashboardStafV14();
+            return result;
+        };
+
+        setTimeout(() => {
+            try{
+                kunciLabelMenuTempahanV14();
+                pasangObserverMenuV14();
+                pasangDashboardStafV14();
+                pasangKawalanRekodKadV14();
+                renderRekodKadV14();
+                kemaskiniSummaryStafV14();
+            } catch(e){ console.warn('ESILO Update V1.4 gagal refresh awal:', e); }
+        }, 700);
+        setTimeout(() => {
+            try{ kunciLabelMenuTempahanV14(); pasangDashboardStafV14(); renderRekodKadV14(); } catch(e){}
+        }, 2500);
+        setTimeout(() => {
+            try{ kunciLabelMenuTempahanV14(); pasangDashboardStafV14(); renderRekodKadV14(); } catch(e){}
+        }, 6000);
+
 
     </script>
 </body>
