@@ -7522,6 +7522,382 @@
         setTimeout(mulaESiloUltimateV10, 900);
         setTimeout(mulaESiloUltimateV10, 2600);
         setInterval(() => { try{ kemaskiniLabelSistemV10(); susunMenuV10(); kemaskiniBadgeAmbilV10(); }catch(e){} }, 2500);
+
+        /* =====================================================================
+           E-SILO_ULTIMATE_V1.0 - REPAIR PATCH R1
+           Tujuan: baiki konflik V1.0 tanpa membuang struktur utama V1.5.
+           1) Buang paparan berganda kenderaan.
+           2) Pulihkan PADAM staf.
+           3) Bersihkan borang pulang selepas pemulangan.
+           4) Sembunyi AMBIL untuk penumpang.
+           5) Paparkan semua rekod kad aktif bagi setiap kenderaan.
+           6) Kekalkan pengguna di dashboard semasa selepas simpan/update/padam.
+           ===================================================================== */
+        const ESILO_ULTIMATE_REPAIR_LABEL_R1 = 'E-SILO_ULTIMATE_V1.0_REPAIR_R1';
+        let tabSemasaR1 = 'dashboard';
+        let kenderaanModeR1 = 'kosong';
+        let kenderaanQueryR1 = '';
+        let stafModeR1 = 'kosong';
+        let stafQueryR1 = '';
+        let pembersihanAbuSedangR1 = false;
+
+        function hR1(v){ return String(v ?? '-').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+        function jsR1(v){ return String(v ?? '').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,' '); }
+        function normR1(v){ return String(v || '').trim().toLowerCase(); }
+        function upR1(v){ return String(v || '').trim().toUpperCase(); }
+        function roleR1(){ try{ return typeof normalPerananEsiloV11 === 'function' ? normalPerananEsiloV11(profilSemasa?.peranan) : normR1(profilSemasa?.peranan); }catch(e){ return normR1(profilSemasa?.peranan); } }
+        function adminR1(){ const r = roleR1(); return r === 'admin' || r === 'superadmin'; }
+        function superR1(){ return roleR1() === 'superadmin'; }
+        function dateR1(v){ return (v && String(v).length >= 10) ? String(v).slice(0,10) : ''; }
+        function setTextR1(id,v){ const el=document.getElementById(id); if(el) el.textContent = v ?? ''; }
+        function setValueR1(id,v){ const el=document.getElementById(id); if(el) el.value = v ?? ''; }
+        function msgR1(m){ try{ if(typeof notif === 'function') notif(m); else if(typeof notifV15 === 'function') notifV15(m); else alert(m); }catch(e){ alert(m); } }
+        function tarikhR1(v){ try{ return typeof formatTarikhMY === 'function' ? formatTarikhMY(v) : (v || '-'); }catch(e){ return v || '-'; } }
+        function tarikhMasaR1(v){ try{ return typeof formatTarikhTimeMY === 'function' ? formatTarikhTimeMY(v) : (v || '-'); }catch(e){ return v || '-'; } }
+
+        function idTempR1(t){ return t?.idT || t?.id || t?.docId || ''; }
+        function namaTempR1(t){ return t?.nama || t?.namaPemohon || '-'; }
+        function isAbuBakarDemoTempahanR1(t){
+            const nama = normR1(t?.nama || t?.namaPemohon || '');
+            const emel = normR1(t?.emel || '');
+            const status = normR1(t?.status || '');
+            const isAbu = nama === 'abu bakar' || nama.includes('abu bakar') || emel === 'abu@esilo.my';
+            const belumSelesai = !['selesai','dibatalkan oleh pengguna','dibatalkan','tidak diluluskan'].includes(status);
+            return isAbu && belumSelesai;
+        }
+        async function buangTempahanAbuBakarR1(){
+            if(pembersihanAbuSedangR1) return;
+            const sasaran = (DB_Tempahan || []).filter(isAbuBakarDemoTempahanR1);
+            if(!sasaran.length) return;
+            pembersihanAbuSedangR1 = true;
+            try{
+                DB_Tempahan = (DB_Tempahan || []).filter(t => !isAbuBakarDemoTempahanR1(t));
+                for(const t of sasaran){
+                    const id = idTempR1(t);
+                    if(id){ try{ await deleteDoc(doc(db, 'tempahan', id)); }catch(e){ console.warn('Tidak dapat padam tempahan Abu Bakar daripada Firestore, rekod disembunyikan dalam UI.', e); } }
+                }
+            } finally { pembersihanAbuSedangR1 = false; }
+        }
+        function tempahanAktifR1(){ return (DB_Tempahan || []).filter(t => !isAbuBakarDemoTempahanR1(t)); }
+
+        function statusClassR1(status){
+            const s = normR1(status);
+            if(s === 'available') return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+            if(s === 'ditempah' || s === 'tempahan' || s === 'telah ditempah' || s === 'lulus') return 'bg-amber-100 text-amber-800 border-amber-200';
+            if(s === 'sedang digunakan') return 'bg-rose-100 text-rose-800 border-rose-200';
+            if(s === 'sedang diselenggara') return 'bg-purple-100 text-purple-800 border-purple-200';
+            if(s.includes('rosak')) return 'bg-red-100 text-red-800 border-red-200';
+            if(s.includes('tidak')) return 'bg-red-100 text-red-700 border-red-200';
+            return 'bg-slate-100 text-slate-700 border-slate-200';
+        }
+        function rowClassStatusR1(status){
+            const s = normR1(status);
+            if(s === 'available') return 'bg-emerald-50/30';
+            if(s === 'ditempah' || s === 'tempahan' || s === 'telah ditempah') return 'bg-amber-50/60';
+            if(s === 'sedang digunakan') return 'bg-rose-50/60';
+            if(s === 'sedang diselenggara') return 'bg-purple-50/50';
+            if(s.includes('rosak')) return 'bg-red-50/70';
+            return '';
+        }
+        try{
+            statusPriorityDashboardV15 = function(k){
+                const st = normR1(k?.status);
+                if(st === 'sedang digunakan') return 1;
+                if(st === 'ditempah' || st === 'tempahan' || st === 'telah ditempah') return 2;
+                if(st === 'sedang diselenggara' || normR1(k?.statusSelenggara) === 'sedang diselenggara') return 3;
+                if(st === 'available') return 8;
+                if(st.includes('rosak')) return 99;
+                return 9;
+            };
+            statusBadgeDashboardV15 = function(k){ return statusClassR1(k?.status || k); };
+        }catch(e){}
+
+        function kategoriKadR1(r){
+            try{ if(typeof kategoriKadV14 === 'function') return kategoriKadV14(r); }catch(e){}
+            const s = normR1(r?.kategori || r?.jenisKad || r?.type || '');
+            return (s.includes('tng') || s.includes('touch') || s.includes('go')) ? 'tng' : 'inden';
+        }
+        function noKadR1(r){
+            try{ if(typeof noKadV14 === 'function') return noKadV14(r); }catch(e){}
+            return String(r?.noKad || r?.noKadInden || r?.noKadTNG || r?.noKadTouchNGo || r?.kad || r?.nomborKad || '-').trim();
+        }
+        function platKadR1(r){
+            try{ if(typeof platKadV14 === 'function') return platKadV14(r); }catch(e){}
+            return upR1(r?.plat || r?.noPlat || r?.noKenderaan || r?.noPendaftaran || r?.platKenderaan || r?.kenderaan || r?.kenderaanPlat);
+        }
+        function aktifKadR1(r){
+            const s = normR1(r?.statusKad || r?.status || 'aktif');
+            return s === 'aktif' || s === 'active';
+        }
+        function semuaKadPlatR1(plat){
+            const p = upR1(plat).replace(/\s+/g,'');
+            const senarai = (DB_RekodKad || []).filter(r => upR1(platKadR1(r)).replace(/\s+/g,'') === p && aktifKadR1(r));
+            const susun = (a,b) => kategoriKadR1(a).localeCompare(kategoriKadR1(b)) || noKadR1(a).localeCompare(noKadR1(b));
+            return { semuaInden: senarai.filter(r => kategoriKadR1(r) === 'inden').sort(susun), semuaTNG: senarai.filter(r => kategoriKadR1(r) === 'tng').sort(susun), semuaKad: senarai.sort(susun) };
+        }
+        function htmlKadListR1(list, fallback, jenis){
+            if(list && list.length){
+                return `<div class="space-y-1 max-h-44 overflow-y-auto pr-1">${list.map(r => {
+                    const no = noKadR1(r);
+                    const luput = r.tarikhLuput || r.expiryDate || r.tarikhTamat || '-';
+                    const meta = jenis === 'inden' ? `${hR1(r.jenamaStesen || r.jenama || '-')} / ${hR1(r.jenisMinyak || '-')}` : `Touch 'n Go`;
+                    return `<div class="rounded border bg-white px-2 py-1.5 text-xs shadow-sm"><b class="text-slate-900">${hR1(no)}</b> <span class="px-1 rounded bg-green-100 text-green-700 font-black text-[10px]">AKTIF</span><br><span class="text-gray-600">${meta}</span><br><span class="text-gray-400">Luput: ${hR1(luput)}</span></div>`;
+                }).join('')}</div>`;
+            }
+            if(fallback && fallback !== '-') return `<div class="rounded border bg-white px-2 py-1.5 text-xs"><b>${hR1(fallback)}</b><br><span class="text-gray-500">Rekod lama aset</span></div>`;
+            return '<div class="text-gray-400 text-xs italic">Tiada rekod aktif.</div>';
+        }
+
+        function cleanupKenderaanDuplicateR1(){
+            document.getElementById('summaryKenderaanV10')?.remove();
+            document.getElementById('barCarianKenderaanV10')?.remove();
+            const v15 = document.getElementById('summaryKenderaanV15'); if(v15) v15.classList.remove('hilang');
+            const b15 = document.getElementById('barCarianKenderaanV15'); if(b15) b15.classList.remove('hilang');
+        }
+        try{
+            const pasangKenderaanUIV10SebelumR1 = typeof pasangKenderaanUIV10 === 'function' ? pasangKenderaanUIV10 : null;
+            pasangKenderaanUIV10 = function(){
+                try{ if(typeof pasangKenderaanUIV15 === 'function') pasangKenderaanUIV15(); else if(pasangKenderaanUIV10SebelumR1) pasangKenderaanUIV10SebelumR1(); }catch(e){}
+                cleanupKenderaanDuplicateR1();
+            };
+        }catch(e){}
+        window.cariKenderaanV15 = window.cariKenderaanV10 = function(){
+            const q = normR1(document.getElementById('carianKenderaanV15')?.value || document.getElementById('carianKenderaanV10')?.value || '');
+            kenderaanQueryR1 = q; kenderaanQueryV15 = q; kenderaanModeR1 = q ? 'cari' : 'kosong'; kenderaanModeV15 = q ? 'cari' : 'kosong'; kenderaanModeV10 = kenderaanModeR1;
+            janaSistemKenderaan();
+        };
+        window.resetCarianKenderaanV15 = window.resetCarianKenderaanV10 = function(){
+            setValueR1('carianKenderaanV15',''); setValueR1('carianKenderaanV10','');
+            kenderaanQueryR1=''; kenderaanQueryV15=''; kenderaanModeR1='kosong'; kenderaanModeV15='kosong'; kenderaanModeV10='kosong';
+            janaSistemKenderaan();
+        };
+        window.paparSemuaKenderaanV15 = window.paparSemuaKenderaanV10 = function(){
+            setValueR1('carianKenderaanV15',''); setValueR1('carianKenderaanV10','');
+            kenderaanQueryR1=''; kenderaanQueryV15=''; kenderaanModeR1='semua'; kenderaanModeV15='semua'; kenderaanModeV10='semua';
+            janaSistemKenderaan();
+        };
+        janaSistemKenderaan = function(){
+            if(typeof pasangKenderaanUIV15 === 'function') pasangKenderaanUIV15();
+            cleanupKenderaanDuplicateR1();
+            try{ if(typeof refreshSelectKenderaanTambahanV15 === 'function') refreshSelectKenderaanTambahanV15(); }catch(e){}
+            const tbody = document.getElementById('jadualSelenggaraKenderaan');
+            const dl = document.getElementById('senaraiPlatKenderaan');
+            if(dl) dl.innerHTML = (DB_Kenderaan || []).map(k => `<option value="${hR1(k.plat)}">${hR1(k.jenama || '')}</option>`).join('');
+            setTextR1('sumKTotalV15', (DB_Kenderaan || []).length);
+            setTextR1('sumKAvailableV15', (DB_Kenderaan || []).filter(k => normR1(k.status) === 'available').length);
+            setTextR1('sumKSelenggaraV15', (DB_Kenderaan || []).filter(k => normR1(k.status) === 'sedang diselenggara' || normR1(k.statusSelenggara) === 'sedang diselenggara').length);
+            setTextR1('sumKRosakV15', (DB_Kenderaan || []).filter(k => normR1(k.status).includes('rosak')).length);
+            if(!tbody) return;
+            if(kenderaanModeR1 === 'kosong' && kenderaanModeV15 !== 'cari' && kenderaanModeV15 !== 'semua'){
+                tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-gray-500 bg-gray-50 font-bold">Sila tekan CARI atau PAPAR SEMUA untuk memaparkan senarai kenderaan.</td></tr>'; return;
+            }
+            let list = (DB_Kenderaan || []).slice();
+            const q = kenderaanQueryR1 || kenderaanQueryV15 || '';
+            if((kenderaanModeR1 === 'cari' || kenderaanModeV15 === 'cari') && q){
+                list = list.filter(k => [k.plat,k.jenama,k.jenis,k.milikan,k.noAset,k.kapasitiMinyak,k.ccKenderaan,k.noEnjin,k.noChasis,k.tarikhDibeli,k.tarikhDiterima,k.jenisBahanBakar,k.penempatanKenderaan,k.status,k.kadInden,k.tng].some(v => normR1(v).includes(q)) || semuaKadPlatR1(k.plat).semuaKad.some(r => [noKadR1(r),r.jenamaStesen,r.jenisMinyak].some(v => normR1(v).includes(q))));
+            }
+            list.sort((a,b) => statusPriorityDashboardV15(a) - statusPriorityDashboardV15(b) || upR1(a.plat).localeCompare(upR1(b.plat)));
+            if(!list.length){ tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-gray-500 bg-gray-50 font-bold">Tiada rekod kenderaan ditemui.</td></tr>'; return; }
+            tbody.innerHTML = list.map(k => {
+                const img = k.gambar || 'https://placehold.co/960x540/e2e8f0/64748b?text=Gambar+Kenderaan';
+                const kad = semuaKadPlatR1(k.plat);
+                const indenHTML = htmlKadListR1(kad.semuaInden, k.kadInden, 'inden');
+                const tngHTML = htmlKadListR1(kad.semuaTNG, k.tng, 'tng');
+                const canDelete = typeof window.padamKenderaanV63 === 'function';
+                return `<tr class="border-b hover:bg-gray-50 align-top ${rowClassStatusR1(k.status)}">
+                    <td class="p-3 align-top"><div class="w-40 md:w-56 aspect-video rounded-xl border bg-white overflow-hidden shadow-sm"><img src="${hR1(img)}" loading="lazy" class="w-full h-full object-contain" alt="Gambar ${hR1(k.plat || 'kenderaan')}"></div></td>
+                    <td class="p-3 align-top min-w-[240px]"><strong class="text-gray-900 text-base">${hR1(k.plat || '-')}</strong><br><span class="text-xs text-gray-600">${hR1(k.jenama || '-')}</span><br><span class="text-[11px] text-gray-500">No Aset: ${hR1(k.noAset || '-')}</span></td>
+                    <td class="p-3 align-top"><span>${hR1(k.jenis || '-')}</span><br><span class="text-xs font-bold px-1 rounded bg-white/80 border">${hR1(k.milikan || '-')}</span><br><span class="inline-block mt-2 px-2 py-1 rounded text-xs font-bold border ${statusClassR1(k.status)}">${hR1(k.status || 'Available')}</span></td>
+                    <td class="p-3 align-top text-xs leading-6">Kapasiti: <b>${hR1(k.kapasitiMinyak || '-')}</b> L<br>CC: <b>${hR1(k.ccKenderaan || '-')}</b><br>No Enjin: <b>${hR1(k.noEnjin || '-')}</b><br>No Chasis: <b>${hR1(k.noChasis || '-')}</b><br>Dibeli: <b>${hR1(tarikhR1(k.tarikhDibeli))}</b><br>Terima/Daftar: <b>${hR1(tarikhR1(k.tarikhDiterima))}</b><br>Bahan Bakar: <b>${hR1(k.jenisBahanBakar || '-')}</b></td>
+                    <td class="p-3 align-top"><div class="text-xs font-black text-slate-700 mb-2">${hR1(k.penempatanKenderaan || '-')}</div><div class="rounded bg-blue-50 border border-blue-100 p-2"><div class="font-black text-[11px] text-cyan-800 mb-1">KAD INDEN</div>${indenHTML}<div class="font-black text-[11px] text-emerald-800 mt-3 mb-1">TOUCH 'N GO</div>${tngHTML}</div></td>
+                    <td class="p-3 align-top text-center"><div class="grid grid-cols-1 gap-1"><button onclick="editKenderaan('${jsR1(k.plat)}')" class="text-xs bg-blue-100 px-3 py-1 rounded font-bold hover:bg-blue-200 shadow">EDIT</button>${canDelete ? `<button onclick="padamKenderaanV63('${jsR1(k.plat)}')" class="text-xs bg-red-600 text-white px-3 py-1 rounded font-bold hover:bg-red-700 shadow">PADAM</button>` : ''}</div></td>
+                </tr>`;
+            }).join('');
+        };
+
+        function pasangStafUIR1(){
+            try{ if(typeof pasangStafUIV15 === 'function') pasangStafUIV15(); }catch(e){}
+            const form = document.getElementById('borangStaf');
+            const card = form?.closest('.bg-white');
+            if(!card) return;
+            if(!document.getElementById('toggleBorangStafR1')){
+                const h = card.querySelector('h2');
+                h?.insertAdjacentHTML('afterend', '<button id="toggleBorangStafR1" type="button" onclick="toggleBorangStafR1()" class="w-full mb-4 bg-purple-700 hover:bg-purple-800 text-white font-bold py-3 rounded shadow">+ BUKA / TUTUP BORANG TAMBAH STAF BARU</button>');
+            }
+            if(stafModeR1 === 'kosong'){
+                form.classList.add('hilang');
+                card.querySelector('.mt-8')?.classList.add('hilang');
+            }
+        }
+        window.toggleBorangStafR1 = window.toggleBorangStafV10 = function(){
+            const form=document.getElementById('borangStaf'); const upload=form?.closest('.bg-white')?.querySelector('.mt-8');
+            form?.classList.toggle('hilang'); upload?.classList.toggle('hilang');
+        };
+        window.cariStafV15 = window.cariStafV10 = function(){
+            const q = normR1(document.getElementById('carianStafV15')?.value || '');
+            stafQueryR1 = q; stafQueryV15 = q; stafModeR1 = q ? 'cari' : 'kosong'; stafModeV15 = stafModeR1; janaSistemStaf();
+        };
+        window.resetCarianStafV15 = window.resetCarianStafV10 = function(){
+            setValueR1('carianStafV15',''); stafQueryR1=''; stafQueryV15=''; stafModeR1='kosong'; stafModeV15='kosong'; janaSistemStaf();
+        };
+        window.paparSemuaStafV15 = window.paparSemuaStafV10 = function(){
+            setValueR1('carianStafV15',''); stafQueryR1=''; stafQueryV15=''; stafModeR1='semua'; stafModeV15='semua'; janaSistemStaf();
+        };
+        janaSistemStaf = function(){
+            pasangStafUIR1();
+            const tb = document.getElementById('jadualSelenggaraStaf'); if(!tb) return;
+            if(stafModeR1 === 'kosong' && stafModeV15 !== 'cari' && stafModeV15 !== 'semua'){
+                tb.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-gray-500 bg-gray-50 font-bold">Sila tekan CARI atau PAPAR SEMUA untuk memaparkan senarai pengguna.</td></tr>'; return;
+            }
+            let data = (DB_Pengguna || []).slice();
+            const q = stafQueryR1 || stafQueryV15 || '';
+            if((stafModeR1 === 'cari' || stafModeV15 === 'cari') && q) data = data.filter(p => [p.nama,p.emel,p.tel,p.unit,p.tempatBertugas,p.peranan].some(v => normR1(v).includes(q)));
+            data.sort((a,b)=>String(a.nama||'').localeCompare(String(b.nama||'')));
+            if(!data.length){ tb.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-gray-500 bg-gray-50">Tiada pengguna ditemui.</td></tr>'; return; }
+            tb.innerHTML = data.map(p => {
+                const img = p.gambar || 'https://placehold.co/100x100/e2e8f0/64748b?text=U';
+                const r = typeof normalPerananEsiloV11 === 'function' ? normalPerananEsiloV11(p.peranan) : normR1(p.peranan);
+                const color = r === 'superadmin' ? 'text-red-700 bg-red-100' : (r === 'admin' ? 'text-purple-700 bg-purple-100' : (r === 'penumpang' ? 'text-amber-700 bg-amber-100' : 'text-blue-700 bg-blue-100'));
+                const canDelete = typeof window.padamStafV63 === 'function' && p.emel !== profilSemasa?.emel;
+                return `<tr class="border-b hover:bg-gray-50"><td class="p-2"><img src="${hR1(img)}" class="w-10 h-10 rounded-full border object-contain bg-white"></td><td class="p-2"><strong>${hR1(p.nama)}</strong><br><span class="text-xs text-gray-500">${hR1(p.emel)}</span></td><td class="p-2">${hR1(p.tel || '-')}</td><td class="p-2"><span class="font-bold">${hR1(p.unit || '-')}</span><br><span class="text-xs text-gray-500">${hR1(p.tempatBertugas || '-')}</span></td><td class="p-2"><span class="text-xs uppercase font-bold px-2 py-1 rounded ${color}">${hR1(r)}</span></td><td class="p-2 text-center"><div class="grid grid-cols-1 gap-1"><button onclick="editStaf('${jsR1(p.emel)}')" class="text-xs bg-blue-100 px-3 py-1 rounded font-bold hover:bg-blue-200 shadow">EDIT</button>${canDelete ? `<button onclick="padamStafV63('${jsR1(p.emel)}')" class="text-xs bg-red-600 text-white px-3 py-1 rounded font-bold hover:bg-red-700 shadow">PADAM</button>` : ''}</div></td></tr>`;
+            }).join('');
+        };
+        const editStafSebelumR1 = window.editStaf;
+        window.editStaf = function(emel){
+            const r = editStafSebelumR1 ? editStafSebelumR1(emel) : undefined;
+            const form = document.getElementById('borangStaf'); const upload = form?.closest('.bg-white')?.querySelector('.mt-8');
+            form?.classList.remove('hilang'); upload?.classList.remove('hilang');
+            return r;
+        };
+        if(typeof window.padamStafV63 !== 'function'){
+            window.padamStafV63 = async function(emel){
+                if(!superR1()) return alert('Hanya Super Admin boleh padam staf.');
+                if(!emel || emel === profilSemasa?.emel) return alert('Rekod ini tidak boleh dipadam.');
+                if(!confirm('Padam staf ini?')) return;
+                try{ await deleteDoc(doc(db, 'pengguna_esilo', emel)); msgR1('Rekod staf dipadam.'); janaSistemStaf(); }catch(err){ console.error(err); alert('Gagal padam staf.'); }
+            };
+        }
+
+        function resetPulangFormR1(){
+            ['inputMileageSelepas','namaPenumpang','indenJenisMinyak','indenInvoice','indenRM','indenLiter','catatanPengguna','statusOCR'].forEach(id => { const el=document.getElementById(id); if(el) el.value = ''; });
+            const mileage = document.getElementById('paparMileageGuna'); if(mileage) mileage.value = '0';
+            const stesen = document.getElementById('indenStesen'); if(stesen){ stesen.value = ''; stesen.dispatchEvent(new Event('change')); }
+            const tng = document.getElementById('gunaTNG'); if(tng) tng.checked = false;
+            const modal = document.getElementById('modalKonfirmasiPulang'); if(modal) modal.classList.add('hilang');
+            window.rekodPulangSemasa = null;
+            try{ if(typeof urusIndenPulangV10 === 'function') urusIndenPulangV10(); }catch(e){}
+        }
+        const sahkanPulangSebelumR1 = window.sahkanPulangKenderaan;
+        window.sahkanPulangKenderaan = async function(){
+            const result = sahkanPulangSebelumR1 ? await sahkanPulangSebelumR1.apply(this, arguments) : undefined;
+            resetPulangFormR1();
+            setTimeout(resetPulangFormR1, 250);
+            setTimeout(resetPulangFormR1, 1000);
+            tabSemasaR1 = 'pulang';
+            return result;
+        };
+
+        function kemaskiniMenuRoleR1(){
+            const ambil = document.getElementById('tabAmbil');
+            if(ambil){ roleR1() === 'penumpang' ? ambil.classList.add('hilang') : ambil.classList.remove('hilang'); }
+            const bTemp = document.getElementById('badgeTempahan'); if(bTemp) bTemp.classList.add('hilang');
+            const teks = document.getElementById('teksTabOperasi'); if(teks) teks.textContent = '📝 TEMPAHAN';
+            const kel = document.getElementById('tabKelulusan'); if(kel) adminR1() ? kel.classList.remove('hilang') : kel.classList.add('hilang');
+        }
+        try{
+            const susunMenuSebelumR1 = typeof susunMenuV10 === 'function' ? susunMenuV10 : null;
+            susunMenuV10 = function(){ if(susunMenuSebelumR1) susunMenuSebelumR1(); kemaskiniMenuRoleR1(); };
+        }catch(e){}
+
+        function renderStatusPemohonR1(){
+            const tb = document.getElementById('jadualPengguna'); if(!tb) return;
+            const em = normR1(profilSemasa?.emel), nm = normR1(profilSemasa?.nama);
+            const mine = tempahanAktifR1().filter(t => normR1(t.emel) === em || normR1(t.emelAmbil) === em || normR1(t.pemanduEmel) === em || normR1(t.pemanduNama) === nm)
+                .sort((a,b)=>String(b.createdAt || b.tLulus || '').localeCompare(String(a.createdAt || a.tLulus || '')));
+            if(!mine.length){ tb.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-gray-500 bg-gray-50">Tiada permohonan setakat ini.</td></tr>'; return; }
+            tb.innerHTML = mine.map(t => {
+                const id = idTempR1(t); const pending = normR1(t.status) === 'menunggu kelulusan';
+                const aksi = pending ? `<button onclick="batalTempahanPenggunaV10('${jsR1(id)}')" class="mt-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1 rounded">BATAL</button>` : '';
+                const status = normR1(t.status) === 'tidak diluluskan' ? `${hR1(t.status)}<br><span class="text-xs text-red-700">${hR1(t.catatanTidakLulus || '-')}</span>` : `<span class="px-2 py-1 rounded text-xs border ${statusClassR1(t.status)}">${hR1(t.status || '-')}</span>`;
+                const kolKenderaan = roleR1()==='penumpang' ? hR1(t.pemanduNama || '-') : hR1(t.kenderaanDipilih || '-');
+                return `<tr class="border-b hover:bg-gray-50 align-top"><td class="p-3">${hR1(t.tujuan || '-')}<br><span class="text-xs text-gray-500">${hR1(t.lokasi || '-')}</span>${aksi}</td><td class="p-3">${hR1(tarikhR1(t.tMula))} - ${hR1(tarikhR1(t.tTamat))}</td><td class="p-3 font-bold">${kolKenderaan}</td><td class="p-3 font-bold">${status}</td></tr>`;
+            }).join('');
+        }
+        function renderAdminKelulusanR1(){
+            const tb = document.getElementById('jadualAdmin'); if(!tb) return;
+            const pending = tempahanAktifR1().filter(t => normR1(t.status) === 'menunggu kelulusan').sort((a,b)=>String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+            if(!pending.length){ tb.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-gray-500 bg-gray-50 font-bold">Tiada task kelulusan baharu.</td></tr>'; return; }
+            tb.innerHTML = pending.map(t => {
+                const id = idTempR1(t); let opts = '<option value="">-- Tetapkan Kenderaan --</option>';
+                (DB_Kenderaan || []).filter(k => normR1(k.status) === 'available').sort((a,b)=>upR1(a.plat).localeCompare(upR1(b.plat))).forEach(k => opts += `<option value="${hR1(k.plat)}">${hR1(k.plat)} - ${hR1(k.jenama || '-')} | ${hR1(k.jenis || '-')}</option>`);
+                const pemandu = t.pemohonPeranan === 'penumpang' ? `<br><span class="text-xs text-amber-700 font-bold">Pemandu: ${hR1(t.pemanduNama || '-')} (${hR1(t.pemanduUnit || '-')})</span>` : '';
+                return `<tr class="border-b hover:bg-gray-50 align-top">
+                    <td class="p-3"><strong>${hR1(namaTempR1(t))}</strong><br><span class="text-xs text-gray-500">${hR1(t.unit || '-')}</span><br><span class="text-xs text-blue-700">${hR1(t.emel || '-')}</span>${pemandu}</td>
+                    <td class="p-3"><b>${hR1(t.lokasi || '-')}</b><br><span class="text-xs text-gray-600">${hR1(tarikhR1(t.tMula))} hingga ${hR1(tarikhR1(t.tTamat))}</span><br><span class="text-xs text-gray-500">Tujuan: ${hR1(t.tujuan || '-')}</span></td>
+                    <td class="p-3">${hR1(t.cadangan || '-')}<br><span class="text-xs font-bold text-blue-700">Jarak anggaran: ${hR1(t.jarakPerjalanan || 100)} km</span></td>
+                    <td class="p-3"><select id="pilih_kereta_${hR1(id)}" class="w-full p-2 border rounded mb-2">${opts}</select><button onclick="luluskanTempahan('${jsR1(id)}')" class="bg-blue-600 text-white w-full py-2 rounded shadow hover:bg-blue-700 font-bold">SAHKAN KELULUSAN</button><button onclick="tidakLulusTempahanV10('${jsR1(id)}')" class="bg-red-600 text-white w-full py-2 rounded mt-2 shadow hover:bg-red-700 font-bold">TIDAK DILULUSKAN</button></td>
+                </tr>`;
+            }).join('');
+        }
+
+        const janaSistemSebelumR1 = janaSistem;
+        janaSistem = function(){
+            try{ DB_Tempahan = tempahanAktifR1(); }catch(e){}
+            if(janaSistemSebelumR1) janaSistemSebelumR1();
+            kemaskiniMenuRoleR1();
+            renderStatusPemohonR1();
+            if(adminR1()) renderAdminKelulusanR1();
+            cleanupKenderaanDuplicateR1();
+        };
+
+        const paparTabSebelumR1 = window.paparTab;
+        window.paparTab = function(tabId){
+            if(tabId === 'ambil' && roleR1() === 'penumpang'){
+                msgR1('Peranan penumpang tidak mempunyai akses menu AMBIL. Pemandu yang dipilih perlu membuat pengambilan kenderaan.');
+                tabId = 'operasi';
+            }
+            tabSemasaR1 = tabId || tabSemasaR1;
+            const result = paparTabSebelumR1 ? paparTabSebelumR1(tabId) : undefined;
+            setTimeout(() => {
+                kemaskiniMenuRoleR1(); cleanupKenderaanDuplicateR1();
+                if(tabId === 'selenggaraKenderaan') janaSistemKenderaan();
+                if(tabId === 'selenggara') janaSistemStaf();
+                if(tabId === 'pulang') resetPulangFormR1();
+            }, 0);
+            return result;
+        };
+        function kekalTabSelepasR1(fnName, defaultTab){
+            const asal = window[fnName]; if(typeof asal !== 'function' || asal.__repairR1) return;
+            const wrapped = async function(){
+                const tab = tabSemasaR1 || defaultTab;
+                const result = asal.apply(this, arguments);
+                if(result && typeof result.then === 'function') await result;
+                setTimeout(() => { if(tab && tab !== 'dashboard') window.paparTab(tab); }, 250);
+                setTimeout(() => { if(tab && tab !== 'dashboard') window.paparTab(tab); }, 900);
+                return result;
+            };
+            wrapped.__repairR1 = true;
+            window[fnName] = wrapped;
+        }
+        ['simpanStaf','simpanKenderaan','simpanRekodKad','simpanRekodSelenggara','padamStafV63','padamKenderaanV63','padamRekodKadV63','padamRekodSelenggaraV63','luluskanTempahan','tidakLulusTempahanV10','simpanAssignBerkalaV10','batalkanAssignBerkalaV10'].forEach(n => kekalTabSelepasR1(n));
+
+        function mulaRepairR1(){
+            try{
+                buangTempahanAbuBakarR1();
+                kemaskiniMenuRoleR1(); cleanupKenderaanDuplicateR1();
+                kenderaanModeR1 = 'kosong'; kenderaanModeV15 = 'kosong'; kenderaanModeV10 = 'kosong';
+                stafModeR1 = 'kosong'; stafModeV15 = 'kosong'; stafModeV10 = 'kosong';
+                if(document.getElementById('jadualSelenggaraKenderaan')) janaSistemKenderaan();
+                if(document.getElementById('jadualSelenggaraStaf')) janaSistemStaf();
+                renderStatusPemohonR1(); if(adminR1()) renderAdminKelulusanR1();
+                console.log(ESILO_ULTIMATE_REPAIR_LABEL_R1 + ' aktif.');
+            }catch(err){ console.warn('Repair R1 gagal dimulakan:', err); }
+        }
+        mulaRepairR1();
+        setTimeout(mulaRepairR1, 1000);
+        setTimeout(mulaRepairR1, 3000);
+        setInterval(() => { try{ kemaskiniMenuRoleR1(); cleanupKenderaanDuplicateR1(); }catch(e){} }, 2000);
+
 </script>
 </body>
 </html>
