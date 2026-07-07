@@ -8310,6 +8310,404 @@
         setInterval(()=>{ try{ pasangStyleR2(); capitalizeDisplayInputR2(); pasangStafUIR2(); pasangKenderaanCollapseR2(); pasangRekodKadCollapseR2(); pasangPanelAssignBerkalaR2(); pasangResetDataR2(); }catch(e){} }, 2500);
 
 
+        /* ================= E-SILO ULTIMATE V1.0 REPAIR R3 =================
+           Fokus R3:
+           1) Buku Log Pulang hanya kenderaan semasa + bulan semasa.
+           2) Reminder WhatsApp Admin dikembalikan di Dashboard Tempahan.
+           3) Tetapan Kelulusan Bertempoh masuk Sejarah Kelulusan dan boleh dibatalkan dari sejarah.
+           4) Dashboard Utama turut memaparkan kenderaan yang terikat Kelulusan Bertempoh sebagai TEMPAHAN.
+        ================================================================ */
+        const ESILO_REPAIR_R3_LABEL = 'E-SILO_ULTIMATE_V1.0_REPAIR_R3';
+
+        function eR3(v){
+            return String(v ?? '-').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+        }
+        function jR3(v){ return String(v ?? '').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+        function nR3(v){ return String(v ?? '').trim().toLowerCase(); }
+        function uR3(v){ return String(v ?? '').trim().toUpperCase(); }
+        function todayR3(){ return new Date().toISOString().slice(0,10); }
+        function ymTodayR3(){ return new Date().toISOString().slice(0,7); }
+        function dtKeyR3(v){
+            if(!v || v === '-') return '';
+            const s = String(v).trim();
+            if(/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+            const m = s.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+            if(m) return `${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;
+            const d = new Date(s);
+            if(!Number.isNaN(d.getTime())) return d.toISOString().slice(0,10);
+            return '';
+        }
+        function ymKeyR3(v){ const d = dtKeyR3(v); return d ? d.slice(0,7) : ''; }
+        function fmtDateR3(v){
+            const d = dtKeyR3(v);
+            if(!d) return '-';
+            const p = d.split('-');
+            return `${p[2]}/${p[1]}/${p[0]}`;
+        }
+        function fmtDateTimeR3(v){
+            if(!v || v === '-') return '-';
+            const d = new Date(v);
+            if(Number.isNaN(d.getTime())) return fmtDateR3(v);
+            return d.toLocaleDateString('ms-MY') + ' ' + d.toLocaleTimeString('ms-MY', {hour:'2-digit', minute:'2-digit'});
+        }
+        function roleR3(){ return nR3(profilSemasa?.peranan || 'pengguna'); }
+        function isAdminR3(){ return roleR3() === 'admin' || roleR3() === 'superadmin'; }
+        function tempIdR3(t){ return t?.idT || t?.id || t?.docId || ''; }
+        function namaTempR3(t){ return t?.nama || t?.pemohon || t?.namaPengguna || '-'; }
+        function emailAmbilR3(t){ return t?.emelAmbil || t?.pemanduEmel || t?.emel || ''; }
+        function namaAmbilR3(t){ return t?.pemanduNama || t?.namaAmbil || t?.nama || t?.pemohon || '-'; }
+        function unitAmbilR3(t){ return t?.pemanduUnit || t?.unit || '-'; }
+        function telAmbilR3(t){ return t?.pemanduTel || t?.tel || '-'; }
+        function setTxtR3(id, v){ const el = document.getElementById(id); if(el) el.innerText = v; }
+        function valR3(id){ return document.getElementById(id)?.value || ''; }
+        function setValR3(id, v){ const el = document.getElementById(id); if(el) el.value = v ?? ''; }
+        function notifyR3(msg){ try{ if(typeof notif === 'function') notif(msg); else if(typeof notifyV10 === 'function') notifyV10(msg); else alert(msg); }catch(e){ alert(msg); } }
+
+        function clearOperasiKenderaanR3(){
+            return {
+                status:'Available', pengguna:'-', emelPengguna:'-', noTelPengguna:'-', tempahOleh:'-', unit:'-', tujuan:'-', lokasiTujuan:'-',
+                tMula:'-', tTamat:'-', masaAmbil:null, assignmentType:'-', assignBerkalaId:'-', resetAt:new Date().toISOString(), resetBy:profilSemasa?.emel || '-'
+            };
+        }
+
+        function currentUsedVehicleR3(){
+            const emel = nR3(profilSemasa?.emel);
+            const nama = nR3(profilSemasa?.nama);
+            return (DB_Kenderaan || []).find(k => {
+                if(nR3(k.status) !== 'sedang digunakan') return false;
+                return nR3(k.pengguna) === nama || nR3(k.tempahOleh) === nama || nR3(k.emelPengguna) === emel || nR3(k.emelAmbil) === emel;
+            }) || null;
+        }
+
+        function aktifAssignBerkalaR3(a, dateKey = todayR3()){
+            if(!a) return false;
+            const st = nR3(a.status || 'Aktif');
+            if(st && st !== 'aktif') return false;
+            const mula = dtKeyR3(a.tarikhMula || a.tMula || a.mula);
+            const akhir = dtKeyR3(a.tarikhAkhir || a.tTamat || a.akhir);
+            if(!mula || !akhir) return false;
+            return mula <= dateKey && dateKey <= akhir;
+        }
+        function assignUntukPlatR3(plat, dateKey = todayR3()){
+            const p = uR3(plat);
+            return (DB_AssignBerkala || []).find(a => uR3(a.plat || a.noKenderaan) === p && aktifAssignBerkalaR3(a, dateKey)) || null;
+        }
+        function displayKenderaanR3(k){
+            const clone = {...k};
+            const st = nR3(k.status || 'Available');
+            const a = assignUntukPlatR3(k.plat);
+            if(a && (st === 'available' || st === '' || st === '-')){
+                clone.status = 'Ditempah Bertempoh';
+                clone.tempahOleh = a.pengguna && a.pengguna !== '-' ? a.pengguna : 'Tetapan Bertempoh';
+                clone.noTelPengguna = '-';
+                clone.unit = a.unit || '-';
+                clone.tujuan = 'Kelulusan Bertempoh';
+                clone.lokasiTujuan = 'Tetapan Admin / Super Admin';
+                clone.tMula = a.tarikhMula || '-';
+                clone.tTamat = a.tarikhAkhir || '-';
+                clone._assignBerkala = a;
+            }
+            return clone;
+        }
+        function statusPriorityR3(k){
+            const st = nR3(k.status);
+            if(st === 'sedang digunakan') return 1;
+            if(st.includes('ditempah') || st.includes('tempahan') || st.includes('bertendeels') || st.includes('bertempoh')) return 2;
+            if(st === 'sedang diselenggara') return 3;
+            if(st === 'available') return 4;
+            if(st.includes('rosak')) return 99;
+            return 10;
+        }
+        function statusBadgeR3(k){
+            const st = nR3(k.status);
+            if(st === 'sedang digunakan') return 'bg-red-100 text-red-800 border-red-200';
+            if(st.includes('bertempoh')) return 'bg-blue-100 text-blue-800 border-blue-200';
+            if(st.includes('ditempah') || st.includes('tempahan')) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+            if(st === 'sedang diselenggara') return 'bg-purple-100 text-purple-800 border-purple-200';
+            if(st.includes('rosak')) return 'bg-slate-200 text-slate-900 border-slate-300';
+            if(st === 'available') return 'bg-green-100 text-green-800 border-green-200';
+            return 'bg-gray-100 text-gray-800 border-gray-200';
+        }
+        function masaAktivitiR3(k){
+            const d = new Date(k.masaAmbil || k.tMula || k.tTamat || 0);
+            return Number.isNaN(d.getTime()) ? 0 : d.getTime();
+        }
+
+        /* ========== 1. DASHBOARD PULANG: BUKU LOG KENDERAAN SEMASA SAHAJA ========== */
+        function janaPilihanLogPulangR3(){
+            const s = document.getElementById('logPulangPlat');
+            const k = currentUsedVehicleR3();
+            if(!s) return;
+            if(k){
+                s.innerHTML = `<option value="${eR3(k.plat)}">${eR3(k.plat)} - ${eR3(k.jenama || '-')}</option>`;
+                s.value = k.plat;
+                s.disabled = true;
+                s.classList.add('bg-gray-100');
+            } else {
+                s.innerHTML = '<option value="">Tiada kenderaan sedang digunakan</option>';
+                s.value = '';
+                s.disabled = true;
+                s.classList.add('bg-gray-100');
+            }
+        }
+        function janaLogPulangR3(){
+            const tb = document.getElementById('jadualLogPulang');
+            if(!tb) return;
+            const k = currentUsedVehicleR3();
+            const teks = document.getElementById('teksLogPulang');
+            if(!k){
+                if(teks) teks.innerText = 'Buku Log Digital hanya dipaparkan apabila terdapat kenderaan sedang digunakan oleh pengguna semasa.';
+                tb.innerHTML = '<tr><td colspan="12" class="p-6 text-center text-gray-500 font-bold bg-gray-50">Tiada kenderaan sedang digunakan. Buku Log Digital bulan semasa tidak dipaparkan.</td></tr>';
+                return;
+            }
+            const ym = ymTodayR3();
+            const plat = uR3(k.plat);
+            if(teks) teks.innerText = `Rekod perjalanan bulan semasa untuk kenderaan semasa sahaja: ${k.plat}.`;
+            let data = (DB_LogKenderaan || []).filter(l => {
+                const lp = uR3(l.noPendaftaran || l.plat || l.noKenderaan);
+                const lm = ymKeyR3(l.tarikh || l.timestampPulang || l.createdAt || l.masaAkhir);
+                return lp === plat && lm === ym;
+            }).sort((a,b)=>String(b.timestampPulang || b.createdAt || b.tarikh || '').localeCompare(String(a.timestampPulang || a.createdAt || a.tarikh || ''))).slice(0,50);
+            if(!data.length){
+                tb.innerHTML = `<tr><td colspan="12" class="p-6 text-center text-gray-500 font-bold bg-gray-50">Tiada buku log digital bulan semasa untuk ${eR3(k.plat)}.</td></tr>`;
+                return;
+            }
+            tb.innerHTML = data.map(l => `<tr class="border-b hover:bg-gray-50"><td class="p-2">${eR3(l.tarikh || fmtDateR3(l.timestampPulang) || '-')}</td><td class="p-2">${eR3(l.masaMula || '-')}</td><td class="p-2">${eR3(l.masaAkhir || '-')}</td><td class="p-2 font-bold">${eR3(l.namaPengguna || '-')}</td><td class="p-2 font-bold text-blue-700">${eR3(l.noPendaftaran || '-')}</td><td class="p-2">${eR3(l.tujuan || '-')}</td><td class="p-2">${eR3(l.lokasi || '-')}</td><td class="p-2">${eR3(l.odometerAkhir || '-')}</td><td class="p-2">${eR3(l.penggunaanOdometer || '0')}</td><td class="p-2">${eR3(l.penggunaanKadInden || l.jenamaStesen || '-')}<br><span class="text-xs">${eR3(l.noInv || '-')}</span></td><td class="p-2">${eR3(l.penggunaanTNG || 'Tidak')}</td><td class="p-2">${eR3(l.catatanPengguna || '-')}</td></tr>`).join('');
+        }
+        window.janaPilihanLogPulang = janaPilihanLogPulangR3;
+        try{ janaPilihanLogPulang = janaPilihanLogPulangR3; }catch(e){}
+        window.janaLogPulang = janaLogPulangR3;
+        try{ janaLogPulang = janaLogPulangR3; }catch(e){}
+
+        const janaBorangPulangSebelumR3 = window.janaBorangPulang;
+        window.janaBorangPulang = function(){
+            const r = janaBorangPulangSebelumR3 ? janaBorangPulangSebelumR3.apply(this, arguments) : undefined;
+            setTimeout(()=>{ janaPilihanLogPulangR3(); janaLogPulangR3(); }, 50);
+            return r;
+        };
+
+        /* ========== 2. TEMPAHAN: WHATSAPP ADMIN + SEMAKAN BERTINDIH KEMAS ========== */
+        function mesejWhatsappTempahanR3(data){
+            return `PERMOHONAN TEMPAHAN E-SILO\n\nPemohon: ${data?.nama || profilSemasa?.nama || '-'}\nEmel: ${data?.emel || profilSemasa?.emel || '-'}\nUnit: ${data?.unit || profilSemasa?.unit || '-'}\nTarikh: ${fmtDateR3(data?.tMula || valR3('tarikhGuna'))} hingga ${fmtDateR3(data?.tTamat || valR3('tarikhPulang'))}\nLokasi: ${data?.lokasi || valR3('lokasi') || '-'}\nTujuan: ${data?.tujuan || valR3('tujuan') || '-'}\n\nMohon admin semak Dashboard Kelulusan.`;
+        }
+        function bukaWhatsappAdminR3(msg){
+            const tel = String(DB_BackupConfig?.whatsapp || '').replace(/[^0-9]/g,'');
+            if(typeof bukaWhatsappUniversalV5 === 'function') return bukaWhatsappUniversalV5(msg, tel);
+            const url = tel ? `https://wa.me/${tel}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+            window.open(url, '_blank');
+        }
+        window.bukaWhatsappAdminTempahanR3 = function(){ bukaWhatsappAdminR3(mesejWhatsappTempahanR3({})); };
+        function pasangButangWhatsappAdminR3(){
+            const btn = document.getElementById('btnSahkan');
+            if(!btn || document.getElementById('btnWhatsappAdminTempahanR3')) return;
+            btn.insertAdjacentHTML('afterend', `<button type="button" id="btnWhatsappAdminTempahanR3" onclick="bukaWhatsappAdminTempahanR3()" class="w-full mt-2 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded shadow">📲 WhatsApp Admin</button><p id="notaWhatsappAdminR3" class="text-[11px] text-gray-500 mt-1">Pautan ini hanya membuka WhatsApp. Permohonan rasmi tetap direkod selepas tekan Hantar Permohonan.</p>`);
+        }
+        function tempahanBertindihPemohonR3(mula, tamat){
+            if(!mula || !tamat) return null;
+            const emel = nR3(profilSemasa?.emel), nama = nR3(profilSemasa?.nama);
+            const statusAbaikan = ['dibatalkan oleh pengguna','batal kelulusan','tidak diluluskan','selesai','pulang'];
+            return (DB_Tempahan || []).find(t => {
+                if(statusAbaikan.includes(nR3(t.status))) return false;
+                const owner = nR3(t.emel) === emel || nR3(t.emelAmbil) === emel || nR3(t.pemanduNama) === nama || nR3(t.nama) === nama;
+                if(!owner) return false;
+                const a = dtKeyR3(t.tMula || t.tarikhGuna), b = dtKeyR3(t.tTamat || t.tarikhPulang || t.tMula || t.tarikhGuna);
+                if(!a || !b) return false;
+                return mula <= b && tamat >= a;
+            }) || null;
+        }
+        function dapatPemanduR3(){
+            const val = valR3('pemanduPenumpangV10') || valR3('pemanduPenumpangR3');
+            if(!val) return null;
+            return (DB_Pengguna || []).find(p => nR3(p.nama) === nR3(val) || nR3(`${p.nama} (${p.unit || '-'})`) === nR3(val)) || null;
+        }
+        window.hantarTempahan = async function(e){
+            if(e) e.preventDefault();
+            const mula = dtKeyR3(valR3('tarikhGuna'));
+            const tamat = dtKeyR3(valR3('tarikhPulang') || valR3('tarikhGuna'));
+            if(!mula || !tamat) return alert('Sila isi Tarikh Guna dan Tarikh Jangka Pulang.');
+            if(tamat < mula) return alert('Tarikh Jangka Pulang tidak boleh lebih awal daripada Tarikh Guna.');
+            const clash = tempahanBertindihPemohonR3(mula, tamat);
+            if(clash) return alert(`Tarikh tempahan bertindih dengan rekod sedia ada (${fmtDateR3(clash.tMula)} - ${fmtDateR3(clash.tTamat)}). Sila pilih tarikh lain.`);
+            const isPenumpang = roleR3() === 'penumpang';
+            const pemandu = isPenumpang ? dapatPemanduR3() : null;
+            if(isPenumpang && !pemandu) return alert('Sila pilih nama pemandu.');
+            const btn = document.getElementById('btnSahkan');
+            if(btn){ btn.disabled = true; btn.textContent = '⏳ Menghantar permohonan...'; }
+            try{
+                const lokasi = valR3('lokasi') || '-';
+                let jarak = 100;
+                try{ if(typeof kiraJarakSebenarOSRM === 'function') jarak = await kiraJarakSebenarOSRM(lokasi); }catch(e){}
+                const dataBaru = {
+                    emel: profilSemasa?.emel || 'tiada@emel.com', nama: profilSemasa?.nama || 'Tanpa Nama', tel: profilSemasa?.tel || '-', unit: profilSemasa?.unit || '-',
+                    tujuan: valR3('tujuan') || '-', lokasi, jarakPerjalanan: Number(jarak) || 100,
+                    tMula: mula, tTamat: tamat, cadangan: valR3('cadanganKenderaan') || '-',
+                    kenderaanDipilih: 'Belum Ditetapkan', status: 'Menunggu Kelulusan', createdAt: new Date().toISOString(), pemohonPeranan: roleR3(),
+                    emelAmbil: isPenumpang ? (pemandu?.emel || '') : (profilSemasa?.emel || ''),
+                    pemanduNama: isPenumpang ? (pemandu?.nama || '-') : (profilSemasa?.nama || '-'),
+                    pemanduEmel: isPenumpang ? (pemandu?.emel || '-') : (profilSemasa?.emel || '-'),
+                    pemanduTel: isPenumpang ? (pemandu?.tel || '-') : (profilSemasa?.tel || '-'),
+                    pemanduUnit: isPenumpang ? (pemandu?.unit || '-') : (profilSemasa?.unit || '-')
+                };
+                await addDoc(collection(db, 'tempahan'), dataBaru);
+                document.getElementById('borangTempahan')?.reset();
+                notifyR3('Permohonan berjaya dihantar.');
+                try{ if(typeof kemaskiniBorangV10 === 'function') kemaskiniBorangV10(); }catch(e){}
+                try{ if(typeof janaSistem === 'function') janaSistem(); }catch(e){}
+                if(confirm('Tempahan telah berjaya dihantar. Mahu hantar reminder WhatsApp kepada Admin sekarang?')) bukaWhatsappAdminR3(mesejWhatsappTempahanR3(dataBaru));
+            }catch(err){ console.error('Ralat hantar tempahan R3:', err); alert('Gagal menghantar permohonan. Sila cuba semula dan semak Console jika masih gagal.'); }
+            finally{ if(btn){ btn.disabled = false; btn.textContent = 'Hantar Permohonan'; } }
+        };
+
+        /* ========== 3. KELULUSAN BERTEMPOH DALAM SEJARAH + BATAL TANPA PULANG ========== */
+        window.batalKelulusanR3 = async function(key){
+            if(!isAdminR3()) return alert('Akses hanya untuk Admin / Super Admin.');
+            const [jenis, ...rest] = String(key || '').split(':');
+            const id = rest.join(':');
+            if(!id) return alert('ID rekod tidak sah.');
+            if(jenis === 'assign'){
+                const a = (DB_AssignBerkala || []).find(x => String(x.id) === id);
+                if(!a) return alert('Tetapan kelulusan bertempoh tidak ditemui.');
+                if(!confirm(`Batalkan Tetapan Kelulusan Bertempoh untuk ${a.plat}? Rekod ini akan dipadam.`)) return;
+                try{
+                    await deleteDoc(doc(db,'assign_berkala', id));
+                    const k = (DB_Kenderaan || []).find(v => uR3(v.plat) === uR3(a.plat));
+                    if(k && (nR3(k.status).includes('bertempoh') || nR3(k.status) === 'ditempah' || nR3(k.assignBerkalaId) === nR3(id))) await updateDoc(doc(db,'kenderaan', k.plat), clearOperasiKenderaanR3());
+                    DB_AssignBerkala = (DB_AssignBerkala || []).filter(x => String(x.id) !== id);
+                    notifyR3('Tetapan Kelulusan Bertempoh telah dibatalkan.');
+                    if(typeof janaSistem === 'function') janaSistem();
+                    renderSejarahKelulusanR3();
+                }catch(err){ console.error(err); alert('Gagal membatalkan tetapan bertempoh. Semak permission Firestore.'); }
+                return;
+            }
+            if(jenis === 'temp'){
+                const t = (DB_Tempahan || []).find(x => tempIdR3(x) === id);
+                if(!t) return alert('Rekod kelulusan tidak ditemui.');
+                const plat = t.kenderaanDipilih || t.noKenderaan || '';
+                if(!confirm(`Batalkan kelulusan untuk ${namaTempR3(t)} / ${plat}? Status kenderaan akan dikosongkan semula tanpa proses pulang.`)) return;
+                try{
+                    await updateDoc(doc(db,'tempahan', id), { status:'Batal Kelulusan', batalKelulusanOleh:profilSemasa?.emel || '-', tBatalKelulusan:new Date().toISOString(), catatanBatalKelulusan:'Dibatalkan oleh Admin / Super Admin daripada Sejarah Kelulusan.' });
+                    if(plat) await updateDoc(doc(db,'kenderaan', plat), clearOperasiKenderaanR3());
+                    notifyR3('Kelulusan telah dibatalkan dan status kenderaan telah dikosongkan semula.');
+                    if(typeof janaSistem === 'function') janaSistem();
+                    renderSejarahKelulusanR3();
+                }catch(err){ console.error(err); alert('Gagal batal kelulusan. Semak permission Firestore.'); }
+            }
+        };
+        window.batalKelulusanR2 = function(idT){ return window.batalKelulusanR3('temp:' + idT); };
+
+        function pasangSejarahHeadR3(){
+            const tb = document.getElementById('jadualSejarahKelulusan'); if(!tb) return;
+            const table = tb.closest('table');
+            const head = table?.querySelector('thead');
+            if(head) head.innerHTML = '<tr class="bg-gray-200 text-gray-700"><th class="p-3 border-b">Pemohon / Tetapan</th><th class="p-3 border-b">Butiran</th><th class="p-3 border-b">Kenderaan / Status</th><th class="p-3 border-b">Tarikh Kelulusan</th><th class="p-3 border-b">Diluluskan Oleh</th><th class="p-3 border-b text-center">Tindakan</th></tr>';
+        }
+        function renderSejarahKelulusanR3(){
+            pasangSejarahHeadR3();
+            const tb = document.getElementById('jadualSejarahKelulusan'); if(!tb) return;
+            const mula = dtKeyR3(valR3('sejMulaV10')) || todayR3();
+            const akhir = dtKeyR3(valR3('sejAkhirV10')) || mula;
+            const platFilter = uR3(valR3('sejPlatV10'));
+            const lim = Number(valR3('sejLimitV10') || 10);
+            let rows = [];
+            (DB_Tempahan || []).filter(t => nR3(t.status) === 'lulus').forEach(t => {
+                const d = dtKeyR3(t.tLulus || t.createdAt || t.tMula);
+                if(!d || d < mula || d > akhir) return;
+                const plat = t.kenderaanDipilih || '-';
+                if(platFilter && !uR3(plat).includes(platFilter)) return;
+                rows.push({ type:'temp', id:tempIdR3(t), sort:t.tLulus || t.createdAt || '', nama:namaTempR3(t), unit:t.unit || '-', butiran:`${t.lokasi || '-'}<br><span class="text-xs">Mohon: ${fmtDateR3(t.tMula)} - ${fmtDateR3(t.tTamat)}</span>`, plat, status:'LULUS', tarikh:fmtDateTimeR3(t.tLulus || t.createdAt), oleh:t.lulusOleh || t.diluluskanOleh || '-' });
+            });
+            (DB_AssignBerkala || []).filter(a => nR3(a.status || 'aktif') === 'aktif').forEach(a => {
+                const am = dtKeyR3(a.tarikhMula), ak = dtKeyR3(a.tarikhAkhir);
+                if(!am || !ak || am > akhir || ak < mula) return;
+                const plat = a.plat || '-';
+                if(platFilter && !uR3(plat).includes(platFilter)) return;
+                rows.push({ type:'assign', id:a.id, sort:a.createdAt || a.tarikhMula || '', nama:a.pengguna && a.pengguna !== '-' ? a.pengguna : 'Tetapan Kelulusan Bertempoh', unit:a.unit || '-', butiran:`Tempoh: ${fmtDateR3(a.tarikhMula)} - ${fmtDateR3(a.tarikhAkhir)}<br><span class="text-xs">Kuasa Admin / Super Admin</span>`, plat, status:'BERTEMPOH', tarikh:fmtDateTimeR3(a.createdAt || a.updatedAt || a.tarikhMula), oleh:a.oleh || a.createdBy || '-' });
+            });
+            rows.sort((a,b)=>String(b.sort).localeCompare(String(a.sort)));
+            rows = rows.slice(0, lim);
+            if(!rows.length){ tb.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-gray-500 bg-gray-50">Tiada kelulusan aktif / bertempoh untuk paparan ini.</td></tr>'; return; }
+            tb.innerHTML = rows.map(r => `<tr class="border-b hover:bg-gray-50"><td class="p-3 font-semibold">${eR3(r.nama)}<br><span class="text-xs text-gray-500">${eR3(r.unit)}</span></td><td class="p-3">${r.butiran}</td><td class="p-3 font-bold text-blue-700">${eR3(r.plat)}<br><span class="text-xs ${r.type==='assign'?'text-blue-700':'text-green-700'}">${eR3(r.status)}</span></td><td class="p-3 text-xs">${eR3(r.tarikh)}</td><td class="p-3 text-xs text-blue-700 font-bold">${eR3(r.oleh)}</td><td class="p-3 text-center">${isAdminR3()?`<button onclick="batalKelulusanR3('${r.type}:${jR3(r.id)}')" class="bg-red-700 hover:bg-red-800 text-white text-xs font-bold px-3 py-2 rounded">BATAL KELULUSAN</button>`:'-'}</td></tr>`).join('');
+        }
+        try{ renderSejarahKelulusanV10 = renderSejarahKelulusanR3; }catch(e){ window.renderSejarahKelulusanV10 = renderSejarahKelulusanR3; }
+
+        /* ========== 4. DASHBOARD UTAMA: TETAPAN BERTEMPOH DIKIRA SEBAGAI TEMPAHAN ========== */
+        function renderDashboardR3(){
+            const tb = document.getElementById('jadualDashboard'); if(!tb) return;
+            tb.innerHTML = '';
+            let data = (DB_Kenderaan || []).map(displayKenderaanR3);
+            const carian = nR3(valR3('carianDashboardKenderaan') || window.dashboardQueryV3 || '');
+            if(roleR3() === 'pengguna' || roleR3() === 'penumpang'){
+                document.getElementById('dashboardSummary')?.classList.add('hilang');
+                setTxtR3('tajukDashboard', 'Status Kenderaan Sedang Ditempah / Digunakan');
+                data = data.filter(k => ['sedang digunakan'].includes(nR3(k.status)) || nR3(k.status).includes('ditempah') || nR3(k.status).includes('bertempoh'));
+            } else {
+                document.getElementById('dashboardSummary')?.classList.remove('hilang');
+                setTxtR3('tajukDashboard', 'Status Semasa Semua Kenderaan');
+                setTxtR3('sumTotal', (DB_Kenderaan || []).length);
+                setTxtR3('sumSedangGuna', data.filter(k => nR3(k.status) === 'sedang digunakan').length);
+                setTxtR3('sumDitempah', data.filter(k => nR3(k.status).includes('ditempah') || nR3(k.status).includes('bertempoh')).length);
+                setTxtR3('sumAvailable', data.filter(k => nR3(k.status) === 'available').length);
+            }
+            if(carian){
+                data = data.filter(k => [k.plat,k.jenama,k.modelKenderaan,k.jenis,k.status,k.pengguna,k.tempahOleh,k.unit,k.lokasiTujuan,k.tujuan].some(v => nR3(v).includes(carian)));
+            }
+            data.sort((a,b) => {
+                const pa = statusPriorityR3(a), pb = statusPriorityR3(b);
+                if(pa !== pb) return pa - pb;
+                const ma = masaAktivitiR3(a), mb = masaAktivitiR3(b);
+                if(ma !== mb) return mb - ma;
+                return uR3(a.plat).localeCompare(uR3(b.plat));
+            });
+            if(!data.length){ tb.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-gray-500 font-semibold bg-gray-50">Tiada rekod kenderaan ditemui berdasarkan paparan / carian semasa.</td></tr>'; return; }
+            tb.innerHTML = data.map((k,i)=>{
+                const st = String(k.status || 'Available');
+                let textP = '-'; let textTel = '-';
+                if(nR3(st).includes('ditempah') || nR3(st).includes('bertempoh')){ textP = `${nR3(st).includes('bertempoh')?'(Bertempoh)':'(Ditempah)'} ${k.tempahOleh || '-'}`; textTel = k.noTelPengguna || '-'; }
+                else if(nR3(st) === 'sedang digunakan'){ textP = k.pengguna || '-'; textTel = k.noTelPengguna || '-'; }
+                else if(nR3(st) === 'sedang diselenggara'){ textP = 'Dalam Selenggara'; textTel = '-'; }
+                else if(nR3(st).includes('rosak')){ textP = 'Kenderaan Rosak'; textTel = '-'; }
+                const mula = nR3(st) === 'sedang digunakan' ? (typeof formatMasa === 'function' ? formatMasa(k.masaAmbil) : fmtDateTimeR3(k.masaAmbil)) : fmtDateR3(k.tMula);
+                const tamat = fmtDateR3(k.tTamat);
+                return `<tr class="border-b hover:bg-gray-50 align-top ${nR3(st).includes('bertempoh')?'bg-blue-50/50':''}"><td class="p-3 align-top">${i+1}</td><td class="p-3 align-top"><strong class="text-gray-800 block">${eR3(k.plat)}</strong><span class="text-xs text-gray-500">${eR3(k.jenama)}</span></td><td class="p-3 align-top"><span class="font-bold text-blue-700">${eR3(textP)}</span><br><span class="text-xs text-gray-600">📞 ${eR3(textTel)}</span></td><td class="p-3 align-top"><span class="block">${eR3(k.unit && k.unit !== '-' ? k.unit : '-')}</span><span class="text-xs text-gray-500 block">${eR3(k.tujuan && k.tujuan !== '-' ? k.tujuan : '-')}</span><span class="text-xs font-bold text-gray-600">📍 ${eR3(k.lokasiTujuan && k.lokasiTujuan !== '-' ? k.lokasiTujuan : '-')}</span></td><td class="p-3 align-top text-gray-600 text-xs">Mula: <strong class="block">${eR3(mula)}</strong>Pulang: <strong class="block">${eR3(tamat)}</strong></td><td class="p-3 align-top"><span class="px-2 py-1 rounded text-xs font-bold border ${statusBadgeR3(k)}">${eR3(st)}</span></td></tr>`;
+            }).join('');
+        }
+
+        const janaSistemSebelumR3 = janaSistem;
+        janaSistem = function(){
+            const r = janaSistemSebelumR3 ? janaSistemSebelumR3.apply(this, arguments) : undefined;
+            try{ pasangButangWhatsappAdminR3(); }catch(e){}
+            try{ renderDashboardR3(); }catch(e){ console.warn('Dashboard R3 gagal render:', e); }
+            try{ renderSejarahKelulusanR3(); }catch(e){}
+            try{ janaPilihanLogPulangR3(); janaLogPulangR3(); }catch(e){}
+            return r;
+        };
+
+        const paparTabSebelumR3 = window.paparTab;
+        window.paparTab = function(tabId){
+            const r = paparTabSebelumR3 ? paparTabSebelumR3.apply(this, arguments) : undefined;
+            setTimeout(()=>{
+                try{ pasangButangWhatsappAdminR3(); }catch(e){}
+                if(tabId === 'dashboard') try{ renderDashboardR3(); }catch(e){}
+                if(tabId === 'pulang') try{ janaPilihanLogPulangR3(); janaLogPulangR3(); }catch(e){}
+                if(tabId === 'kelulusan') try{ renderSejarahKelulusanR3(); }catch(e){}
+            }, 100);
+            return r;
+        };
+
+        function mulaRepairR3(){
+            try{
+                pasangButangWhatsappAdminR3();
+                renderDashboardR3();
+                renderSejarahKelulusanR3();
+                janaPilihanLogPulangR3();
+                janaLogPulangR3();
+                console.log(ESILO_REPAIR_R3_LABEL + ' aktif.');
+            }catch(err){ console.warn('Repair R3 gagal dimulakan:', err); }
+        }
+        mulaRepairR3();
+        setTimeout(mulaRepairR3, 800);
+        setTimeout(mulaRepairR3, 2400);
+
 </script>
 </body>
 </html>
