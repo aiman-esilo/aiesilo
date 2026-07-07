@@ -7898,6 +7898,418 @@
         setTimeout(mulaRepairR1, 3000);
         setInterval(() => { try{ kemaskiniMenuRoleR1(); cleanupKenderaanDuplicateR1(); }catch(e){} }, 2000);
 
+        /* =====================================================================
+           E-SILO_ULTIMATE_V1.0 - REPAIR PATCH R2
+           Arahan: kekalkan kod utama Repair R1 sepenuhnya. Patch ini hanya
+           menambah baik paparan collapse, carian, tetapan dan rekod selenggara.
+           ===================================================================== */
+        const ESILO_ULTIMATE_REPAIR_LABEL_R2 = 'E-SILO_ULTIMATE_V1.0_REPAIR_R2_FINAL';
+        let borangKenderaanDibukaR2 = false;
+        let borangRekodKadDibukaR2 = false;
+        let borangStafDibukaR2 = false;
+
+        function hR2(v){ return String(v ?? '-').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+        function jR2(v){ return String(v ?? '').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,' '); }
+        function nR2(v){ return String(v || '').trim().toLowerCase(); }
+        function uR2(v){ return String(v || '').trim().toUpperCase(); }
+        function notifyR2(m){ try{ if(typeof notif === 'function') notif(m); else if(typeof notifyV10 === 'function') notifyV10(m); else alert(m); }catch(e){ alert(m); } }
+        function setValR2(id,v){ const el=document.getElementById(id); if(el) el.value = v ?? ''; }
+        function setTxtR2(id,v){ const el=document.getElementById(id); if(el) el.textContent = v ?? ''; }
+        function todayR2(){ return new Date().toISOString().slice(0,10); }
+        function fmtDateR2(v){ try{ return typeof formatTarikhMY === 'function' ? formatTarikhMY(v) : (v || '-'); }catch(e){ return v || '-'; } }
+        function fmtDateTimeR2(v){ try{ return typeof formatTarikhTimeMY === 'function' ? formatTarikhTimeMY(v) : (v || '-'); }catch(e){ return v || '-'; } }
+        function roleR2(){ try{ return typeof normalPerananEsiloV11 === 'function' ? normalPerananEsiloV11(profilSemasa?.peranan) : nR2(profilSemasa?.peranan); }catch(e){ return nR2(profilSemasa?.peranan); } }
+        function isAdminR2(){ const r=roleR2(); return r === 'admin' || r === 'superadmin'; }
+        function isSuperR2(){ return roleR2() === 'superadmin'; }
+        function tempIdR2(t){ return t?.idT || t?.id || t?.docId || ''; }
+        function namaTempR2(t){ return t?.nama || t?.namaPemohon || '-'; }
+        function statusClassR2(status){ try{ if(typeof statusClassR1 === 'function') return statusClassR1(status); }catch(e){} const s=nR2(status); if(s==='available') return 'bg-emerald-100 text-emerald-800 border-emerald-200'; if(s.includes('rosak')) return 'bg-red-100 text-red-800 border-red-200'; if(s.includes('selenggara')) return 'bg-purple-100 text-purple-800 border-purple-200'; if(s.includes('guna')) return 'bg-rose-100 text-rose-800 border-rose-200'; if(s.includes('lulus') || s.includes('tempah')) return 'bg-amber-100 text-amber-800 border-amber-200'; return 'bg-slate-100 text-slate-700 border-slate-200'; }
+
+        function pasangStyleR2(){
+            if(document.getElementById('styleRepairR2')) return;
+            const style=document.createElement('style');
+            style.id='styleRepairR2';
+            style.textContent = `
+                input:not([type="email"]):not([type="date"]):not([type="number"]):not(.uppercase), textarea, select { text-transform: capitalize; }
+                input.uppercase, .uppercase { text-transform: uppercase !important; }
+                #summaryKenderaanV15, #summaryKenderaanV10 { display:grid !important; grid-template-columns:repeat(4,minmax(0,1fr)) !important; gap:1rem !important; }
+                @media (max-width: 768px){ #summaryKenderaanV15, #summaryKenderaanV10 { grid-template-columns:repeat(2,minmax(0,1fr)) !important; } }
+                .esilo-r2-collapsed { display:none !important; }
+                .esilo-r2-status-chip { display:inline-flex; align-items:center; border-radius:999px; padding:.2rem .55rem; font-size:.72rem; font-weight:800; border-width:1px; }
+            `;
+            document.head.appendChild(style);
+        }
+
+        function capitalizeDisplayInputR2(){
+            document.querySelectorAll('input:not([type="email"]):not([type="date"]):not([type="number"]):not(.uppercase), textarea, select').forEach(el => {
+                el.style.textTransform = 'capitalize';
+            });
+            document.querySelectorAll('input.uppercase, .uppercase').forEach(el => el.style.textTransform = 'uppercase');
+        }
+
+        /* ================= KENDERAAN: SUMMARY SEBARIS + BORANG COLLAPSE ================= */
+        function formCardKenderaanR2(){ return document.getElementById('borangKenderaan')?.closest('.bg-white') || null; }
+        function listCardKenderaanR2(){ return document.getElementById('jadualSelenggaraKenderaan')?.closest('.bg-white') || null; }
+        function clearBorangKenderaanR2(){
+            const f=document.getElementById('borangKenderaan');
+            if(f) f.reset();
+            ['kenderaanGambarBase64','k_inden','k_tng'].forEach(id=>setValR2(id,''));
+            const img=document.getElementById('previewGambarKenderaan'); if(img) img.src='https://placehold.co/640x360/e2e8f0/64748b?text=Kereta';
+            const t=document.getElementById('tajukBorangKenderaan'); if(t) t.textContent='Daftar Kenderaan Baru';
+            const plat=document.getElementById('k_plat'); if(plat) plat.readOnly=false;
+            try{ if(typeof refreshSelectKenderaanTambahanV15 === 'function') refreshSelectKenderaanTambahanV15(); }catch(e){}
+        }
+        function bukaBorangKenderaanR2(scroll=true){
+            borangKenderaanDibukaR2 = true;
+            const card=formCardKenderaanR2(); if(card){ card.classList.remove('hilang','esilo-r2-collapsed'); if(scroll) setTimeout(()=>card.scrollIntoView({behavior:'smooth', block:'start'}),60); }
+            const btn=document.getElementById('btnToggleBorangKenderaanR2'); if(btn) btn.textContent='− TUTUP BORANG DAFTAR / EDIT KENDERAAN';
+        }
+        function tutupBorangKenderaanR2(clear=true){
+            borangKenderaanDibukaR2 = false;
+            if(clear) clearBorangKenderaanR2();
+            const card=formCardKenderaanR2(); if(card) card.classList.add('hilang','esilo-r2-collapsed');
+            const btn=document.getElementById('btnToggleBorangKenderaanR2'); if(btn) btn.textContent='+ DAFTAR KENDERAAN BARU';
+        }
+        window.bukaBorangKenderaanBaruR2 = function(){ clearBorangKenderaanR2(); bukaBorangKenderaanR2(true); };
+        window.toggleBorangKenderaanR2 = function(){ borangKenderaanDibukaR2 ? tutupBorangKenderaanR2(true) : window.bukaBorangKenderaanBaruR2(); };
+        function pasangKenderaanCollapseR2(){
+            try{ if(typeof pasangKenderaanUIV15 === 'function') pasangKenderaanUIV15(); }catch(e){}
+            try{ if(typeof cleanupKenderaanDuplicateR1 === 'function') cleanupKenderaanDuplicateR1(); }catch(e){}
+            const summary=document.getElementById('summaryKenderaanV15') || document.getElementById('summaryKenderaanV10');
+            if(summary){ summary.className='grid grid-cols-4 gap-4 mb-6'; summary.classList.remove('hilang'); }
+            document.getElementById('summaryKenderaanV10')?.remove();
+            document.getElementById('barCarianKenderaanV10')?.remove();
+            const listCard=listCardKenderaanR2(); const formCard=formCardKenderaanR2(); const grid=formCard?.parentElement || listCard?.parentElement;
+            if(grid && formCard && listCard){
+                grid.className='grid grid-cols-1 gap-6';
+                listCard.className='bg-white p-6 rounded-lg shadow-lg border-t-4 border-gray-400 order-1';
+                formCard.className='bg-white p-6 rounded-lg shadow-lg border-t-4 border-emerald-600 order-2';
+                if(listCard.nextElementSibling !== formCard) grid.insertBefore(listCard, formCard);
+            }
+            const h2=listCard?.querySelector('h2');
+            if(h2 && !document.getElementById('btnToggleBorangKenderaanR2')){
+                h2.insertAdjacentHTML('afterend', `<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mt-3 mb-3"><button type="button" id="btnToggleBorangKenderaanR2" onclick="toggleBorangKenderaanR2()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded font-bold shadow">+ DAFTAR KENDERAAN BARU</button><p class="text-xs text-gray-500">Borang daftar/edit hanya dibuka apabila tambah baharu atau edit dipilih.</p></div>`);
+            }
+            if(!borangKenderaanDibukaR2) formCard?.classList.add('hilang','esilo-r2-collapsed');
+            capitalizeDisplayInputR2();
+        }
+        const editKenderaanSebelumR2 = window.editKenderaan;
+        window.editKenderaan = function(plat){ const r = editKenderaanSebelumR2 ? editKenderaanSebelumR2.apply(this, arguments) : undefined; bukaBorangKenderaanR2(true); return r; };
+        const resetBorangKenderaanSebelumR2 = window.resetBorangKenderaan;
+        window.resetBorangKenderaan = function(){ let r; try{ r = resetBorangKenderaanSebelumR2 ? resetBorangKenderaanSebelumR2.apply(this, arguments) : undefined; }catch(e){ console.warn(e); } tutupBorangKenderaanR2(true); return r; };
+        window.cariKenderaanV15 = window.cariKenderaanV10 = function(){
+            const q=nR2(document.getElementById('carianKenderaanV15')?.value || document.getElementById('carianKenderaanV10')?.value || '');
+            try{ kenderaanQueryV15=q; kenderaanQueryR1=q; kenderaanModeV15=q?'cari':'kosong'; kenderaanModeR1=q?'cari':'kosong'; kenderaanModeV10=q?'cari':'kosong'; }catch(e){}
+            tutupBorangKenderaanR2(true); janaSistemKenderaan();
+        };
+        window.resetCarianKenderaanV15 = window.resetCarianKenderaanV10 = function(){
+            setValR2('carianKenderaanV15',''); setValR2('carianKenderaanV10','');
+            try{ kenderaanQueryV15=''; kenderaanQueryR1=''; kenderaanModeV15='kosong'; kenderaanModeR1='kosong'; kenderaanModeV10='kosong'; }catch(e){}
+            tutupBorangKenderaanR2(true); janaSistemKenderaan();
+        };
+        window.paparSemuaKenderaanV15 = window.paparSemuaKenderaanV10 = function(){
+            setValR2('carianKenderaanV15',''); setValR2('carianKenderaanV10','');
+            try{ kenderaanQueryV15=''; kenderaanQueryR1=''; kenderaanModeV15='semua'; kenderaanModeR1='semua'; kenderaanModeV10='semua'; }catch(e){}
+            tutupBorangKenderaanR2(true); janaSistemKenderaan();
+        };
+        const janaSistemKenderaanSebelumR2 = janaSistemKenderaan;
+        janaSistemKenderaan = function(){ const r = janaSistemKenderaanSebelumR2 ? janaSistemKenderaanSebelumR2.apply(this, arguments) : undefined; pasangKenderaanCollapseR2(); return r; };
+
+        /* ================= REKOD KAD: BORANG COLLAPSE ================= */
+        function formCardRekodKadR2(){ return document.getElementById('borangRekodKad')?.closest('.bg-white') || null; }
+        function listCardRekodKadR2(){ return document.getElementById('jadualRekodKad')?.closest('.bg-white') || null; }
+        function bukaBorangRekodKadR2(scroll=true){ borangRekodKadDibukaR2=true; const c=formCardRekodKadR2(); if(c){ c.classList.remove('hilang','esilo-r2-collapsed'); if(scroll) setTimeout(()=>c.scrollIntoView({behavior:'smooth', block:'start'}),60); } const b=document.getElementById('btnToggleRekodKadR2'); if(b) b.textContent='− TUTUP DAFTAR REKOD KAD'; }
+        function tutupBorangRekodKadR2(){ borangRekodKadDibukaR2=false; const c=formCardRekodKadR2(); if(c) c.classList.add('hilang','esilo-r2-collapsed'); const b=document.getElementById('btnToggleRekodKadR2'); if(b) b.textContent='+ TAMBAH REKOD KAD'; }
+        window.tambahRekodKadBaruR2 = function(){ const f=document.getElementById('borangRekodKad'); if(f) f.reset(); try{ tukarKategoriKad(); tukarStatusKad(); }catch(e){} bukaBorangRekodKadR2(true); };
+        window.toggleRekodKadR2 = function(){ borangRekodKadDibukaR2 ? (window.resetRekodKad(), tutupBorangRekodKadR2()) : window.tambahRekodKadBaruR2(); };
+        function pasangRekodKadCollapseR2(){
+            try{ if(typeof pasangRekodKadUIV10 === 'function') pasangRekodKadUIV10(); }catch(e){}
+            const formCard=formCardRekodKadR2(); const listCard=listCardRekodKadR2(); const grid=formCard?.parentElement || listCard?.parentElement;
+            if(grid && formCard && listCard){ grid.className='grid grid-cols-1 gap-6'; listCard.className='bg-white p-6 rounded-lg shadow-lg border-t-4 border-gray-400 order-1'; formCard.className='bg-white p-6 rounded-lg shadow-lg border-t-4 border-cyan-600 order-2'; if(listCard.nextElementSibling!==formCard) grid.insertBefore(listCard, formCard); }
+            const h=formCard?.querySelector('h2'); if(h) h.textContent='DAFTAR REKOD KAD';
+            const h2=listCard?.querySelector('h2');
+            if(h2 && !document.getElementById('btnToggleRekodKadR2')) h2.insertAdjacentHTML('afterend', `<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mt-3 mb-3"><button type="button" id="btnToggleRekodKadR2" onclick="toggleRekodKadR2()" class="bg-cyan-700 hover:bg-cyan-800 text-white px-4 py-2 rounded font-bold shadow">+ TAMBAH REKOD KAD</button><p class="text-xs text-gray-500">Borang daftar/edit kad hanya dibuka apabila tambah baharu atau edit dipilih.</p></div>`);
+            if(!borangRekodKadDibukaR2) formCard?.classList.add('hilang','esilo-r2-collapsed');
+        }
+        const editRekodKadSebelumR2 = window.editRekodKad;
+        window.editRekodKad = function(id){ const r=editRekodKadSebelumR2 ? editRekodKadSebelumR2.apply(this, arguments) : undefined; bukaBorangRekodKadR2(true); return r; };
+        const resetRekodKadSebelumR2 = window.resetRekodKad;
+        window.resetRekodKad = function(){ let r; try{ r=resetRekodKadSebelumR2 ? resetRekodKadSebelumR2.apply(this, arguments) : undefined; }catch(e){} tutupBorangRekodKadR2(); return r; };
+        const janaRekodKadSebelumR2 = window.janaRekodKad || janaRekodKad;
+        window.janaRekodKad = janaRekodKad = function(){ const r = janaRekodKadSebelumR2 ? janaRekodKadSebelumR2.apply(this, arguments) : undefined; pasangRekodKadCollapseR2(); return r; };
+
+        /* ================= STAF: LABEL, PADAM DAN SATU TOGGLE SAHAJA ================= */
+        function pasangStafUIR2(){
+            try{ if(typeof pasangStafUIV15 === 'function') pasangStafUIV15(); }catch(e){}
+            const form=document.getElementById('borangStaf'); const formCard=form?.closest('.bg-white'); const tableCard=document.getElementById('jadualSelenggaraStaf')?.closest('.bg-white');
+            if(tableCard){ const h=tableCard.querySelector('h2'); if(h) h.textContent='SENARAI PEGAWAI BERDAFTAR'; }
+            if(formCard){ const h=formCard.querySelector('h2'); if(h) h.textContent='DAFTAR PEGAWAI'; }
+            ['toggleBorangStafV10','toggleBorangStafR1'].forEach(id=>document.getElementById(id)?.remove());
+            if(formCard && !document.getElementById('toggleBorangStafR2')){
+                const h=formCard.querySelector('h2');
+                h?.insertAdjacentHTML('afterend', `<button id="toggleBorangStafR2" type="button" onclick="toggleBorangStafR2()" class="w-full mb-4 bg-purple-700 hover:bg-purple-800 text-white font-bold py-3 rounded shadow">+ DAFTAR PEGAWAI</button>`);
+            }
+            const upload=formCard?.querySelector('.mt-8');
+            if(!borangStafDibukaR2){ form?.classList.add('hilang'); upload?.classList.add('hilang'); }
+            capitalizeDisplayInputR2();
+        }
+        window.toggleBorangStafR2 = function(){
+            const form=document.getElementById('borangStaf'); const upload=form?.closest('.bg-white')?.querySelector('.mt-8');
+            borangStafDibukaR2 = !borangStafDibukaR2;
+            form?.classList.toggle('hilang', !borangStafDibukaR2); upload?.classList.toggle('hilang', !borangStafDibukaR2);
+            const b=document.getElementById('toggleBorangStafR2'); if(b) b.textContent = borangStafDibukaR2 ? '− TUTUP DAFTAR PEGAWAI' : '+ DAFTAR PEGAWAI';
+        };
+        try{ pasangStafUIR1 = pasangStafUIR2; }catch(e){}
+        const editStafSebelumR2 = window.editStaf;
+        window.editStaf = function(emel){ const r=editStafSebelumR2 ? editStafSebelumR2.apply(this, arguments) : undefined; borangStafDibukaR2=false; window.toggleBorangStafR2(); setTimeout(()=>document.getElementById('borangStaf')?.closest('.bg-white')?.scrollIntoView({behavior:'smooth', block:'start'}),80); return r; };
+        const resetBorangStafSebelumR2 = window.resetBorangStaf;
+        window.resetBorangStaf = function(){ let r; try{ r=resetBorangStafSebelumR2 ? resetBorangStafSebelumR2.apply(this, arguments) : undefined; }catch(e){} borangStafDibukaR2=false; pasangStafUIR2(); return r; };
+        janaSistemStaf = function(){
+            pasangStafUIR2();
+            const tb=document.getElementById('jadualSelenggaraStaf'); if(!tb) return;
+            const mode = (typeof stafModeR1 !== 'undefined' ? stafModeR1 : (typeof stafModeV10 !== 'undefined' ? stafModeV10 : 'kosong'));
+            const q = (typeof stafQueryR1 !== 'undefined' ? stafQueryR1 : (typeof stafQueryV10 !== 'undefined' ? stafQueryV10 : '')) || '';
+            if(mode === 'kosong'){ tb.innerHTML='<tr><td colspan="6" class="p-6 text-center text-gray-500 bg-gray-50 font-bold">Sila tekan CARI atau PAPAR SEMUA untuk memaparkan senarai pegawai.</td></tr>'; return; }
+            let data=(DB_Pengguna || []).slice();
+            if(mode === 'cari' && q) data=data.filter(p => [p.nama,p.emel,p.tel,p.unit,p.tempatBertugas,p.peranan].some(v => nR2(v).includes(q)));
+            data.sort((a,b)=>String(a.nama||'').localeCompare(String(b.nama||'')));
+            const head=tb.closest('table')?.querySelector('thead'); if(head) head.innerHTML='<tr class="bg-gray-800 text-white"><th class="p-3">Profil</th><th class="p-3">Nama & Emel</th><th class="p-3">Telefon</th><th class="p-3">Unit / Tempat Bertugas</th><th class="p-3">Peranan</th><th class="p-3 text-center">Tindakan</th></tr>';
+            if(!data.length){ tb.innerHTML='<tr><td colspan="6" class="p-6 text-center text-gray-500 bg-gray-50">Tiada pegawai ditemui.</td></tr>'; return; }
+            tb.innerHTML=data.map(p=>`<tr class="border-b hover:bg-gray-50"><td class="p-3"><img src="${hR2(p.gambar || 'https://placehold.co/100x100/e2e8f0/64748b?text=User')}" class="w-12 h-12 rounded-full object-contain bg-white border"></td><td class="p-3"><b>${hR2(p.nama||'-')}</b><br><span class="text-xs text-blue-700">${hR2(p.emel||'-')}</span></td><td class="p-3">${hR2(p.tel||'-')}</td><td class="p-3">${hR2(p.unit||'-')}<br><span class="text-xs font-bold text-gray-600">${hR2(p.tempatBertugas||'-')}</span></td><td class="p-3 font-bold uppercase">${hR2(p.peranan||'-')}</td><td class="p-3 text-center"><div class="grid grid-cols-1 gap-1"><button onclick="editStaf('${jR2(p.emel)}')" class="text-xs bg-blue-100 px-3 py-1 rounded font-bold hover:bg-blue-200">EDIT</button>${isSuperR2()?`<button onclick="padamStafV63('${jR2(p.emel)}')" class="text-xs bg-red-600 text-white px-3 py-1 rounded font-bold hover:bg-red-700">PADAM</button>`:''}</div></td></tr>`).join('');
+        };
+
+        /* ================= KELULUSAN: TETAPAN BERTEMPOH + SEJARAH + BATAL KELULUSAN ================= */
+        function isiDatalistAssignPenggunaR2(){
+            const dl=document.getElementById('dlAssignPenggunaV10'); if(!dl) return;
+            const data=(DB_Pengguna || []).filter(p => nR2(p.peranan)==='pengguna').sort((a,b)=>String(a.nama||'').localeCompare(String(b.nama||'')));
+            dl.innerHTML=data.map(p=>`<option value="${hR2(p.nama||'')}">${hR2(p.unit||'-')} | ${hR2(p.emel||'-')}</option>`).join('');
+        }
+        function pasangPanelAssignBerkalaR2(){
+            try{ if(typeof pasangPanelAssignBerkalaV10 === 'function') pasangPanelAssignBerkalaV10(); }catch(e){}
+            const panel=document.getElementById('panelAssignBerkalaV10') || document.getElementById('panelAssignBerkalaV5'); if(!panel) return;
+            const h=panel.querySelector('h3'); if(h) h.textContent='TETAPAN KELULUSAN BERTEMPOH';
+            const unit=document.getElementById('assignUnitV10') || document.getElementById('assignUnitV5');
+            unit?.closest('div')?.remove();
+            const peng=document.getElementById('assignPenggunaV10') || document.getElementById('assignPenggunaV5');
+            if(peng){ peng.setAttribute('list','dlAssignPenggunaV10'); peng.placeholder='Taip nama pengguna / pemandu'; peng.required=true; }
+            if(!document.getElementById('dlAssignPenggunaV10')) peng?.insertAdjacentHTML('afterend','<datalist id="dlAssignPenggunaV10"></datalist>');
+            isiDatalistAssignPenggunaR2();
+        }
+        window.resetAssignBerkalaV10 = function(){ ['assignMulaV10','assignAkhirV10','assignPlatV10','assignPenggunaV10'].forEach(id=>setValR2(id,'')); };
+        window.simpanAssignBerkalaV10 = async function(){
+            const mula=document.getElementById('assignMulaV10')?.value || '', akhir=document.getElementById('assignAkhirV10')?.value || '', plat=document.getElementById('assignPlatV10')?.value || '', pengguna=document.getElementById('assignPenggunaV10')?.value.trim() || '';
+            if(!mula || !akhir || !plat) return alert('Sila lengkapkan tarikh mula, tarikh akhir dan no kenderaan.');
+            if(!pengguna) return alert('Sila taip / pilih nama pengguna untuk tetapan kelulusan bertempoh.');
+            if(akhir < mula) return alert('Tarikh akhir tidak boleh lebih awal daripada tarikh mula.');
+            const p=(DB_Pengguna || []).find(x => nR2(x.nama)===nR2(pengguna));
+            const id=['assign',plat,mula,akhir,pengguna].join('_').replace(/[^a-zA-Z0-9_-]/g,'_');
+            try{ await setDoc(doc(db,'assign_berkala',id), { plat, pengguna, unit:p?.unit || '-', penggunaEmel:p?.emel || '-', tarikhMula:mula, tarikhAkhir:akhir, status:'Aktif', createdAt:new Date().toISOString(), updatedAt:new Date().toISOString(), oleh:profilSemasa.emel || '-' }, { merge:true }); notifyR2('Tetapan kelulusan bertempoh berjaya disimpan.'); window.resetAssignBerkalaV10(); if(typeof janaSenaraiAssignBerkalaV10==='function') janaSenaraiAssignBerkalaV10(); }
+            catch(err){ console.error(err); alert('Gagal menyimpan tetapan kelulusan bertempoh.'); }
+        };
+        function renderStatusPemohonR2(){
+            const tb=document.getElementById('jadualPengguna'); if(!tb) return;
+            const em=nR2(profilSemasa?.emel), nm=nR2(profilSemasa?.nama);
+            const list=(DB_Tempahan || []).filter(t => nR2(t.emel)===em || nR2(t.emelAmbil)===em || nR2(t.pemanduEmel)===em || nR2(t.pemanduNama)===nm).sort((a,b)=>String(b.createdAt||b.tLulus||'').localeCompare(String(a.createdAt||a.tLulus||'')));
+            if(!list.length){ tb.innerHTML='<tr><td colspan="4" class="p-4 text-center text-gray-500 bg-gray-50">Tiada permohonan setakat ini.</td></tr>'; return; }
+            tb.innerHTML=list.map(t=>{
+                const id=tempIdR2(t); const pending=nR2(t.status)==='menunggu kelulusan';
+                const cancel=pending ? `<button onclick="batalTempahanPenggunaV10('${jR2(id)}')" class="ml-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1 rounded">BATAL</button>` : '';
+                const status=nR2(t.status)==='tidak diluluskan' ? `<span class="esilo-r2-status-chip bg-red-100 text-red-700 border-red-200">TIDAK DILULUSKAN</span><br><span class="text-xs text-red-700">${hR2(t.catatanTidakLulus || '-')}</span>` : `<span class="esilo-r2-status-chip ${statusClassR2(t.status)}">${hR2(t.status || '-')}</span>${cancel}`;
+                const kol=roleR2()==='penumpang' ? hR2(t.pemanduNama || '-') : hR2(t.kenderaanDipilih || '-');
+                return `<tr class="border-b hover:bg-gray-50 align-top"><td class="p-3">${hR2(t.tujuan||'-')}<br><span class="text-xs text-gray-500">${hR2(t.lokasi||'-')}</span></td><td class="p-3">${hR2(fmtDateR2(t.tMula))} - ${hR2(fmtDateR2(t.tTamat))}</td><td class="p-3 font-bold">${kol}</td><td class="p-3 font-bold">${status}</td></tr>`;
+            }).join('');
+        }
+        try{ renderStatusPemohonR1 = renderStatusPemohonR2; }catch(e){}
+        try{ renderStatusPemohonV10 = renderStatusPemohonR2; }catch(e){}
+        function pasangSejarahKelulusanR2(){
+            const tb=document.getElementById('jadualSejarahKelulusan'); if(!tb) return;
+            const table=tb.closest('table'); const head=table?.querySelector('thead');
+            if(head) head.innerHTML='<tr class="bg-gray-200 text-gray-700"><th class="p-3 border-b">Pemohon</th><th class="p-3 border-b">Destinasi</th><th class="p-3 border-b">Kenderaan Diberi</th><th class="p-3 border-b">Tarikh Kelulusan</th><th class="p-3 border-b">Diluluskan Oleh</th><th class="p-3 border-b text-center">Tindakan</th></tr>';
+            if(typeof pasangSejarahKelulusanV10 === 'function') pasangSejarahKelulusanV10();
+        }
+        window.batalKelulusanR2 = async function(idT){
+            const t=(DB_Tempahan || []).find(x => tempIdR2(x)===idT); if(!t) return alert('Rekod kelulusan tidak ditemui.');
+            if(nR2(t.status)!=='lulus') return alert('Hanya rekod status LULUS boleh dibatalkan kelulusan.');
+            const plat=t.kenderaanDipilih || '';
+            const k=(DB_Kenderaan || []).find(x => uR2(x.plat)===uR2(plat));
+            if(k && nR2(k.status)==='sedang digunakan') return alert('Kenderaan sedang digunakan. Sila pulangkan kenderaan dahulu sebelum batal kelulusan.');
+            if(!confirm(`Batalkan kelulusan untuk ${namaTempR2(t)} / ${plat}?`)) return;
+            try{
+                await updateDoc(doc(db,'tempahan',idT), { status:'Batal Kelulusan', batalKelulusanOleh:profilSemasa.emel || '-', tBatalKelulusan:new Date().toISOString() });
+                if(k && (nR2(k.status)==='ditempah' || nR2(k.status)==='lulus')){
+                    await updateDoc(doc(db,'kenderaan',plat), { status:'Available', tempahOleh:'-', pengguna:'-', emelPengguna:'-', noTelPengguna:'-', unit:'-', tujuan:'-', lokasiTujuan:'-', tMula:'-', tTamat:'-', masaAmbil:null });
+                }
+                notifyR2('Kelulusan telah dibatalkan.'); if(typeof janaSistem==='function') janaSistem(); if(typeof renderSejarahKelulusanV10==='function') renderSejarahKelulusanV10();
+            }catch(err){ console.error(err); alert('Gagal batal kelulusan. Semak permission Firestore.'); }
+        };
+        renderSejarahKelulusanV10 = function(){
+            pasangSejarahKelulusanR2();
+            const tb=document.getElementById('jadualSejarahKelulusan'); if(!tb) return;
+            const mula=document.getElementById('sejMulaV10')?.value || todayR2();
+            const akhir=document.getElementById('sejAkhirV10')?.value || mula;
+            const plat=uR2(document.getElementById('sejPlatV10')?.value || '');
+            const lim=Number(document.getElementById('sejLimitV10')?.value || 10);
+            let data=(DB_Tempahan || []).filter(t => nR2(t.status)==='lulus');
+            data=data.filter(t => { const d=String(t.tLulus || t.createdAt || t.tMula || '').slice(0,10); return d && d>=mula && d<=akhir; });
+            if(plat) data=data.filter(t => uR2(t.kenderaanDipilih || '').includes(plat));
+            data=data.sort((a,b)=>String(b.tLulus || b.createdAt || '').localeCompare(String(a.tLulus || a.createdAt || ''))).slice(0,lim);
+            if(!data.length){ tb.innerHTML='<tr><td colspan="6" class="p-4 text-center text-gray-500 bg-gray-50">Tiada kelulusan aktif untuk paparan ini.</td></tr>'; return; }
+            tb.innerHTML=data.map(t=>`<tr class="border-b hover:bg-gray-50"><td class="p-3 font-semibold">${hR2(namaTempR2(t))}<br><span class="text-xs text-gray-500">${hR2(t.unit||'-')}</span></td><td class="p-3">${hR2(t.lokasi||'-')}<br><span class="text-xs">Mohon: ${hR2(fmtDateR2(t.tMula))} - ${hR2(fmtDateR2(t.tTamat))}</span></td><td class="p-3 font-bold text-blue-700">${hR2(t.kenderaanDipilih||'-')}<br><span class="text-xs text-green-700">LULUS</span></td><td class="p-3 text-xs">${hR2(fmtDateTimeR2(t.tLulus||'-'))}</td><td class="p-3 text-xs text-blue-700 font-bold">${hR2(t.lulusOleh||'-')}</td><td class="p-3 text-center">${isAdminR2()?`<button onclick="batalKelulusanR2('${jR2(tempIdR2(t))}')" class="bg-red-700 hover:bg-red-800 text-white text-xs font-bold px-3 py-2 rounded">BATAL KELULUSAN</button>`:'-'}</td></tr>`).join('');
+        };
+
+        /* ================= REKOD SELENGGARA: BAKI KM/HARI + COLORING ================= */
+        function numR2(v){ const n=Number(v); return Number.isFinite(n) ? n : 0; }
+        function bakiHariR2(dateStr){ if(!dateStr || String(dateStr)==='-') return null; const d=new Date(String(dateStr).slice(0,10)+'T00:00:00'); if(Number.isNaN(d.getTime())) return null; const t=new Date(todayR2()+'T00:00:00'); return Math.ceil((d-t)/86400000); }
+        function statusServisR2(k){
+            const cur=numR2(k.mileage || k.odometerSemasa || 0);
+            const next=numR2(k.odometerNextServis || k.mileageServis || 0);
+            const bkm=next ? next-cur : null;
+            const bh=bakiHariR2(k.tarikhNextServis);
+            const hadKm=numR2(document.getElementById('hadKmServis')?.value || 100);
+            const hadHari=numR2(document.getElementById('hadHariServis')?.value || 14);
+            const sedang=nR2(k.statusSelenggara)==='sedang diselenggara' || nR2(k.status)==='sedang diselenggara';
+            if(sedang) return {bakiKm:bkm, bakiHari:bh, teks:'SEDANG DISELENGGARA', cls:'bg-purple-100 text-purple-800 border-purple-200'};
+            if((bkm !== null && bkm <= 0) || (bh !== null && bh <= 0)) return {bakiKm:bkm, bakiHari:bh, teks:'PERLU SERVIS', cls:'bg-red-100 text-red-800 border-red-200'};
+            if((bkm !== null && bkm <= hadKm) || (bh !== null && bh <= hadHari)) return {bakiKm:bkm, bakiHari:bh, teks:'HAMPIR SERVIS', cls:'bg-amber-100 text-amber-800 border-amber-200'};
+            return {bakiKm:bkm, bakiHari:bh, teks:'NORMAL', cls:'bg-emerald-100 text-emerald-800 border-emerald-200'};
+        }
+        function kemaskiniSummarySelenggaraR2(){
+            const data=DB_Kenderaan || [];
+            setTxtR2('selSumTotal', data.length);
+            setTxtR2('selSumSedang', data.filter(k=>nR2(k.statusSelenggara)==='sedang diselenggara' || nR2(k.status)==='sedang diselenggara').length);
+            setTxtR2('selSumKM', data.filter(k=>{ const st=statusServisR2(k); return st.bakiKm !== null && st.bakiKm <= numR2(document.getElementById('hadKmServis')?.value || 100); }).length);
+            setTxtR2('selSumTarikh', data.filter(k=>{ const st=statusServisR2(k); return st.bakiHari !== null && st.bakiHari <= numR2(document.getElementById('hadHariServis')?.value || 14); }).length);
+        }
+        janaRekodSelenggara = function(){
+            try{ if(typeof pasangSelenggaraCarianV10 === 'function') pasangSelenggaraCarianV10(); }catch(e){}
+            kemaskiniSummarySelenggaraR2();
+            const tb=document.getElementById('jadualRekodSelenggara'); if(!tb) return;
+            const mode=(typeof selenggaraModeV10 !== 'undefined' ? selenggaraModeV10 : 'kosong');
+            const q=(typeof selenggaraQueryV10 !== 'undefined' ? selenggaraQueryV10 : '') || '';
+            if(mode === 'kosong'){ tb.innerHTML='<tr><td colspan="7" class="p-6 text-center text-gray-500 bg-gray-50 font-bold">Sila tekan CARI atau PAPAR SEMUA untuk memaparkan senarai status selenggara.</td></tr>'; return; }
+            let data=(DB_Kenderaan || []).slice();
+            if(mode === 'cari' && q) data=data.filter(k => [k.plat,k.jenama,k.status,k.statusSelenggara,k.tarikhNextServis,k.odometerNextServis,k.mileageServis].some(v => nR2(v).includes(q)));
+            data.sort((a,b)=>uR2(a.plat).localeCompare(uR2(b.plat)));
+            if(!data.length){ tb.innerHTML='<tr><td colspan="7" class="p-6 text-center text-gray-500 bg-gray-50">Tiada rekod selenggara ditemui.</td></tr>'; return; }
+            tb.innerHTML=data.map(k=>{ const st=statusServisR2(k); const row=st.teks==='PERLU SERVIS'?'bg-red-50':(st.teks==='HAMPIR SERVIS'?'bg-amber-50':(st.teks==='SEDANG DISELENGGARA'?'bg-purple-50':'')); return `<tr class="border-b hover:bg-gray-50 ${row}"><td class="p-3"><b>${hR2(k.plat)}</b><br><span class="text-xs">${hR2(k.jenama||'-')}</span></td><td class="p-3">${hR2(k.mileage||0)} km</td><td class="p-3">${hR2(fmtDateR2(k.tarikhNextServis||'-'))}<br><span class="text-xs">${hR2(k.odometerNextServis || k.mileageServis || '-')} km</span></td><td class="p-3 font-bold ${st.bakiKm !== null && st.bakiKm <= 0 ? 'text-red-700' : ''}">${st.bakiKm === null ? '-' : hR2(st.bakiKm + ' km')}</td><td class="p-3 font-bold ${st.bakiHari !== null && st.bakiHari <= 0 ? 'text-red-700' : ''}">${st.bakiHari === null ? '-' : hR2(st.bakiHari + ' hari')}</td><td class="p-3"><span class="esilo-r2-status-chip ${st.cls}">${hR2(st.teks)}</span></td><td class="p-3"><span class="esilo-r2-status-chip ${statusClassR2(k.statusSelenggara || k.status)}">${hR2(k.statusSelenggara || k.status || '-')}</span></td></tr>`; }).join('');
+        };
+        window.cariSelenggaraV10 = function(){ selenggaraQueryV10=nR2(document.getElementById('carianSelenggaraV10')?.value || ''); selenggaraModeV10=selenggaraQueryV10?'cari':'kosong'; janaRekodSelenggara(); };
+        window.resetSelenggaraV10 = function(){ setValR2('carianSelenggaraV10',''); selenggaraQueryV10=''; selenggaraModeV10='kosong'; janaRekodSelenggara(); };
+        window.paparSemuaSelenggaraV10 = function(){ setValR2('carianSelenggaraV10',''); selenggaraQueryV10=''; selenggaraModeV10='semua'; janaRekodSelenggara(); };
+
+        /* ================= TETAPAN UTAMA: UPSERT, UNIT DARI STAF, RESET OPERASI ================= */
+        const tetapanAktifSebelumR2 = typeof tetapanAktifV61 === 'function' ? tetapanAktifV61 : null;
+        const tetapanSemuaSebelumR2 = typeof tetapanSemuaV61 === 'function' ? tetapanSemuaV61 : null;
+        function unitDariStafR2(includeInactive=false){
+            const map=new Map();
+            (DB_Pengguna || []).forEach(p => { const u=String(p.unit || '').trim(); if(u && u !== '-') map.set(nR2(u), {kategori:'unit_jabatan', nama:u, status:'aktif', sumber:'dashboard_staf'}); });
+            return [...map.values()].sort((a,b)=>String(a.nama).localeCompare(String(b.nama)));
+        }
+        tetapanAktifV61 = function(kategori){ if(kategori === 'unit_jabatan') return unitDariStafR2(false); return tetapanAktifSebelumR2 ? tetapanAktifSebelumR2(kategori) : []; };
+        tetapanSemuaV61 = function(kategori){ if(kategori === 'unit_jabatan') return unitDariStafR2(true); return tetapanSemuaSebelumR2 ? tetapanSemuaSebelumR2(kategori) : []; };
+        function docIdTetapanR2(kategori,nama){
+            const selected=document.getElementById('tetapanIdV61')?.value || '';
+            if(selected && !selected.startsWith('default_')) return selected;
+            const existing=(DB_TetapanUtamaV61 || []).find(x => x.kategori===kategori && nR2(x.nama)===nR2(nama));
+            if(existing?.id) return existing.id;
+            return (kategori + '_' + nR2(nama).replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')) || (kategori + '_' + Date.now());
+        }
+        window.simpanTetapanUtamaV61 = async function(){
+            if(!isAdminR2()) return alert('Hanya Admin / Super Admin dibenarkan.');
+            const kategori=document.getElementById('tetapanKategoriV61')?.value || '';
+            const nama=document.getElementById('tetapanNamaV61')?.value.trim() || '';
+            if(kategori === 'unit_jabatan') return alert('Kategori Unit / Jabatan dijana automatik daripada Unit di Dashboard Staf. Sila kemaskini unit pegawai di Dashboard Staf.');
+            if(!kategori || !nama) return alert('Sila pilih kategori dan masukkan nama/nilai tetapan.');
+            const id=docIdTetapanR2(kategori,nama);
+            try{
+                await setDoc(doc(db,'tetapan_utama',id), { kategori, nama, alamat:document.getElementById('tetapanAlamatV61')?.value.trim() || '-', telefon:document.getElementById('tetapanTelefonV61')?.value.trim() || '-', status:document.getElementById('tetapanStatusV61')?.value || 'aktif', updatedAt:new Date().toISOString(), updatedBy:profilSemasa.emel || '-' }, { merge:true });
+                notifyR2('Tetapan utama berjaya disimpan / dikemaskini pada rekod sedia ada.');
+                if(typeof resetBorangTetapanV61==='function') resetBorangTetapanV61(true); if(typeof renderTetapanUtamaV61==='function') renderTetapanUtamaV61(); if(typeof applyTetapanUtamaV61==='function') applyTetapanUtamaV61();
+            }catch(err){ console.error(err); alert('Gagal menyimpan tetapan utama.'); }
+        };
+        window.kemaskiniTetapanUtamaV61 = async function(){ await window.simpanTetapanUtamaV61(); };
+        function pasangResetDataR2(){
+            try{ if(typeof pasangResetTetapanV63 === 'function') pasangResetTetapanV63(); }catch(e){}
+            const sel=document.getElementById('resetTargetV63'); if(!sel || sel.dataset.r2) return;
+            sel.dataset.r2='1';
+            sel.insertAdjacentHTML('afterbegin', `
+                <option value="rekod_operasi">SEMUA Rekod Tempahan, Ambil, Pulang & Kelulusan</option>
+                <option value="rekod_tempahan_kelulusan">Rekod Tempahan & Kelulusan Sahaja</option>
+                <option value="rekod_ambil_pulang">Rekod Ambil / Pulang / Buku Log Sahaja</option>
+            `);
+            sel.value='rekod_operasi';
+        }
+        async function deleteCollectionR2(name){ const snap=await getDocs(collection(db,name)); let c=0; for(const d of snap.docs){ await deleteDoc(doc(db,name,d.id)); c++; } return c; }
+        async function resetOperasiKenderaanR2(){
+            const snap=await getDocs(collection(db,'kenderaan')); let c=0;
+            for(const d of snap.docs){
+                const data=d.data() || {}; const st=nR2(data.status);
+                const nextStatus = (st==='ditempah' || st==='sedang digunakan' || st==='lulus') ? 'Available' : (data.status || 'Available');
+                await updateDoc(doc(db,'kenderaan',d.id), { status:nextStatus, pengguna:'-', emelPengguna:'-', noTelPengguna:'-', tempahOleh:'-', unit:'-', tujuan:'-', lokasiTujuan:'-', tMula:'-', tTamat:'-', masaAmbil:null, resetOperasiAt:new Date().toISOString(), resetOperasiBy:profilSemasa.emel || '-' });
+                c++;
+            }
+            return c;
+        }
+        const resetDataMentahSebelumR2 = window.resetDataMentahV63;
+        window.resetDataMentahV63 = async function(){
+            if(!isSuperR2()) return alert('RESET hanya dibenarkan untuk SUPER ADMIN sahaja.');
+            const target=document.getElementById('resetTargetV63')?.value || '';
+            if(['rekod_operasi','rekod_tempahan_kelulusan','rekod_ambil_pulang'].includes(target)){
+                const phrase=document.getElementById('resetPhraseV63')?.value || '';
+                if(typeof RESET_PHRASE_V63 !== 'undefined' && phrase !== RESET_PHRASE_V63) return alert('Frasa keselamatan tidak tepat. Data tidak direset.');
+                if(!confirm('Pastikan backup telah dibuat. Teruskan reset data operasi ini?')) return;
+                if(!confirm('Pengesahan terakhir: rekod yang dipilih akan dipadam/diclear. Teruskan?')) return;
+                try{
+                    const msg=[];
+                    if(target === 'rekod_operasi' || target === 'rekod_tempahan_kelulusan') msg.push(`Tempahan/Kelulusan: ${await deleteCollectionR2('tempahan')} rekod dipadam`);
+                    if(target === 'rekod_operasi' || target === 'rekod_ambil_pulang') msg.push(`Buku Log Pulang: ${await deleteCollectionR2('log_kenderaan')} rekod dipadam`);
+                    if(target === 'rekod_operasi') msg.push(`Tetapan Bertempoh: ${await deleteCollectionR2('assign_berkala')} rekod dipadam`);
+                    msg.push(`Status operasi kenderaan: ${await resetOperasiKenderaanR2()} rekod disemak/clear`);
+                    setValR2('resetPhraseV63',''); notifyR2('RESET selesai. ' + msg.join(' | ')); alert('RESET selesai.\n\n' + msg.join('\n'));
+                    if(typeof janaSistem==='function') janaSistem();
+                }catch(err){ console.error(err); alert('RESET gagal. Semak permission Firestore delete/update untuk akaun ini.'); }
+                return;
+            }
+            return resetDataMentahSebelumR2 ? resetDataMentahSebelumR2.apply(this, arguments) : undefined;
+        };
+
+        /* ================= OVERRIDE PAPAR TAB DAN REFRESH PATCH ================= */
+        const paparTabSebelumR2 = window.paparTab;
+        window.paparTab = function(tabId){
+            const r = paparTabSebelumR2 ? paparTabSebelumR2.apply(this, arguments) : undefined;
+            setTimeout(()=>{
+                pasangStyleR2(); capitalizeDisplayInputR2();
+                if(tabId === 'selenggaraKenderaan') { pasangKenderaanCollapseR2(); }
+                if(tabId === 'rekodKad') { pasangRekodKadCollapseR2(); }
+                if(tabId === 'selenggara') { pasangStafUIR2(); }
+                if(tabId === 'kelulusan') { pasangPanelAssignBerkalaR2(); if(typeof renderSejarahKelulusanV10==='function') renderSejarahKelulusanV10(); }
+                if(tabId === 'rekodSelenggara') { janaRekodSelenggara(); }
+                if(tabId === 'tetapanUtama') { pasangResetDataR2(); if(typeof renderTetapanUtamaV61==='function') renderTetapanUtamaV61(); }
+            }, 80);
+            return r;
+        };
+        const janaSistemSebelumR2 = janaSistem;
+        janaSistem = function(){
+            const r = janaSistemSebelumR2 ? janaSistemSebelumR2.apply(this, arguments) : undefined;
+            try{ renderStatusPemohonR2(); }catch(e){}
+            try{ if(isAdminR2()){ pasangPanelAssignBerkalaR2(); renderSejarahKelulusanV10(); } }catch(e){}
+            try{ pasangStafUIR2(); pasangKenderaanCollapseR2(); pasangRekodKadCollapseR2(); pasangResetDataR2(); }catch(e){}
+            return r;
+        };
+        function mulaRepairR2(){
+            try{
+                pasangStyleR2(); capitalizeDisplayInputR2(); pasangKenderaanCollapseR2(); pasangRekodKadCollapseR2(); pasangStafUIR2(); pasangPanelAssignBerkalaR2(); pasangResetDataR2();
+                if(document.getElementById('jadualRekodSelenggara')) janaRekodSelenggara();
+                if(document.getElementById('jadualPengguna')) renderStatusPemohonR2();
+                console.log(ESILO_ULTIMATE_REPAIR_LABEL_R2 + ' aktif.');
+            }catch(err){ console.warn('Repair R2 gagal dimulakan:', err); }
+        }
+        mulaRepairR2();
+        setTimeout(mulaRepairR2, 800);
+        setTimeout(mulaRepairR2, 2400);
+        setInterval(()=>{ try{ pasangStyleR2(); capitalizeDisplayInputR2(); pasangStafUIR2(); pasangKenderaanCollapseR2(); pasangRekodKadCollapseR2(); pasangPanelAssignBerkalaR2(); pasangResetDataR2(); }catch(e){} }, 2500);
+
+
 </script>
 </body>
 </html>
