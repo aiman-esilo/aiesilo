@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-SILO | Sistem Pengurusan Kenderaan</title>
+    <title>E-SILO ULTIMATE | E-SISTEM PENGURUSAN LOGISTIK</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
@@ -81,8 +81,8 @@
         <div class="container mx-auto flex flex-col md:flex-row justify-between items-center">
             <div class="flex items-center mb-4 md:mb-0">
                 <div>
-                    <h1 class="text-2xl font-bold">E-SILO Ultimate</h1>
-                    <p class="text-sm text-blue-200">Sistem Pengurusan Kenderaan & Aset</p>
+                    <h1 class="text-2xl font-bold">E-SILO ULTIMATE</h1>
+                    <p class="text-sm text-blue-200">E-SISTEM PENGURUSAN LOGISTIK</p>
                 </div>
             </div>
             <div class="flex flex-col items-end">
@@ -6915,6 +6915,613 @@
         setInterval(() => { try{ pastikanMenuKelulusanV15(); kemaskiniBadgeKelulusanV15(); }catch(e){} }, 2500);
 
 
-    </script>
+    
+
+        /* =====================================================================
+           E-SILO_ULTIMATE_V1.0
+           Patch akhir di atas ESILO Ultimate Update V1.5 FULL.
+           Prinsip: kekalkan kod utama/struktur asal, tambah baik melalui override minimum.
+           ===================================================================== */
+        const ESILO_ULTIMATE_VERSION_LABEL_V10 = 'E-SILO_ULTIMATE_V1.0';
+        let kenderaanModeV10 = 'kosong';
+        let kenderaanQueryV10 = '';
+        let stafModeV10 = 'kosong';
+        let stafQueryV10 = '';
+        let selenggaraModeV10 = 'kosong';
+        let selenggaraQueryV10 = '';
+        let sejarahModeV10 = 'hari_ini';
+        let sejarahLimitV10 = 10;
+
+        function eV10(v){ return String(v ?? '-').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+        function jV10(v){ return String(v ?? '').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,' '); }
+        function nV10(v){ return String(v || '').trim().toLowerCase(); }
+        function uV10(v){ return String(v || '').trim().toUpperCase(); }
+        function roleV10(){ try{ return typeof normalPerananEsiloV11 === 'function' ? normalPerananEsiloV11(profilSemasa?.peranan) : nV10(profilSemasa?.peranan); }catch(e){ return nV10(profilSemasa?.peranan); } }
+        function isAdminV10(){ const r = roleV10(); return r === 'admin' || r === 'superadmin'; }
+        function isSuperV10(){ return roleV10() === 'superadmin'; }
+        function todayV10(){ return new Date().toISOString().slice(0,10); }
+        function dtV10(v){ return (v && String(v).length >= 10) ? String(v).slice(0,10) : ''; }
+        function setValV10(id,val){ const el=document.getElementById(id); if(el) el.value = val ?? ''; }
+        function setTxtV10(id,val){ const el=document.getElementById(id); if(el) el.textContent = val ?? ''; }
+        function notifyV10(msg){ try{ if(typeof notif === 'function') notif(msg); else alert(msg); }catch(e){ alert(msg); } }
+        function fmtDateV10(v){ try{ return typeof formatTarikhMY === 'function' ? formatTarikhMY(v) : (v || '-'); }catch(e){ return v || '-'; } }
+        function fmtDateTimeV10(v){ try{ return typeof formatTarikhTimeMY === 'function' ? formatTarikhTimeMY(v) : (v || '-'); }catch(e){ return v || '-'; } }
+        function namaTempV10(t){ return t?.nama || t?.namaPemohon || '-'; }
+        function emailAmbilV10(t){ return t?.emelAmbil || t?.pemanduEmel || t?.emel || ''; }
+        function namaAmbilV10(t){ return t?.pemanduNama || t?.namaAmbil || t?.nama || '-'; }
+        function telAmbilV10(t){ return t?.pemanduTel || t?.telAmbil || t?.tel || '-'; }
+        function unitAmbilV10(t){ return t?.pemanduUnit || t?.unitAmbil || t?.unit || '-'; }
+        function tempIdV10(t){ return t?.idT || t?.id || t?.docId || ''; }
+        function dateOverlapV10(aStart, aEnd, bStart, bEnd){
+            const a1 = dtV10(aStart), a2 = dtV10(aEnd || aStart), b1 = dtV10(bStart), b2 = dtV10(bEnd || bStart);
+            if(!a1 || !b1) return false;
+            return a1 <= (b2 || b1) && b1 <= (a2 || a1);
+        }
+        function isTempahanAktifV10(t){
+            const s = nV10(t?.status);
+            return ['menunggu kelulusan','lulus','ditempah','telah ditempah'].includes(s);
+        }
+        function milikProfilV10(t){
+            const em = nV10(profilSemasa?.emel), nm = nV10(profilSemasa?.nama);
+            return nV10(t?.emel) === em || nV10(t?.emelAmbil) === em || nV10(t?.pemanduEmel) === em || nV10(t?.nama) === nm || nV10(t?.pemanduNama) === nm;
+        }
+        function kenderaanSedangGunaProfilV10(){
+            const nm = nV10(profilSemasa?.nama), em = nV10(profilSemasa?.emel);
+            return (DB_Kenderaan || []).find(k => nV10(k.status) === 'sedang digunakan' && (nV10(k.pengguna) === nm || nV10(k.emelPengguna) === em));
+        }
+        function tempahanBertindihProfilV10(mula, tamat){
+            return (DB_Tempahan || []).find(t => isTempahanAktifV10(t) && milikProfilV10(t) && dateOverlapV10(mula, tamat, t.tMula || t.tarikhGuna, t.tTamat || t.tarikhPulang));
+        }
+
+        function kemaskiniLabelSistemV10(){
+            document.title = 'E-SILO ULTIMATE | E-SISTEM PENGURUSAN LOGISTIK';
+            const title = document.querySelector('nav h1'); if(title) title.textContent = 'E-SILO ULTIMATE';
+            const sub = document.querySelector('nav h1 + p'); if(sub) sub.textContent = 'E-SISTEM PENGURUSAN LOGISTIK';
+        }
+
+        function tambahTetapanDefaultV10(){
+            try{
+                if(typeof DEFAULT_TETAPAN_V61 !== 'undefined'){
+                    DEFAULT_TETAPAN_V61.penempatan_kenderaan = DEFAULT_TETAPAN_V61.penempatan_kenderaan || [
+                        {nama:'KPDN PULAU PINANG'},
+                        {nama:'CAWANGAN SEBERANG PERAI UTARA'},
+                        {nama:'CAWANGAN TIMUR LAUT'}
+                    ];
+                    DEFAULT_TETAPAN_V61.jenis_kenderaan = DEFAULT_TETAPAN_V61.jenis_kenderaan || [{nama:'Sedan'}, {nama:'4x4'}, {nama:'Van'}, {nama:'Lori'}];
+                }
+                const sel = document.getElementById('tetapanKategoriV61');
+                if(sel && ![...sel.options].some(o => o.value === 'penempatan_kenderaan')){
+                    const opt = document.createElement('option'); opt.value = 'penempatan_kenderaan'; opt.textContent = 'Penempatan Kenderaan';
+                    sel.appendChild(opt);
+                }
+            }catch(e){ console.warn('Tetapan default V1.0 gagal dipasang:', e); }
+        }
+        function tetapanAktifSafeV10(kategori){
+            try{ if(typeof tetapanAktifV61 === 'function') return tetapanAktifV61(kategori) || []; }catch(e){}
+            const def = {
+                jenis_kenderaan:[{nama:'Sedan'},{nama:'4x4'},{nama:'Van'},{nama:'Lori'}],
+                penempatan_kenderaan:[{nama:'KPDN PULAU PINANG'},{nama:'CAWANGAN SEBERANG PERAI UTARA'},{nama:'CAWANGAN TIMUR LAUT'}],
+                jenis_minyak:[{nama:'RON95'},{nama:'Diesel'}]
+            };
+            return def[kategori] || [];
+        }
+        function isiSelectTetapanSafeV10(id, kategori, withBlank=true){
+            const el = document.getElementById(id); if(!el) return;
+            const old = el.value;
+            const opts = tetapanAktifSafeV10(kategori);
+            el.innerHTML = (withBlank ? '<option value="">-- Sila Pilih --</option>' : '') + opts.map(x => `<option value="${eV10(x.nama)}">${eV10(x.nama)}</option>`).join('');
+            if([...el.options].some(o => o.value === old)) el.value = old;
+        }
+        function applyTetapanV10(){
+            tambahTetapanDefaultV10();
+            isiSelectTetapanSafeV10('cadanganKenderaan', 'jenis_kenderaan', true);
+            isiSelectTetapanSafeV10('k_jenis', 'jenis_kenderaan', false);
+            isiSelectTetapanSafeV10('k_penempatan', 'penempatan_kenderaan', true);
+            isiSelectTetapanSafeV10('k_bahanBakar', 'jenis_minyak', true);
+            try{ if(typeof pastikanDatalistV61 === 'function') pastikanDatalistV61('dlTempatBertugasV61', 'tempat_bertugas'); }catch(e){}
+        }
+        const applyTetapanUtamaSebelumV10 = (typeof applyTetapanUtamaV61 === 'function') ? applyTetapanUtamaV61 : null;
+        try{
+            applyTetapanUtamaV61 = function(){ if(applyTetapanUtamaSebelumV10) applyTetapanUtamaSebelumV10(); applyTetapanV10(); };
+        }catch(e){}
+
+        function susunMenuV10(){
+            try{ if(typeof pastikanMenuKelulusanV15 === 'function') pastikanMenuKelulusanV15(); }catch(e){}
+            const tabDashboard = document.getElementById('tabDashboard');
+            const tabKelulusan = document.getElementById('tabKelulusan');
+            const tabTempahan = document.getElementById('tabOperasi');
+            if(tabDashboard && tabKelulusan && tabTempahan && tabDashboard.nextElementSibling !== tabKelulusan){
+                tabDashboard.insertAdjacentElement('afterend', tabKelulusan);
+            }
+            const teks = document.getElementById('teksTabOperasi'); if(teks) teks.textContent = '📝 TEMPAHAN';
+            const bTemp = document.getElementById('badgeTempahan'); if(bTemp) bTemp.classList.add('hilang');
+            const ambil = document.getElementById('tabAmbil');
+            if(ambil && !document.getElementById('badgeAmbilV10')) ambil.insertAdjacentHTML('beforeend', '<span id="badgeAmbilV10" class="ml-2 bg-red-500 text-white rounded-full px-2 py-0.5 text-xs font-bold hilang">0</span>');
+            if(tabKelulusan) isAdminV10() ? tabKelulusan.classList.remove('hilang') : tabKelulusan.classList.add('hilang');
+            if(ambil) ambil.classList.remove('hilang');
+            kemaskiniBadgeAmbilV10();
+        }
+
+        try{
+            statusPriorityDashboardV15 = function(k){
+                const st = nV10(k?.status);
+                if(st === 'sedang digunakan') return 1;
+                if(st === 'ditempah' || st === 'tempahan' || st === 'telah ditempah') return 2;
+                if(st === 'sedang diselenggara' || nV10(k?.statusSelenggara) === 'sedang diselenggara') return 3;
+                if(st === 'available') return 8;
+                if(st.includes('rosak')) return 99;
+                return 9;
+            };
+        }catch(e){}
+
+        function pasangMedanPemanduPenumpangV10(){
+            const cad = document.getElementById('cadanganKenderaan'); if(!cad) return;
+            if(!document.getElementById('ruangPemanduPenumpangV10')){
+                cad.closest('.mb-4, .md\\:col-span-2')?.insertAdjacentHTML('afterend', `
+                    <div id="ruangPemanduPenumpangV10" class="mb-4 md:col-span-2 hilang bg-amber-50 border border-amber-200 rounded p-3">
+                        <label class="block text-gray-700 font-semibold mb-2">Nama Pemandu <span class="text-red-600">*</span></label>
+                        <select id="pemanduPenumpangV10" class="w-full p-2 border rounded bg-white font-bold"></select>
+                        <p class="text-xs text-amber-700 mt-1">Untuk peranan PENUMPANG sahaja. Pemandu dipilih daripada senarai staf berperanan PENGGUNA dan pemandu inilah yang perlu akses menu AMBIL.</p>
+                    </div>`);
+            }
+            const ruang = document.getElementById('ruangPemanduPenumpangV10');
+            const sel = document.getElementById('pemanduPenumpangV10');
+            if(sel){
+                const old = sel.value;
+                const drivers = (DB_Pengguna || []).filter(p => (typeof normalPerananEsiloV11 === 'function' ? normalPerananEsiloV11(p.peranan) : nV10(p.peranan)) === 'pengguna').sort((a,b)=>String(a.nama||'').localeCompare(String(b.nama||'')));
+                sel.innerHTML = '<option value="">-- Pilih Pemandu --</option>' + drivers.map(p => `<option value="${eV10(p.emel || p.nama)}">${eV10(p.nama || '-')} | ${eV10(p.unit || '-')} | ${eV10(p.emel || '-')}</option>`).join('');
+                if([...sel.options].some(o=>o.value===old)) sel.value = old;
+            }
+            if(roleV10() === 'penumpang') ruang?.classList.remove('hilang'); else ruang?.classList.add('hilang');
+        }
+        function dapatPemanduDipilihV10(){
+            const val = document.getElementById('pemanduPenumpangV10')?.value || '';
+            return (DB_Pengguna || []).find(p => (p.emel || p.nama) === val) || null;
+        }
+        function kemaskiniBorangV10(){
+            if(!profilSemasa) return;
+            applyTetapanV10(); pasangMedanPemanduPenumpangV10();
+            setValV10('nama', profilSemasa.nama || ''); setValV10('unit', profilSemasa.unit || '');
+            const mula = document.getElementById('tarikhGuna')?.value || '';
+            const tamat = document.getElementById('tarikhPulang')?.value || mula;
+            const btn = document.getElementById('btnSahkan'); const amaran = document.getElementById('amaranBorang');
+            if(!btn || !amaran) return;
+            let blocked = false, msg = '';
+            if(mula && tamat){
+                const clash = tempahanBertindihProfilV10(mula, tamat);
+                if(clash){ blocked = true; msg = `Tarikh tempahan bertindih dengan rekod sedia ada (${fmtDateV10(clash.tMula)} - ${fmtDateV10(clash.tTamat)}). Sila pilih tarikh lain.`; }
+            }
+            const driverRequired = roleV10() === 'penumpang';
+            if(driverRequired && !document.getElementById('pemanduPenumpangV10')?.value){ msg = 'Sila pilih nama pemandu sebelum hantar permohonan.'; }
+            btn.disabled = blocked;
+            btn.className = blocked ? 'w-full mt-2 bg-gray-400 text-white font-bold py-3 px-4 rounded opacity-50 cursor-not-allowed' : 'w-full mt-2 bg-blue-600 text-white font-bold py-3 px-4 rounded hover:bg-blue-700 transition shadow';
+            if(msg){ amaran.textContent = msg; amaran.classList.remove('hilang'); } else amaran.classList.add('hilang');
+        }
+        try{ kemaskiniBorang = kemaskiniBorangV10; }catch(e){}
+
+        ['tarikhGuna','tarikhPulang','pemanduPenumpangV10'].forEach(id => setTimeout(()=>document.getElementById(id)?.addEventListener('change', kemaskiniBorangV10), 1200));
+
+        const hantarTempahanSebelumV10 = window.hantarTempahan;
+        window.hantarTempahan = async function(e){
+            e.preventDefault();
+            const mula = document.getElementById('tarikhGuna')?.value || '';
+            const tamat = document.getElementById('tarikhPulang')?.value || mula;
+            if(tempahanBertindihProfilV10(mula, tamat)) return alert('Tarikh tempahan bertindih dengan tempahan / kelulusan sedia ada. Sila pilih tarikh lain.');
+            const isPenumpang = roleV10() === 'penumpang';
+            const pemandu = isPenumpang ? dapatPemanduDipilihV10() : null;
+            if(isPenumpang && !pemandu) return alert('Sila pilih nama pemandu.');
+            const btn = document.getElementById('btnSahkan'); if(btn){ btn.disabled = true; btn.textContent = '⏳ Menghantar permohonan...'; }
+            try{
+                const lokasi = document.getElementById('lokasi')?.value || '-';
+                let jarak = 100;
+                try{ if(typeof kiraJarakSebenarOSRM === 'function') jarak = await kiraJarakSebenarOSRM(lokasi); }catch(e){}
+                const dataBaru = {
+                    emel: profilSemasa.emel || 'tiada@emel.com', nama: profilSemasa.nama || 'Tanpa Nama', tel: profilSemasa.tel || '-', unit: profilSemasa.unit || '-',
+                    tujuan: document.getElementById('tujuan')?.value || '-', lokasi, jarakPerjalanan: Number(jarak) || 100,
+                    tMula: mula || '-', tTamat: tamat || '-', cadangan: document.getElementById('cadanganKenderaan')?.value || '-',
+                    kenderaanDipilih: 'Belum Ditetapkan', status: 'Menunggu Kelulusan', createdAt: new Date().toISOString(),
+                    pemohonPeranan: roleV10(),
+                    emelAmbil: isPenumpang ? (pemandu.emel || '') : (profilSemasa.emel || ''),
+                    pemanduNama: isPenumpang ? (pemandu.nama || '-') : (profilSemasa.nama || '-'),
+                    pemanduEmel: isPenumpang ? (pemandu.emel || '-') : (profilSemasa.emel || '-'),
+                    pemanduTel: isPenumpang ? (pemandu.tel || '-') : (profilSemasa.tel || '-'),
+                    pemanduUnit: isPenumpang ? (pemandu.unit || '-') : (profilSemasa.unit || '-')
+                };
+                await addDoc(collection(db, 'tempahan'), dataBaru);
+                document.getElementById('borangTempahan')?.reset();
+                notifyV10('Permohonan berjaya dihantar.');
+                kemaskiniBorangV10(); janaSistem();
+            }catch(err){ console.error('Ralat hantar tempahan V1.0:', err); alert('Gagal menghantar permohonan. Sila cuba lagi.'); }
+            finally{ if(btn){ btn.disabled = false; btn.textContent = 'Hantar Permohonan'; } }
+        };
+
+        function kenderaanAvailableUntukTempahanV10(t){
+            return (DB_Kenderaan || []).filter(k => {
+                const st = nV10(k.status);
+                if(st !== 'available') return false;
+                const assign = (typeof aktifAssignBerkalaUntukPlatV5 === 'function') ? aktifAssignBerkalaUntukPlatV5(k.plat, new Date((t?.tMula || todayV10()) + 'T00:00:00')) : null;
+                return true; // tempahan admin tetap mendahului tetapan berkala.
+            }).sort((a,b)=>uV10(a.plat).localeCompare(uV10(b.plat)));
+        }
+        window.luluskanTempahan = async function(idTempahan){
+            const kereta = document.getElementById('pilih_kereta_' + idTempahan)?.value || '';
+            if(!kereta) return alert('Sila tetapkan kenderaan.');
+            const temp = (DB_Tempahan || []).find(t => tempIdV10(t) === idTempahan); if(!temp) return alert('Tempahan tidak ditemui.');
+            const driverName = namaAmbilV10(temp), driverTel = telAmbilV10(temp), driverUnit = unitAmbilV10(temp);
+            try{
+                await updateDoc(doc(db, 'tempahan', idTempahan), { kenderaanDipilih: kereta, status:'Lulus', lulusOleh: profilSemasa.emel || '-', tLulus: new Date().toISOString() });
+                await updateDoc(doc(db, 'kenderaan', kereta), {
+                    status:'Ditempah', tempahOleh: driverName, emelPengguna: emailAmbilV10(temp), noTelPengguna: driverTel, pengguna:'-', unit: driverUnit,
+                    tujuan: temp.tujuan || '-', lokasiTujuan: temp.lokasi || '-', tMula: temp.tMula || '-', tTamat: temp.tTamat || '-'
+                });
+                notifyV10('Kelulusan berjaya disahkan.'); janaSistem(); kemaskiniBadgeAmbilV10();
+            }catch(err){ console.error(err); alert('Gagal meluluskan tempahan.'); }
+        };
+        window.tidakLulusTempahanV5 = async function(idT){ return window.tidakLulusTempahanV10(idT); };
+        window.tidakLulusTempahanV10 = async function(idT){
+            const sebab = prompt('Catatan tidak diluluskan:', 'TIADA KENDERAAN YANG SEDIA DIGUNAKAN BUAT MASA INI') || 'TIADA KENDERAAN YANG SEDIA DIGUNAKAN BUAT MASA INI';
+            try{ await updateDoc(doc(db, 'tempahan', idT), { status:'Tidak Diluluskan', catatanTidakLulus: sebab, tidakLulusOleh: profilSemasa.emel || '-', tTidakLulus: new Date().toISOString() }); notifyV10('Tempahan telah ditanda sebagai tidak diluluskan.'); janaSistem(); }
+            catch(err){ console.error(err); alert('Gagal mengemaskini status tidak lulus.'); }
+        };
+        window.batalTempahanPenggunaV10 = async function(idT){
+            const t = (DB_Tempahan || []).find(x => tempIdV10(x) === idT); if(!t) return alert('Tempahan tidak ditemui.');
+            if(nV10(t.status) !== 'menunggu kelulusan') return alert('Hanya tempahan yang belum diluluskan boleh dibatalkan.');
+            if(!confirm('Batalkan permohonan tempahan ini?')) return;
+            try{ await updateDoc(doc(db,'tempahan',idT), { status:'Dibatalkan oleh Pengguna', batalOleh: profilSemasa.emel || '-', tBatal: new Date().toISOString() }); notifyV10('Tempahan telah dibatalkan.'); janaSistem(); }
+            catch(err){ console.error(err); alert('Gagal membatalkan tempahan.'); }
+        };
+
+        function renderStatusPemohonV10(){
+            const tb = document.getElementById('jadualPengguna'); if(!tb) return;
+            const mine = (DB_Tempahan || []).filter(t => nV10(t.emel) === nV10(profilSemasa?.emel) || nV10(t.emelAmbil) === nV10(profilSemasa?.emel) || nV10(t.pemanduNama) === nV10(profilSemasa?.nama))
+                .sort((a,b)=>String(b.createdAt || b.tLulus || '').localeCompare(String(a.createdAt || a.tLulus || '')));
+            if(!mine.length){ tb.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-gray-500 bg-gray-50">Tiada permohonan setakat ini.</td></tr>'; return; }
+            tb.innerHTML = mine.map(t => {
+                const id = tempIdV10(t); const pending = nV10(t.status) === 'menunggu kelulusan';
+                const aksi = pending ? `<button onclick="batalTempahanPenggunaV10('${jV10(id)}')" class="mt-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1 rounded">BATAL</button>` : '';
+                const status = nV10(t.status) === 'tidak diluluskan' ? `${eV10(t.status)}<br><span class="text-xs text-red-700">${eV10(t.catatanTidakLulus || '-')}</span>` : eV10(t.status || '-');
+                return `<tr class="border-b hover:bg-gray-50 align-top"><td class="p-3">${eV10(t.tujuan || '-')}<br><span class="text-xs text-gray-500">${eV10(t.lokasi || '-')}</span>${aksi}</td><td class="p-3">${eV10(fmtDateV10(t.tMula))} - ${eV10(fmtDateV10(t.tTamat))}</td><td class="p-3 font-bold">${roleV10()==='penumpang' ? eV10(t.pemanduNama || '-') : eV10(t.kenderaanDipilih || '-')}</td><td class="p-3 font-bold">${status}</td></tr>`;
+            }).join('');
+        }
+
+        function renderAdminKelulusanV10(){
+            const tb = document.getElementById('jadualAdmin'); if(!tb) return;
+            const pending = (DB_Tempahan || []).filter(t => nV10(t.status) === 'menunggu kelulusan').sort((a,b)=>String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+            if(!pending.length){ tb.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-gray-500 bg-gray-50 font-bold">Tiada task kelulusan baharu.</td></tr>'; return; }
+            tb.innerHTML = pending.map(t => {
+                const id = tempIdV10(t); const kereta = kenderaanAvailableUntukTempahanV10(t);
+                const opts = '<option value="">-- Tetapkan Kenderaan --</option>' + kereta.map(k => `<option value="${eV10(k.plat)}">${eV10(k.plat)} - ${eV10(k.jenama || '-')} | ${eV10(k.jenis || '-')}</option>`).join('');
+                const pemandu = t.pemohonPeranan === 'penumpang' ? `<br><span class="text-xs text-amber-700 font-bold">Pemandu: ${eV10(t.pemanduNama || '-')} (${eV10(t.pemanduUnit || '-')})</span>` : '';
+                return `<tr class="border-b hover:bg-gray-50 align-top">
+                    <td class="p-3"><strong>${eV10(namaTempV10(t))}</strong><br><span class="text-xs text-gray-500">${eV10(t.unit || '-')}</span><br><span class="text-xs text-blue-700">${eV10(t.emel || '-')}</span>${pemandu}</td>
+                    <td class="p-3"><b>${eV10(t.lokasi || '-')}</b><br><span class="text-xs text-gray-600">${eV10(fmtDateV10(t.tMula))} hingga ${eV10(fmtDateV10(t.tTamat))}</span><br><span class="text-xs text-gray-500">Tujuan: ${eV10(t.tujuan || '-')}</span></td>
+                    <td class="p-3">${eV10(t.cadangan || '-')}<br><span class="text-xs font-bold text-blue-700">Jarak anggaran: ${eV10(t.jarakPerjalanan || 100)} km</span></td>
+                    <td class="p-3"><select id="pilih_kereta_${eV10(id)}" class="w-full p-2 border rounded mb-2">${opts}</select><button onclick="luluskanTempahan('${jV10(id)}')" class="bg-blue-600 text-white w-full py-2 rounded shadow hover:bg-blue-700">SAHKAN KELULUSAN</button><button onclick="tidakLulusTempahanV10('${jV10(id)}')" class="bg-red-600 text-white w-full py-2 rounded mt-2 shadow hover:bg-red-700">TIDAK DILULUSKAN</button></td>
+                </tr>`;
+            }).join('');
+        }
+
+        function pasangPanelAssignBerkalaV10(){
+            const adminCard = document.getElementById('jadualAdmin')?.closest('.bg-white'); if(!adminCard) return;
+            if(!document.getElementById('panelAssignBerkalaV10')){
+                const div = document.createElement('div');
+                div.id = 'panelAssignBerkalaV10';
+                div.className = 'mt-8 pt-6 border-t-2 border-cyan-200';
+                div.innerHTML = `
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">Tetapan Berkala Kelulusan Bertempoh</h3>
+                    <p class="text-sm text-gray-500 mb-4">Tetapan ini digunakan apabila tiada kelulusan tempahan lain yang mendahului. Wajib pilih salah satu sahaja sama ada Nama Pengguna atau Unit.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-6 gap-3 bg-cyan-50 border border-cyan-200 rounded p-4 mb-4">
+                        <div><label class="block text-xs font-bold mb-1">Tarikh Mula</label><input type="date" id="assignMulaV10" class="w-full p-2 border rounded"></div>
+                        <div><label class="block text-xs font-bold mb-1">Tarikh Akhir</label><input type="date" id="assignAkhirV10" class="w-full p-2 border rounded"></div>
+                        <div><label class="block text-xs font-bold mb-1">No Kenderaan</label><select id="assignPlatV10" class="w-full p-2 border rounded"></select></div>
+                        <div><label class="block text-xs font-bold mb-1">Nama Pengguna</label><input id="assignPenggunaV10" list="dlAssignPenggunaV10" class="w-full p-2 border rounded" placeholder="Kosong jika ikut unit"><datalist id="dlAssignPenggunaV10"></datalist></div>
+                        <div><label class="block text-xs font-bold mb-1">Unit</label><input id="assignUnitV10" list="dlUnitJabatanV61" class="w-full p-2 border rounded" placeholder="Kosong jika ikut pengguna"></div>
+                        <div class="flex gap-2 items-end"><button onclick="simpanAssignBerkalaV10()" class="bg-cyan-700 hover:bg-cyan-800 text-white font-bold p-2 rounded w-1/2">TETAPKAN</button><button onclick="resetAssignBerkalaV10()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold p-2 rounded w-1/2">BATAL</button></div>
+                    </div>
+                    <div class="overflow-x-auto"><table class="w-full text-left border-collapse text-sm"><thead class="bg-cyan-900 text-white"><tr><th class="p-3">No Kenderaan</th><th class="p-3">Nama Pengguna / Unit</th><th class="p-3">Tempoh</th><th class="p-3">Status</th><th class="p-3 text-center">Tindakan</th></tr></thead><tbody id="jadualAssignBerkalaV10"></tbody></table></div>`;
+                const sejarah = adminCard.querySelector('#jadualSejarahKelulusan')?.closest('.mt-8');
+                if(sejarah) adminCard.insertBefore(div, sejarah); else adminCard.appendChild(div);
+            }
+            janaPilihanAssignBerkalaV10(); janaSenaraiAssignBerkalaV10();
+        }
+        function janaPilihanAssignBerkalaV10(){
+            const s = document.getElementById('assignPlatV10'); if(s){ const old=s.value; s.innerHTML = '<option value="">-- Pilih --</option>' + (DB_Kenderaan||[]).slice().sort((a,b)=>uV10(a.plat).localeCompare(uV10(b.plat))).map(k=>`<option value="${eV10(k.plat)}">${eV10(k.plat)} - ${eV10(k.jenama||'-')}</option>`).join(''); if([...s.options].some(o=>o.value===old)) s.value=old; }
+            const dl = document.getElementById('dlAssignPenggunaV10'); if(dl) dl.innerHTML = (DB_Pengguna||[]).map(p=>`<option value="${eV10(p.nama || '')}">`).join('');
+        }
+        window.resetAssignBerkalaV10 = function(){ ['assignMulaV10','assignAkhirV10','assignPlatV10','assignPenggunaV10','assignUnitV10'].forEach(id=>setValV10(id,'')); };
+        window.simpanAssignBerkalaV10 = async function(){
+            const mula=document.getElementById('assignMulaV10')?.value || '', akhir=document.getElementById('assignAkhirV10')?.value || '', plat=document.getElementById('assignPlatV10')?.value || '', pengguna=document.getElementById('assignPenggunaV10')?.value.trim() || '', unit=document.getElementById('assignUnitV10')?.value.trim() || '';
+            if(!mula || !akhir || !plat) return alert('Sila isi Tarikh Mula, Tarikh Akhir dan No Kenderaan.');
+            if(akhir < mula) return alert('Tarikh akhir tidak boleh lebih awal daripada tarikh mula.');
+            if((pengguna && unit) || (!pengguna && !unit)) return alert('Wajib pilih salah satu sahaja: Nama Pengguna ATAU Unit.');
+            const id = ['assign', plat, mula, akhir, pengguna || unit].join('_').replace(/[^a-zA-Z0-9_-]/g,'_');
+            try{ await setDoc(doc(db,'assign_berkala',id), { plat, pengguna: pengguna || '-', unit: unit || '-', tarikhMula: mula, tarikhAkhir: akhir, status:'Aktif', createdAt:new Date().toISOString(), updatedAt:new Date().toISOString(), oleh:profilSemasa.emel || '-' }, { merge:true }); notifyV10('Tetapan berkala berjaya disimpan.'); resetAssignBerkalaV10(); janaSenaraiAssignBerkalaV10(); }
+            catch(err){ console.error(err); alert('Gagal menyimpan tetapan berkala.'); }
+        };
+        window.batalkanAssignBerkalaV10 = async function(id){
+            if(!confirm('Batalkan dan padam rekod tetapan berkala ini?')) return;
+            try{ await deleteDoc(doc(db,'assign_berkala',id)); DB_AssignBerkala = (DB_AssignBerkala||[]).filter(x => x.id !== id); notifyV10('Tetapan berkala telah dipadam.'); janaSenaraiAssignBerkalaV10(); }
+            catch(err){ console.error(err); alert('Gagal padam rekod. Semak permission delete Firestore.'); }
+        };
+        function janaSenaraiAssignBerkalaV10(){
+            const tb = document.getElementById('jadualAssignBerkalaV10'); if(!tb) return;
+            const data = (DB_AssignBerkala || []).filter(a => nV10(a.status) === 'aktif').sort((a,b)=>String(a.tarikhMula||'').localeCompare(String(b.tarikhMula||'')));
+            if(!data.length){ tb.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500 bg-gray-50">Tiada tetapan berkala aktif.</td></tr>'; return; }
+            tb.innerHTML = data.map(a => `<tr class="border-b hover:bg-gray-50"><td class="p-3 font-bold text-blue-700">${eV10(a.plat)}</td><td class="p-3">${eV10(a.pengguna || '-')}<br><span class="text-xs text-gray-500">${eV10(a.unit || '-')}</span></td><td class="p-3">${eV10(fmtDateV10(a.tarikhMula))} - ${eV10(fmtDateV10(a.tarikhAkhir))}</td><td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold bg-green-100 text-green-700">AKTIF</span></td><td class="p-3 text-center"><button onclick="batalkanAssignBerkalaV10('${jV10(a.id)}')" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 rounded">BATALKAN</button></td></tr>`).join('');
+        }
+
+        function pasangSejarahKelulusanV10(){
+            const tb = document.getElementById('jadualSejarahKelulusan'); if(!tb) return;
+            const kotak = tb.closest('.mt-8, .pt-6') || tb.closest('.bg-white'); if(!kotak || document.getElementById('barSejarahKelulusanV10')) return;
+            const h = kotak.querySelector('h3');
+            h?.insertAdjacentHTML('afterend', `
+                <div id="barSejarahKelulusanV10" class="bg-gray-50 border rounded p-3 mb-4 mt-3">
+                    <div class="grid grid-cols-1 md:grid-cols-6 gap-2 items-end">
+                        <div><label class="block text-xs font-bold mb-1">Tarikh Mula</label><input type="date" id="sejMulaV10" class="w-full p-2 border rounded" value="${todayV10()}"></div>
+                        <div><label class="block text-xs font-bold mb-1">Tarikh Akhir</label><input type="date" id="sejAkhirV10" class="w-full p-2 border rounded" value="${todayV10()}"></div>
+                        <div><label class="block text-xs font-bold mb-1">No Kenderaan</label><input id="sejPlatV10" class="w-full p-2 border rounded uppercase" placeholder="SEMUA"></div>
+                        <div><label class="block text-xs font-bold mb-1">Paparan</label><select id="sejLimitV10" class="w-full p-2 border rounded"><option>10</option><option>50</option><option>100</option></select></div>
+                        <button onclick="cariSejarahKelulusanV10()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-bold">CARI</button>
+                        <button onclick="resetSejarahKelulusanV10()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded font-bold">RESET</button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">Default memaparkan kelulusan hari semasa sahaja, status LULUS. Rekod selesai disembunyikan.</p>
+                </div>`);
+        }
+        window.cariSejarahKelulusanV10 = function(){ sejarahModeV10='cari'; sejarahLimitV10=Number(document.getElementById('sejLimitV10')?.value || 10); renderSejarahKelulusanV10(); };
+        window.resetSejarahKelulusanV10 = function(){ sejarahModeV10='hari_ini'; setValV10('sejMulaV10', todayV10()); setValV10('sejAkhirV10', todayV10()); setValV10('sejPlatV10',''); setValV10('sejLimitV10','10'); sejarahLimitV10=10; renderSejarahKelulusanV10(); };
+        function renderSejarahKelulusanV10(){
+            pasangSejarahKelulusanV10();
+            const tb = document.getElementById('jadualSejarahKelulusan'); if(!tb) return;
+            const mula = document.getElementById('sejMulaV10')?.value || todayV10();
+            const akhir = document.getElementById('sejAkhirV10')?.value || mula;
+            const plat = uV10(document.getElementById('sejPlatV10')?.value || '');
+            let data = (DB_Tempahan || []).filter(t => nV10(t.status) === 'lulus');
+            data = data.filter(t => { const d = dtV10(t.tLulus || t.createdAt || t.tMula); return d && d >= mula && d <= akhir; });
+            if(plat) data = data.filter(t => uV10(t.kenderaanDipilih || '').includes(plat));
+            data = data.sort((a,b)=>String(b.tLulus || b.createdAt || '').localeCompare(String(a.tLulus || a.createdAt || ''))).slice(0, sejarahLimitV10);
+            if(!data.length){ tb.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500 bg-gray-50">Tiada kelulusan aktif untuk paparan ini.</td></tr>'; return; }
+            tb.innerHTML = data.map(t => `<tr class="border-b hover:bg-gray-50"><td class="p-3 font-semibold">${eV10(namaTempV10(t))}<br><span class="text-xs text-gray-500">${eV10(t.unit || '-')}</span></td><td class="p-3">${eV10(t.lokasi || '-')}<br><span class="text-xs">Mohon: ${eV10(fmtDateV10(t.tMula))} - ${eV10(fmtDateV10(t.tTamat))}</span></td><td class="p-3 font-bold text-blue-700">${eV10(t.kenderaanDipilih || '-')}<br><span class="text-xs text-green-700">LULUS</span></td><td class="p-3 text-xs">${eV10(fmtDateTimeV10(t.tLulus || '-'))}</td><td class="p-3 text-xs text-blue-700 font-bold">${eV10(t.lulusOleh || '-')}</td></tr>`).join('');
+        }
+
+        function eligibleAmbilV10(){
+            const nm = nV10(profilSemasa?.nama), em = nV10(profilSemasa?.emel);
+            const listTempah = (DB_Kenderaan || []).filter(k => nV10(k.status) === 'ditempah' && (nV10(k.tempahOleh) === nm || nV10(k.emelPengguna) === em || (DB_Tempahan||[]).some(t => nV10(t.status)==='lulus' && uV10(t.kenderaanDipilih)===uV10(k.plat) && (nV10(t.emelAmbil)===em || nV10(t.pemanduNama)===nm))));
+            let listBerkala = [];
+            try{ if(typeof aktifAssignBerkalaUntukPlatV5 === 'function' && typeof padanAssignDenganProfilV61 === 'function') listBerkala = (DB_Kenderaan||[]).filter(k => nV10(k.status)==='available' && padanAssignDenganProfilV61(aktifAssignBerkalaUntukPlatV5(k.plat))); }catch(e){}
+            return [...listTempah, ...listBerkala.filter(b => !listTempah.some(t=>uV10(t.plat)===uV10(b.plat)))];
+        }
+        function kemaskiniBadgeAmbilV10(){
+            const b = document.getElementById('badgeAmbilV10'); if(!b) return;
+            const c = eligibleAmbilV10().length;
+            if(c>0){ b.textContent = c; b.classList.remove('hilang'); } else b.classList.add('hilang');
+        }
+        window.janaDropdownAmbil = function(){
+            const s = document.getElementById('pilihanAmbilKenderaan'); if(!s) return;
+            s.innerHTML = '<option value="">-- Pilih --</option>';
+            const sedang = kenderaanSedangGunaProfilV10();
+            if(sedang){
+                document.getElementById('tiadaKenderaanAmbil')?.classList.remove('hilang');
+                document.getElementById('ruanganPilihAmbil')?.classList.add('hilang');
+                const box = document.getElementById('tiadaKenderaanAmbil'); if(box) box.innerHTML = `<p class="text-gray-700 font-bold text-lg">Anda sedang menggunakan kenderaan ${eV10(sedang.plat)}. Pulangkan kenderaan ini dahulu sebelum mengambil kenderaan baharu.</p>`;
+                document.getElementById('kadMaklumatKenderaan')?.classList.add('hilang'); kemaskiniBadgeAmbilV10(); return;
+            }
+            const list = eligibleAmbilV10();
+            const box = document.getElementById('tiadaKenderaanAmbil');
+            if(!list.length){ if(box) box.innerHTML = '<p class="text-gray-700 font-bold text-lg">Tiada kenderaan diluluskan untuk diambil buat masa ini.</p>'; box?.classList.remove('hilang'); document.getElementById('ruanganPilihAmbil')?.classList.add('hilang'); }
+            else { box?.classList.add('hilang'); document.getElementById('ruanganPilihAmbil')?.classList.remove('hilang'); list.forEach(k => { const assign = (typeof aktifAssignBerkalaUntukPlatV5==='function') ? aktifAssignBerkalaUntukPlatV5(k.plat) : null; const label = nV10(k.status)==='available' && assign ? ' [BERKALA]' : ''; s.innerHTML += `<option value="${eV10(k.plat)}">${eV10(k.jenama||'-')} (${eV10(k.plat)})${label}</option>`; }); }
+            document.getElementById('kadMaklumatKenderaan')?.classList.add('hilang'); kemaskiniBadgeAmbilV10();
+        };
+        window.sahkanAmbilKenderaan = async function(){
+            const sedang = kenderaanSedangGunaProfilV10(); if(sedang) return alert('Polisi sistem: Pengguna tidak boleh mengambil lebih daripada 1 kenderaan dalam satu masa. Sila pulangkan kenderaan semasa dahulu.');
+            const plat = document.getElementById('pilihanAmbilKenderaan')?.value || ''; if(!plat) return alert('Sila pilih kenderaan dahulu.');
+            const k = (DB_Kenderaan||[]).find(v => uV10(v.plat) === uV10(plat)); if(!k) return alert('Rekod kenderaan tidak ditemui.');
+            try{
+                const assign = (typeof aktifAssignBerkalaUntukPlatV5 === 'function') ? aktifAssignBerkalaUntukPlatV5(plat) : null;
+                if(nV10(k.status) === 'available' && assign){
+                    await updateDoc(doc(db,'kenderaan',plat), { status:'Sedang Digunakan', pengguna:profilSemasa.nama || '-', emelPengguna:profilSemasa.emel || '-', noTelPengguna:profilSemasa.tel || '-', tempahOleh:'-', unit:profilSemasa.unit || assign.unit || '-', tujuan:'Penggunaan Berkala', lokasiTujuan:assign.unit || profilSemasa.unit || '-', tMula:assign.tarikhMula || '-', tTamat:assign.tarikhAkhir || '-', masaAmbil:new Date().toISOString(), sumberAmbil:'assign_berkala' });
+                } else {
+                    await updateDoc(doc(db,'kenderaan',plat), { status:'Sedang Digunakan', pengguna:k.tempahOleh || profilSemasa.nama || '-', emelPengguna:k.emelPengguna || profilSemasa.emel || '-', noTelPengguna:k.noTelPengguna || profilSemasa.tel || '-', tempahOleh:'-', masaAmbil:new Date().toISOString(), sumberAmbil:'tempahan' });
+                }
+                notifyV10(`Berjaya ambil kenderaan ${plat}`); window.paparTab('pulang');
+            }catch(err){ console.error(err); alert('Gagal sahkan pengambilan kenderaan.'); }
+        };
+
+        function kadIndenAktifUntukPlatV10(plat){
+            let list = (DB_RekodKad || []).filter(r => nV10(r.kategori)==='inden' && nV10(r.statusKad || r.status || 'aktif')==='aktif' && uV10(r.plat || r.platKenderaan) === uV10(plat));
+            const adaShell1 = list.some(r => nV10(r.jenamaStesen || r.noKad).includes('shell 1'));
+            if(adaShell1) list = list.filter(r => !(nV10(r.jenamaStesen || r.noKad).includes('shell 2')));
+            return list;
+        }
+        try{
+            dapatKadIndenDipilih = function(){
+                const k = (DB_Kenderaan || []).find(v => nV10(v.status)==='sedang digunakan' && nV10(v.pengguna)===nV10(profilSemasa.nama));
+                const val = document.getElementById('indenStesen')?.value || '';
+                if(!k || !val) return null;
+                return kadIndenAktifUntukPlatV10(k.plat).find(r => (r.noKad || r.id || r.jenamaStesen) === val || r.jenamaStesen === val) || null;
+            };
+        }catch(e){}
+        function urusIndenPulangV10(){
+            const sel = document.getElementById('indenStesen'); if(!sel) return;
+            const aktif = !!sel.value;
+            ['indenInvoice','indenRM','indenLiter'].forEach(id => { const el=document.getElementById(id); if(el){ el.disabled = !aktif; el.required = aktif; if(!aktif) el.value=''; el.classList.toggle('bg-gray-100', !aktif); } });
+            const jenis = document.getElementById('indenJenisMinyak'); if(jenis){ jenis.disabled = !aktif; jenis.required = aktif; jenis.classList.toggle('bg-gray-100', true); }
+            window.autoJenisMinyakPulang();
+        }
+        window.autoJenisMinyakPulang = function(){
+            const jenis = document.getElementById('indenJenisMinyak');
+            const kad = (typeof dapatKadIndenDipilih === 'function') ? dapatKadIndenDipilih() : null;
+            if(jenis) jenis.value = kad ? (kad.jenisMinyak || '-') : '';
+            const sel = document.getElementById('indenStesen'); if(sel && kad) sel.dataset.jenamaStesen = kad.jenamaStesen || '-';
+            ['indenInvoice','indenRM','indenLiter'].forEach(id => { const el=document.getElementById(id); if(el){ el.disabled = !kad; el.required = !!kad; } });
+        };
+        function isiDropdownIndenPulangV10(){
+            const k = (DB_Kenderaan || []).find(v => nV10(v.status)==='sedang digunakan' && nV10(v.pengguna)===nV10(profilSemasa.nama));
+            const sel = document.getElementById('indenStesen'); if(!sel) return;
+            const old = sel.value;
+            const cards = k ? kadIndenAktifUntukPlatV10(k.plat) : [];
+            sel.innerHTML = '<option value="">-- Tiada Pengisian --</option>' + cards.map(r => `<option value="${eV10(r.noKad || r.id || r.jenamaStesen)}">${eV10(r.jenamaStesen || '-')} - ${eV10(r.noKad || '-')} (${eV10(r.jenisMinyak || '-')})</option>`).join('');
+            if([...sel.options].some(o=>o.value===old)) sel.value=old;
+            sel.onchange = urusIndenPulangV10;
+            urusIndenPulangV10();
+        }
+        function pasangDatalistPenumpangV10(){
+            const input = document.getElementById('namaPenumpang'); const dl = document.getElementById('listPenumpang');
+            if(input && dl){ input.setAttribute('list','listPenumpang'); dl.innerHTML = (DB_Pengguna || []).map(p => `<option value="${eV10(p.nama || '')}">`).join(''); }
+        }
+        const janaBorangPulangSebelumV10 = window.janaBorangPulang;
+        window.janaBorangPulang = function(){
+            if(janaBorangPulangSebelumV10) janaBorangPulangSebelumV10();
+            pasangDatalistPenumpangV10(); isiDropdownIndenPulangV10(); janaLogPulangV10();
+        };
+        const semakPulangSebelumV10 = window.semakPulangKenderaan;
+        window.semakPulangKenderaan = function(){
+            const sel = document.getElementById('indenStesen');
+            if(sel && sel.value){
+                if(!document.getElementById('indenJenisMinyak')?.value) return alert('Jenis minyak tidak ditemui berdasarkan rekod kad. Sila semak Dashboard Rekod Kad.');
+                for(const id of ['indenInvoice','indenRM','indenLiter']) if(!document.getElementById(id)?.value) return alert('Jika ada pengisian minyak, No Invoice, Nilai RM dan Liter wajib diisi.');
+            }
+            return semakPulangSebelumV10 ? semakPulangSebelumV10() : undefined;
+        };
+        function janaLogPulangV10(){
+            const tb = document.getElementById('jadualLogPulang'); if(!tb) return;
+            const now = new Date(); const ym = now.toISOString().slice(0,7);
+            const val = document.getElementById('logPulangPlat')?.value || 'semua';
+            let data = (DB_LogKenderaan || []).filter(l => dtV10(l.tarikh || l.timestampPulang).slice(0,7) === ym);
+            if(val !== 'semua') data = data.filter(l => uV10(l.noPendaftaran || '') === uV10(val));
+            data = data.sort((a,b)=>String(b.timestampPulang || b.tarikh || '').localeCompare(String(a.timestampPulang || a.tarikh || ''))).slice(0,50);
+            if(!data.length){ tb.innerHTML = '<tr><td colspan="12" class="p-6 text-center text-gray-500 font-bold bg-gray-50">Tiada buku log digital bagi bulan semasa.</td></tr>'; return; }
+            tb.innerHTML = data.map(l => `<tr class="border-b hover:bg-gray-50"><td class="p-2">${eV10(l.tarikh || dtV10(l.timestampPulang) || '-')}</td><td class="p-2">${eV10(l.masaMula || '-')}</td><td class="p-2">${eV10(l.masaAkhir || '-')}</td><td class="p-2 font-bold">${eV10(l.namaPengguna || '-')}</td><td class="p-2 font-bold text-blue-700">${eV10(l.noPendaftaran || '-')}</td><td class="p-2">${eV10(l.tujuan || '-')}</td><td class="p-2">${eV10(l.lokasi || '-')}</td><td class="p-2">${eV10(l.odometerAkhir || '-')}</td><td class="p-2">${eV10(l.penggunaanOdometer || '0')}</td><td class="p-2">${eV10(l.penggunaanKadInden || l.jenamaStesen || '-')}<br><span class="text-xs">${eV10(l.noInv || '-')}</span></td><td class="p-2">${eV10(l.penggunaanTNG || 'Tidak')}</td><td class="p-2">${eV10(l.catatanPengguna || '-')}</td></tr>`).join('');
+        }
+        try{ janaLogPulang = janaLogPulangV10; window.janaLogPulang = janaLogPulangV10; }catch(e){}
+
+        function pasangKenderaanUIV10(){
+            const view = document.getElementById('viewSelenggaraKenderaan'); if(!view) return;
+            const grid = view.querySelector('.grid');
+            const formCard = document.getElementById('borangKenderaan')?.closest('.bg-white');
+            const listCard = document.getElementById('jadualSelenggaraKenderaan')?.closest('.bg-white');
+            if(grid && formCard && listCard){ grid.className = 'grid grid-cols-1 gap-6'; listCard.className = 'bg-white p-6 rounded-lg shadow-lg border-t-4 border-gray-400 order-1'; formCard.className = 'bg-white p-6 rounded-lg shadow-lg border-t-4 border-emerald-600 order-2'; if(listCard.compareDocumentPosition(formCard) & Node.DOCUMENT_POSITION_PRECEDING) grid.insertBefore(listCard, formCard); }
+            if(listCard && !document.getElementById('summaryKenderaanV10')){
+                listCard.insertAdjacentHTML('afterbegin', `<div id="summaryKenderaanV10" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4"><div class="bg-blue-100 border border-blue-200 rounded p-3"><div class="text-xs font-bold text-blue-800">JUMLAH KENDERAAN</div><div id="kSumTotalV10" class="text-2xl font-black text-blue-900">0</div></div><div class="bg-green-100 border border-green-200 rounded p-3"><div class="text-xs font-bold text-green-800">JUMLAH AVAILABLE</div><div id="kSumAvailV10" class="text-2xl font-black text-green-900">0</div></div><div class="bg-purple-100 border border-purple-200 rounded p-3"><div class="text-xs font-bold text-purple-800">JUMLAH DISELENGGARA</div><div id="kSumSelV10" class="text-2xl font-black text-purple-900">0</div></div><div class="bg-red-100 border border-red-200 rounded p-3"><div class="text-xs font-bold text-red-800">JUMLAH ROSAK</div><div id="kSumRosakV10" class="text-2xl font-black text-red-900">0</div></div></div>`);
+            }
+            const h2 = listCard?.querySelector('h2');
+            if(h2 && !document.getElementById('barCarianKenderaanV10')) h2.insertAdjacentHTML('afterend', `<div id="barCarianKenderaanV10" class="bg-gray-50 border rounded p-3 mb-4 mt-3"><label class="block text-xs font-bold text-gray-600 mb-1">Carian No Plat / Model / Status / Penempatan</label><div class="flex flex-col md:flex-row gap-2"><input id="carianKenderaanV10" class="w-full p-2 border rounded uppercase" placeholder="Contoh: PPN 1234 / Hilux / KPDN"><button onclick="cariKenderaanV10()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-bold">CARI</button><button onclick="resetCarianKenderaanV10()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded font-bold">RESET</button><button onclick="paparSemuaKenderaanV10()" class="bg-gray-800 hover:bg-black text-white px-4 py-2 rounded font-bold whitespace-nowrap">PAPAR SEMUA</button></div></div>`);
+            const table = document.getElementById('jadualSelenggaraKenderaan')?.closest('table'); const head = table?.querySelector('thead');
+            if(head) head.innerHTML = '<tr><th class="p-3 w-28">Gambar</th><th class="p-3">No. Plat & Model</th><th class="p-3">Penempatan / Status</th><th class="p-3">Inden / Touch n Go</th><th class="p-3">Butiran Aset</th><th class="p-3 text-center">Tindakan</th></tr>';
+        }
+        window.cariKenderaanV10 = function(){ kenderaanQueryV10 = nV10(document.getElementById('carianKenderaanV10')?.value || ''); kenderaanModeV10 = kenderaanQueryV10 ? 'cari' : 'kosong'; janaSistemKenderaan(); };
+        window.resetCarianKenderaanV10 = function(){ setValV10('carianKenderaanV10',''); kenderaanQueryV10=''; kenderaanModeV10='kosong'; janaSistemKenderaan(); };
+        window.paparSemuaKenderaanV10 = function(){ setValV10('carianKenderaanV10',''); kenderaanQueryV10=''; kenderaanModeV10='semua'; janaSistemKenderaan(); };
+        function summaryKenderaanV10(){
+            setTxtV10('kSumTotalV10', (DB_Kenderaan||[]).length); setTxtV10('kSumAvailV10', (DB_Kenderaan||[]).filter(k=>nV10(k.status)==='available').length); setTxtV10('kSumSelV10', (DB_Kenderaan||[]).filter(k=>nV10(k.status)==='sedang diselenggara' || nV10(k.statusSelenggara)==='sedang diselenggara').length); setTxtV10('kSumRosakV10', (DB_Kenderaan||[]).filter(k=>nV10(k.status).includes('rosak')).length);
+        }
+        const janaSistemKenderaanSebelumV10 = janaSistemKenderaan;
+        janaSistemKenderaan = function(){
+            pasangKenderaanUIV10(); applyTetapanV10(); summaryKenderaanV10();
+            const tb = document.getElementById('jadualSelenggaraKenderaan'); if(!tb) return;
+            if(kenderaanModeV10 === 'kosong'){ tb.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-gray-500 bg-gray-50 font-bold">Sila tekan CARI atau PAPAR SEMUA untuk memaparkan senarai kenderaan.</td></tr>'; return; }
+            let data = (DB_Kenderaan||[]).slice();
+            if(kenderaanModeV10 === 'cari' && kenderaanQueryV10) data = data.filter(k => [k.plat,k.jenama,k.jenis,k.status,k.penempatanKenderaan,k.noAset,k.noEnjin,k.noChasis].some(v => nV10(v).includes(kenderaanQueryV10)));
+            data.sort((a,b)=>uV10(a.plat).localeCompare(uV10(b.plat)));
+            if(!data.length){ tb.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-gray-500 bg-gray-50">Tiada rekod kenderaan ditemui.</td></tr>'; return; }
+            tb.innerHTML = data.map(k => { const kad = (typeof dapatkanKadKenderaanLengkapV14==='function') ? dapatkanKadKenderaanLengkapV14(k.plat) : {}; const img = k.gambar || 'https://placehold.co/320x180/e2e8f0/64748b?text=Kenderaan'; return `<tr class="border-b hover:bg-gray-50 align-top"><td class="p-3"><img src="${eV10(img)}" class="w-28 h-16 object-contain bg-white border rounded shadow-sm"></td><td class="p-3"><b class="text-blue-700 text-base">${eV10(k.plat)}</b><br>${eV10(k.jenama||'-')}<br><span class="text-xs text-gray-500">${eV10(k.jenis||'-')} | ${eV10(k.milikan||'-')}</span></td><td class="p-3"><b>${eV10(k.penempatanKenderaan||'-')}</b><br><span class="text-xs px-2 py-1 rounded bg-gray-100">${eV10(k.status||'-')}</span></td><td class="p-3 text-xs"><b>Inden:</b> ${eV10((kad.ringkasInden)||k.kadInden||'-')}<br><b>TNG:</b> ${eV10((kad.ringkasTng)||k.tng||'-')}</td><td class="p-3 text-xs"><b>Aset:</b> ${eV10(k.noAset||'-')}<br><b>CC:</b> ${eV10(k.ccKenderaan||'-')} | <b>Tangki:</b> ${eV10(k.kapasitiMinyak||'-')} L<br><b>Enjin:</b> ${eV10(k.noEnjin||'-')}<br><b>Chasis:</b> ${eV10(k.noChasis||'-')}</td><td class="p-3 text-center"><button onclick="editKenderaan('${jV10(k.plat)}')" class="text-xs bg-blue-100 px-3 py-1 rounded font-bold hover:bg-blue-200 shadow">EDIT</button></td></tr>`; }).join('');
+        };
+
+        function pasangStafUIV10(){
+            try{ if(typeof pasangStafUIV15 === 'function') pasangStafUIV15(); }catch(e){}
+            const form = document.getElementById('borangStaf'); const card = form?.closest('.bg-white'); if(!card) return;
+            if(!document.getElementById('toggleBorangStafV10')){
+                const h = card.querySelector('h2');
+                h?.insertAdjacentHTML('afterend', '<button id="toggleBorangStafV10" type="button" onclick="toggleBorangStafV10()" class="w-full mb-4 bg-purple-700 hover:bg-purple-800 text-white font-bold py-3 rounded shadow">+ BUKA / TUTUP BORANG TAMBAH STAF BARU</button>');
+                form.classList.add('hilang');
+                const upload = card.querySelector('.mt-8'); if(upload) upload.classList.add('hilang');
+            }
+        }
+        window.toggleBorangStafV10 = function(){ const form=document.getElementById('borangStaf'); const upload=form?.closest('.bg-white')?.querySelector('.mt-8'); form?.classList.toggle('hilang'); upload?.classList.toggle('hilang'); };
+        window.cariStafV15 = window.cariStafV10 = function(){ stafQueryV10 = nV10(document.getElementById('carianStafV15')?.value || ''); stafModeV10 = stafQueryV10 ? 'cari' : 'kosong'; janaSistemStaf(); };
+        window.resetCarianStafV15 = window.resetCarianStafV10 = function(){ setValV10('carianStafV15',''); stafQueryV10=''; stafModeV10='kosong'; janaSistemStaf(); };
+        window.paparSemuaStafV15 = window.paparSemuaStafV10 = function(){ setValV10('carianStafV15',''); stafQueryV10=''; stafModeV10='semua'; janaSistemStaf(); };
+        janaSistemStaf = function(){
+            pasangStafUIV10();
+            const tb = document.getElementById('jadualSelenggaraStaf'); if(!tb) return;
+            if(stafModeV10 === 'kosong'){ tb.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-gray-500 bg-gray-50 font-bold">Sila tekan CARI atau PAPAR SEMUA untuk memaparkan senarai pengguna.</td></tr>'; return; }
+            let data = (DB_Pengguna || []).slice();
+            if(stafModeV10 === 'cari' && stafQueryV10) data = data.filter(p => [p.nama,p.emel,p.tel,p.unit,p.tempatBertugas,p.peranan].some(v => nV10(v).includes(stafQueryV10)));
+            data.sort((a,b)=>String(a.nama||'').localeCompare(String(b.nama||'')));
+            if(!data.length){ tb.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-gray-500 bg-gray-50">Tiada pengguna ditemui.</td></tr>'; return; }
+            tb.innerHTML = data.map(p => `<tr class="border-b hover:bg-gray-50"><td class="p-3"><img src="${eV10(p.gambar || 'https://placehold.co/100x100/e2e8f0/64748b?text=User')}" class="w-12 h-12 rounded-full object-contain bg-white border"></td><td class="p-3"><b>${eV10(p.nama||'-')}</b><br><span class="text-xs text-blue-700">${eV10(p.emel||'-')}</span></td><td class="p-3">${eV10(p.tel||'-')}</td><td class="p-3">${eV10(p.unit||'-')}<br><span class="text-xs font-bold text-gray-600">${eV10(p.tempatBertugas||'-')}</span></td><td class="p-3 font-bold uppercase">${eV10(p.peranan||'-')}</td><td class="p-3 text-center"><button onclick="editStaf('${jV10(p.emel)}')" class="text-xs bg-blue-100 px-3 py-1 rounded font-bold hover:bg-blue-200">EDIT</button></td></tr>`).join('');
+        };
+
+        function pasangRekodKadUIV10(){
+            const view = document.getElementById('viewRekodKad'); if(!view) return;
+            const grid = view.querySelector('.grid'); const formCard = document.getElementById('borangRekodKad')?.closest('.bg-white'); const listCard = document.getElementById('jadualRekodKad')?.closest('.bg-white');
+            if(grid && formCard && listCard){ grid.className='grid grid-cols-1 gap-6'; listCard.className='bg-white p-6 rounded-lg shadow-lg border-t-4 border-gray-400 order-1'; formCard.className='bg-white p-6 rounded-lg shadow-lg border-t-4 border-cyan-600 order-2'; grid.insertBefore(listCard, formCard); }
+            const h = formCard?.querySelector('h2'); if(h) h.textContent = 'DAFTAR REKOD KAD';
+        }
+
+        function pasangSelenggaraCarianV10(){
+            const tb = document.getElementById('jadualRekodSelenggara'); if(!tb || document.getElementById('barSelenggaraV10')) return;
+            const kotak = tb.closest('.bg-white'); const h = kotak?.querySelector('h3');
+            h?.insertAdjacentHTML('afterend', `<div id="barSelenggaraV10" class="bg-gray-50 border rounded p-3 mb-4 mt-3"><label class="block text-xs font-bold text-gray-600 mb-1">Carian No Kenderaan / Model / Status</label><div class="flex flex-col md:flex-row gap-2"><input id="carianSelenggaraV10" class="w-full p-2 border rounded uppercase" placeholder="Contoh: PPN 1234"><button onclick="cariSelenggaraV10()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-bold">CARI</button><button onclick="resetSelenggaraV10()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded font-bold">RESET</button><button onclick="paparSemuaSelenggaraV10()" class="bg-gray-800 hover:bg-black text-white px-4 py-2 rounded font-bold whitespace-nowrap">PAPAR SEMUA</button></div></div>`);
+        }
+        window.cariSelenggaraV10 = function(){ selenggaraQueryV10 = nV10(document.getElementById('carianSelenggaraV10')?.value || ''); selenggaraModeV10 = selenggaraQueryV10 ? 'cari' : 'kosong'; janaRekodSelenggara(); };
+        window.resetSelenggaraV10 = function(){ setValV10('carianSelenggaraV10',''); selenggaraQueryV10=''; selenggaraModeV10='kosong'; janaRekodSelenggara(); };
+        window.paparSemuaSelenggaraV10 = function(){ setValV10('carianSelenggaraV10',''); selenggaraQueryV10=''; selenggaraModeV10='semua'; janaRekodSelenggara(); };
+        const janaRekodSelenggaraSebelumV10 = janaRekodSelenggara;
+        janaRekodSelenggara = function(){
+            if(janaRekodSelenggaraSebelumV10) janaRekodSelenggaraSebelumV10();
+            pasangSelenggaraCarianV10();
+            const tb = document.getElementById('jadualRekodSelenggara'); if(!tb) return;
+            if(selenggaraModeV10 === 'kosong'){ tb.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-gray-500 bg-gray-50 font-bold">Sila tekan CARI atau PAPAR SEMUA untuk memaparkan senarai status selenggara.</td></tr>'; return; }
+            let data = (DB_Kenderaan || []).slice();
+            if(selenggaraModeV10 === 'cari' && selenggaraQueryV10) data = data.filter(k => [k.plat,k.jenama,k.status,k.statusSelenggara].some(v => nV10(v).includes(selenggaraQueryV10)));
+            data.sort((a,b)=>uV10(a.plat).localeCompare(uV10(b.plat)));
+            if(!data.length){ tb.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-gray-500 bg-gray-50">Tiada rekod ditemui.</td></tr>'; return; }
+            tb.innerHTML = data.map(k => { let st={bakiKm:'-',bakiHari:'-',teks:'-',tahap:'normal'}; try{ if(typeof statusServisKenderaan==='function') st=statusServisKenderaan(k); }catch(e){} return `<tr class="border-b hover:bg-gray-50"><td class="p-3"><b>${eV10(k.plat)}</b><br><span class="text-xs">${eV10(k.jenama||'-')}</span></td><td class="p-3">${eV10(k.mileage||0)} km</td><td class="p-3">${eV10(k.tarikhNextServis||'-')}<br><span class="text-xs">${eV10(k.odometerNextServis || k.mileageServis || '-')} km</span></td><td class="p-3 font-bold">${eV10(st.bakiKm ?? '-')}</td><td class="p-3 font-bold">${eV10(st.bakiHari ?? '-')}</td><td class="p-3 font-bold">${eV10(st.teks || '-')}</td><td class="p-3">${eV10(k.statusSelenggara || k.status || '-')}</td></tr>`; }).join('');
+        };
+
+        const janaSistemSebelumV10 = janaSistem;
+        janaSistem = function(){
+            if(janaSistemSebelumV10) janaSistemSebelumV10();
+            susunMenuV10(); applyTetapanV10(); pasangMedanPemanduPenumpangV10(); renderStatusPemohonV10();
+            if(isAdminV10()){ renderAdminKelulusanV10(); pasangPanelAssignBerkalaV10(); renderSejarahKelulusanV10(); }
+            kemaskiniBadgeAmbilV10();
+        };
+
+        const paparTabSebelumV10 = window.paparTab;
+        window.paparTab = function(tabId){
+            susunMenuV10();
+            const r = paparTabSebelumV10 ? paparTabSebelumV10(tabId) : undefined;
+            setTimeout(() => {
+                kemaskiniLabelSistemV10(); susunMenuV10(); applyTetapanV10();
+                if(tabId === 'operasi') kemaskiniBorangV10();
+                if(tabId === 'kelulusan') { renderAdminKelulusanV10(); pasangPanelAssignBerkalaV10(); renderSejarahKelulusanV10(); }
+                if(tabId === 'ambil') window.janaDropdownAmbil();
+                if(tabId === 'pulang') window.janaBorangPulang();
+                if(tabId === 'selenggaraKenderaan') janaSistemKenderaan();
+                if(tabId === 'selenggara') janaSistemStaf();
+                if(tabId === 'rekodKad') { pasangRekodKadUIV10(); window.rekodKadModeV14 = window.rekodKadModeV14 || 'kosong'; janaRekodKad(); }
+                if(tabId === 'rekodSelenggara') janaRekodSelenggara();
+            }, 0);
+            return r;
+        };
+        const tukarPenggunaSebelumV10 = window.tukarPenggunaAkaun;
+        window.tukarPenggunaAkaun = function(emel){ const r = tukarPenggunaSebelumV10 ? tukarPenggunaSebelumV10(emel) : undefined; setTimeout(()=>{ kemaskiniLabelSistemV10(); susunMenuV10(); kemaskiniBorangV10(); janaSistem(); }, 50); return r; };
+
+        function mulaESiloUltimateV10(){
+            try{
+                kemaskiniLabelSistemV10(); tambahTetapanDefaultV10(); applyTetapanV10(); susunMenuV10(); pasangMedanPemanduPenumpangV10(); pasangKenderaanUIV10(); pasangStafUIV10(); pasangRekodKadUIV10(); pasangSelenggaraCarianV10();
+                kenderaanModeV10 = 'kosong'; stafModeV10 = 'kosong'; selenggaraModeV10 = 'kosong';
+                if(document.getElementById('jadualSelenggaraKenderaan')) janaSistemKenderaan();
+                if(document.getElementById('jadualSelenggaraStaf')) janaSistemStaf();
+                if(document.getElementById('jadualRekodSelenggara')) janaRekodSelenggara();
+                renderSejarahKelulusanV10(); kemaskiniBadgeAmbilV10();
+                console.log(ESILO_ULTIMATE_VERSION_LABEL_V10 + ' aktif.');
+            }catch(err){ console.warn('Patch E-SILO_ULTIMATE_V1.0 gagal refresh awal:', err); }
+        }
+        mulaESiloUltimateV10();
+        setTimeout(mulaESiloUltimateV10, 900);
+        setTimeout(mulaESiloUltimateV10, 2600);
+        setInterval(() => { try{ kemaskiniLabelSistemV10(); susunMenuV10(); kemaskiniBadgeAmbilV10(); }catch(e){} }, 2500);
+</script>
 </body>
 </html>
