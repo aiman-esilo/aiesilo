@@ -1071,7 +1071,7 @@
             document.getElementById('paparanPengguna').classList.remove('hilang');
             if(isAdmin) {
                 document.getElementById('paparanAdmin').classList.remove('hilang');
-                document.getElementById('teksTabOperasi').innerText = "📝 TEMPAHAN / 📋 KELULUSAN";
+                document.getElementById('teksTabOperasi').innerText = "📝 TEMPAHAN";
             } else {
                 document.getElementById('paparanAdmin').classList.add('hilang');
                 document.getElementById('teksTabOperasi').innerText = "📝 TEMPAHAN";
@@ -2471,7 +2471,7 @@
 
         // Set menu teks ke huruf besar selepas render.
         function kemasMenuHurufBesar(){
-            const map = [['tabDashboard','🏠 UTAMA'],['teksTabOperasi',aksesAdmin()?'📝 TEMPAHAN / 📋 KELULUSAN':'📝 TEMPAHAN'],['tabAmbil','🔑 AMBIL'],['tabPulang','↩️ PULANG'],['tabSelenggara','👥 STAF'],['tabSelenggaraKenderaan','🚘 KENDERAAN'],['tabRekodKad','💳 REKOD KAD'],['tabRekodSelenggara','🛠️ REKOD SELENGGARA'],['tabLaporan','📊 LAPORAN']];
+            const map = [['tabDashboard','🏠 UTAMA'],['teksTabOperasi','📝 TEMPAHAN'],['tabAmbil','🔑 AMBIL'],['tabPulang','↩️ PULANG'],['tabSelenggara','👥 STAF'],['tabSelenggaraKenderaan','🚘 KENDERAAN'],['tabRekodKad','💳 REKOD KAD'],['tabRekodSelenggara','🛠️ REKOD SELENGGARA'],['tabLaporan','📊 LAPORAN']];
             map.forEach(([id,txt]) => { const el=document.getElementById(id); if(el && id !== 'teksTabOperasi') el.innerText=txt; const sp=document.getElementById(id); if(id==='teksTabOperasi' && sp) sp.innerText=txt; });
         }
         const tukarPenggunaAkaunAsalV3 = window.tukarPenggunaAkaun;
@@ -5815,6 +5815,420 @@
         } catch(err){ console.warn('ESILO Update V1.3 gagal refresh awal:', err); }
         setTimeout(() => { try{ pasangKawalanRekodKadV13(); janaRekodKad(); janaSistemKenderaan(); janaSistem(); } catch(e){} }, 800);
         setTimeout(() => { try{ pasangKawalanRekodKadV13(); janaRekodKad(); janaSistemKenderaan(); janaSistem(); } catch(e){} }, 2500);
+
+
+        /* =====================================================================
+           ESILO ULTIMATE PATCH V1.4 - TEMPATAN AKHIR
+           Tarikh: 2026-07-07
+           Kekalkan semua patch sedia ada. Patch ini hanya override fungsi akhir:
+           1) Butang TEMPAHAN kekal bernama TEMPAHAN sahaja.
+           2) REKOD KAD tidak papar senarai secara automatik; guna CARI / RESET / SEMUA.
+           3) Pangkalan Data Aset Kenderaan baca SEMUA kad aktif terus daripada REKOD KAD
+              dan papar gambar kenderaan lebih sesuai / lebih besar.
+           ===================================================================== */
+        const ESILO_ULTIMATE_PATCH_V14 = 'esilo_ultimate_patch_v1.4_tempahan_rekodkad_kenderaan';
+
+        function kunciLabelTempahanV14(){
+            const teks = document.getElementById('teksTabOperasi');
+            if(teks && teks.innerText !== '📝 TEMPAHAN') teks.innerText = '📝 TEMPAHAN';
+            const tab = document.getElementById('tabOperasi');
+            if(tab){
+                tab.title = 'Tempahan';
+                tab.setAttribute('aria-label', 'Tempahan');
+            }
+        }
+        try{
+            if(typeof kemasMenuHurufBesar === 'function'){
+                kemasMenuHurufBesar = function(){
+                    const map = [
+                        ['tabDashboard','🏠 UTAMA'],['teksTabOperasi','📝 TEMPAHAN'],['tabAmbil','🔑 AMBIL'],['tabPulang','↩️ PULANG'],
+                        ['tabSelenggara','👥 STAF'],['tabSelenggaraKenderaan','🚘 KENDERAAN'],['tabRekodKad','💳 REKOD KAD'],
+                        ['tabRekodSelenggara','🛠️ REKOD SELENGGARA'],['tabLaporan','📊 LAPORAN']
+                    ];
+                    map.forEach(([id,txt]) => {
+                        const el = document.getElementById(id);
+                        if(!el) return;
+                        if(id === 'teksTabOperasi') el.innerText = '📝 TEMPAHAN';
+                        else el.innerText = txt;
+                    });
+                    kunciLabelTempahanV14();
+                };
+            }
+        } catch(e){}
+        const tukarPenggunaAkaunSebelumV14 = window.tukarPenggunaAkaun;
+        window.tukarPenggunaAkaun = function(emel){
+            const hasil = tukarPenggunaAkaunSebelumV14 ? tukarPenggunaAkaunSebelumV14(emel) : undefined;
+            kunciLabelTempahanV14();
+            return hasil;
+        };
+        const paparTabSebelumV14 = window.paparTab;
+        window.paparTab = function(tabId){
+            const hasil = paparTabSebelumV14 ? paparTabSebelumV14(tabId) : undefined;
+            kunciLabelTempahanV14();
+            return hasil;
+        };
+        function pasangObserverLabelTempahanV14(){
+            if(window.__observerLabelTempahanV14) return;
+            const sasaran = document.getElementById('menuTabs') || document.body;
+            if(!sasaran) return;
+            window.__observerLabelTempahanV14 = new MutationObserver(() => kunciLabelTempahanV14());
+            window.__observerLabelTempahanV14.observe(sasaran, { childList:true, subtree:true, characterData:true });
+            kunciLabelTempahanV14();
+        }
+
+        function pasangStyleV14(){
+            if(document.getElementById('styleEsiloV14')) return;
+            const st = document.createElement('style');
+            st.id = 'styleEsiloV14';
+            st.textContent = `
+                .gambar-aset-kenderaan-v14{width:240px;height:150px;max-width:100%;aspect-ratio:16/9;object-fit:contain;background:#f8fafc;border:1px solid #cbd5e1;border-radius:0.75rem;box-shadow:0 2px 8px rgba(15,23,42,.10)}
+                .kotak-gambar-aset-v14{width:260px;min-width:220px;background:#f8fafc;border-radius:0.85rem;padding:0.55rem;border:1px solid #e2e8f0}
+                #previewGambarKenderaan{min-height:18rem;aspect-ratio:16/9;object-fit:contain;background:#f8fafc;border-radius:0.85rem;border:1px solid #cbd5e1;box-shadow:0 2px 8px rgba(15,23,42,.10)}
+                @media (max-width:768px){.gambar-aset-kenderaan-v14{width:190px;height:120px}.kotak-gambar-aset-v14{width:205px;min-width:190px}#previewGambarKenderaan{min-height:13rem}}
+            `;
+            document.head.appendChild(st);
+        }
+
+        function teksSelamatV14(v){
+            try { return safeTextV13(v == null || v === '' ? '-' : String(v)); }
+            catch(e){ return String(v == null || v === '' ? '-' : v).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+        }
+        function jsSelamatV14(v){
+            try { return safeJsV13(v == null ? '' : String(v)); }
+            catch(e){ return String(v == null ? '' : v).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,' '); }
+        }
+        function normTeksV14(v){ return String(v || '').trim(); }
+        function normPlatKadV14(v){
+            try { return normPlatV13(v); }
+            catch(e){ return String(v || '').trim().toUpperCase().replace(/\s+/g,' '); }
+        }
+        function noKadV14(r){ return normTeksV14(r.noKad || r.noKadInden || r.noKadTNG || r.noKadTouchNGo || r.kad || r.cardNo || r.nomborKad); }
+        function platKadV14(r){ return normPlatKadV14(r.plat || r.noPlat || r.noKenderaan || r.noPendaftaran || r.platKenderaan || r.kenderaan || r.kenderaanPlat); }
+        function kategoriKadV14(r){
+            const s = String(r.kategori || r.jenisKad || r.type || '').toLowerCase();
+            if(s.includes('tng') || s.includes('touch') || s.includes('go')) return 'tng';
+            return 'inden';
+        }
+        function statusKadV14(r){ return String(r.statusKad || r.status || 'aktif').trim().toLowerCase(); }
+        function kadAktifV14(r){ return statusKadV14(r) === 'aktif' || statusKadV14(r) === 'active'; }
+        function tarikhSortKadV14(r){
+            try { return tarikhSortV13(r.updatedAt || r.createdAt || r.tarikhLuput || r.tarikhKemaskini); }
+            catch(e){ const t = new Date(r.updatedAt || r.createdAt || r.tarikhLuput || 0).getTime(); return Number.isFinite(t) ? t : 0; }
+        }
+        function susunKadV14(a,b){
+            const aktifA = kadAktifV14(a) ? 0 : 1;
+            const aktifB = kadAktifV14(b) ? 0 : 1;
+            if(aktifA !== aktifB) return aktifA - aktifB;
+            const jenisA = kategoriKadV14(a), jenisB = kategoriKadV14(b);
+            if(jenisA !== jenisB) return jenisA.localeCompare(jenisB);
+            return noKadV14(a).localeCompare(noKadV14(b));
+        }
+        function dapatkanKadKenderaanLengkapV14(plat, pilihan = {}){
+            const p = normPlatKadV14(plat);
+            const hanyaAktif = pilihan.hanyaAktif !== false;
+            const rekod = DB_RekodKad.filter(r => platKadV14(r) === p && (!hanyaAktif || kadAktifV14(r))).sort(susunKadV14);
+            const semuaInden = rekod.filter(r => kategoriKadV14(r) === 'inden');
+            const semuaTNG = rekod.filter(r => kategoriKadV14(r) === 'tng');
+            return { semuaInden, semuaTNG, semuaKad: rekod };
+        }
+        try{
+            if(typeof dapatkanSemuaKadUntukKenderaanV13 === 'function'){
+                dapatkanSemuaKadUntukKenderaanV13 = function(plat){ return dapatkanKadKenderaanLengkapV14(plat, { hanyaAktif:false }); };
+            }
+        } catch(e){}
+
+        function formatKadRingkasV14(r, jenis){
+            const no = noKadV14(r) || '-';
+            const luput = r.tarikhLuput || r.expiryDate || r.tarikhTamat || '-';
+            const status = kadAktifV14(r)
+                ? '<span class="ml-1 px-1.5 py-0.5 rounded bg-green-100 text-green-700 text-[10px] font-black">AKTIF</span>'
+                : '<span class="ml-1 px-1.5 py-0.5 rounded bg-red-100 text-red-700 text-[10px] font-black">TIDAK AKTIF</span>';
+            const meta = jenis === 'inden'
+                ? `${teksSelamatV14(r.jenamaStesen || r.jenama || '-')} / ${teksSelamatV14(r.jenisMinyak || '-')}`
+                : `Touch 'n Go`;
+            return `<div class="rounded-lg border bg-white px-2.5 py-2 leading-snug shadow-sm">
+                <span class="font-black text-gray-900">${teksSelamatV14(no)}</span>${status}<br>
+                <span class="text-gray-600 text-xs">${meta}</span><br>
+                <span class="text-gray-400 text-xs">Luput: ${teksSelamatV14(luput)}</span>
+            </div>`;
+        }
+        function renderSenaraiKadKenderaanV14(list, jenis, fallback){
+            if(list && list.length){
+                return `<div class="mt-1 space-y-1.5 max-h-56 overflow-y-auto pr-1">${list.map(x => formatKadRingkasV14(x, jenis)).join('')}</div>`;
+            }
+            if(fallback && fallback !== '-'){
+                return `<div class="mt-1 rounded-lg border bg-white px-2.5 py-2 text-xs"><span class="font-black text-gray-800">${teksSelamatV14(fallback)}</span><br><span class="text-gray-500">Rekod lama pada aset; tiada padanan aktif dalam REKOD KAD.</span></div>`;
+            }
+            return '<div class="mt-1 text-gray-400 text-xs italic">Tiada rekod kad aktif.</div>';
+        }
+        function ringkasanKadUntukUpdateV14(plat, senaraiSumber){
+            const p = normPlatKadV14(plat);
+            const sumber = Array.isArray(senaraiSumber) ? senaraiSumber : DB_RekodKad;
+            const rekod = sumber.filter(r => platKadV14(r) === p && kadAktifV14(r)).sort(susunKadV14);
+            const semuaInden = rekod.filter(r => kategoriKadV14(r) === 'inden');
+            const semuaTNG = rekod.filter(r => kategoriKadV14(r) === 'tng');
+            const indenText = semuaInden.map(noKadV14).filter(Boolean).join(' | ') || '-';
+            const tngText = semuaTNG.map(noKadV14).filter(Boolean).join(' | ') || '-';
+            const utamaInden = semuaInden[0] || {};
+            const utamaTNG = semuaTNG[0] || {};
+            return { semuaInden, semuaTNG, indenText, tngText, utamaInden, utamaTNG };
+        }
+        async function kemaskiniRingkasanKadPadaKenderaanV14(plat, senaraiSumber){
+            const p = normPlatKadV14(plat);
+            if(!p || !DB_Kenderaan.find(k => normPlatKadV14(k.plat) === p)) return;
+            const r = ringkasanKadUntukUpdateV14(p, senaraiSumber);
+            try{
+                await updateDoc(doc(db, 'kenderaan', p), {
+                    kadInden: r.indenText,
+                    tng: r.tngText,
+                    bilKadIndenAktif: r.semuaInden.length,
+                    bilKadTNGAktif: r.semuaTNG.length,
+                    jenamaStesenInden: r.utamaInden.jenamaStesen || r.utamaInden.jenama || '-',
+                    jenisMinyakInden: r.utamaInden.jenisMinyak || '-',
+                    tarikhLuputInden: r.utamaInden.tarikhLuput || '-',
+                    tarikhLuputTNG: r.utamaTNG.tarikhLuput || '-',
+                    syncRekodKadAt: new Date().toISOString()
+                });
+            } catch(err){ console.warn('Sync ringkasan kad ke kenderaan gagal:', err); }
+        }
+
+        function pasangKawalanRekodKadV14(){
+            const tb = document.getElementById('jadualRekodKad');
+            if(!tb) return;
+            const panel = tb.closest('.bg-white');
+            if(!panel) return;
+            const lama = document.getElementById('rkKawalanV13') || document.getElementById('rkKawalanV14');
+            const html = `<div id="rkKawalanV14" class="bg-cyan-50 border border-cyan-200 rounded-lg p-3 mb-4">
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-3 items-end">
+                    <div class="lg:col-span-2">
+                        <label class="block text-xs font-black text-cyan-900 mb-1 uppercase">Carian Rekod Kad</label>
+                        <input type="text" id="rkCariPlatV14" class="w-full p-2 border rounded font-bold uppercase" placeholder="No kenderaan / no kad / jenama kad">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-black text-cyan-900 mb-1 uppercase">Had Paparan Carian</label>
+                        <select id="rkLimitV14" onchange="janaRekodKad()" class="w-full p-2 border rounded font-bold">
+                            <option value="10" selected>10 rekod</option>
+                            <option value="50">50 rekod</option>
+                            <option value="100">100 rekod</option>
+                        </select>
+                    </div>
+                    <button type="button" onclick="cariRekodKadV14()" class="bg-cyan-700 hover:bg-cyan-800 text-white px-4 py-2 rounded font-black shadow">CARI</button>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" onclick="resetPaparanRekodKadV14()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded font-black">RESET</button>
+                        <button type="button" onclick="paparSemuaRekodKadV14()" class="bg-gray-800 hover:bg-black text-white px-4 py-2 rounded font-black">SEMUA</button>
+                    </div>
+                </div>
+                <p id="rkInfoRingkasV14" class="text-xs text-cyan-900 font-semibold mt-2">Senarai tidak dipaparkan secara automatik. Masukkan carian dan tekan CARI, atau tekan SEMUA untuk paparkan semua rekod.</p>
+            </div>`;
+            if(lama && lama.id !== 'rkKawalanV14') lama.outerHTML = html;
+            else if(!lama){
+                const overflow = tb.closest('.overflow-x-auto');
+                if(overflow) overflow.insertAdjacentHTML('beforebegin', html);
+                else panel.insertAdjacentHTML('beforeend', html);
+            }
+        }
+        try{ pasangKawalanRekodKadV13 = pasangKawalanRekodKadV14; } catch(e){}
+
+        window.rekodKadModeV14 = window.rekodKadModeV14 || 'kosong';
+        window.rekodKadQueryV14 = window.rekodKadQueryV14 || '';
+        window.cariRekodKadV14 = function(){
+            const input = document.getElementById('rkCariPlatV14');
+            const q = normTeksV14(input?.value || '');
+            if(!q){
+                alert('Sila masukkan carian no kenderaan, no kad atau jenama kad terlebih dahulu.');
+                return;
+            }
+            window.rekodKadModeV14 = 'cari';
+            window.rekodKadQueryV14 = q;
+            janaRekodKad();
+        };
+        window.resetPaparanRekodKadV14 = function(){
+            const input = document.getElementById('rkCariPlatV14');
+            if(input) input.value = '';
+            window.rekodKadModeV14 = 'kosong';
+            window.rekodKadQueryV14 = '';
+            janaRekodKad();
+        };
+        window.resetCarianRekodKadV13 = window.resetPaparanRekodKadV14;
+        window.paparSemuaRekodKadV14 = function(){
+            const input = document.getElementById('rkCariPlatV14');
+            if(input) input.value = '';
+            window.rekodKadModeV14 = 'semua';
+            window.rekodKadQueryV14 = '';
+            janaRekodKad();
+        };
+
+        janaRekodKad = function(){
+            pasangKawalanRekodKadV14();
+            const tb = document.getElementById('jadualRekodKad');
+            if(!tb) return;
+            const info = document.getElementById('rkInfoRingkasV14');
+            const mode = window.rekodKadModeV14 || 'kosong';
+            const inputQ = normTeksV14(document.getElementById('rkCariPlatV14')?.value || '');
+            const query = mode === 'cari' ? normTeksV14(window.rekodKadQueryV14 || inputQ) : '';
+            let senarai = DB_RekodKad.slice().sort((a,b) => {
+                const tb2 = tarikhSortKadV14(b), ta = tarikhSortKadV14(a);
+                if(tb2 !== ta) return tb2 - ta;
+                const p = platKadV14(a).localeCompare(platKadV14(b));
+                if(p !== 0) return p;
+                return noKadV14(a).localeCompare(noKadV14(b));
+            });
+            tb.innerHTML = '';
+            if(DB_RekodKad.length === 0){
+                if(info) info.innerText = 'Tiada rekod kad dalam sistem.';
+                tb.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-gray-500 font-bold bg-gray-50">Tiada rekod kad setakat ini.</td></tr>';
+                return;
+            }
+            if(mode === 'kosong'){
+                if(info) info.innerText = `Jumlah rekod kad tersedia: ${DB_RekodKad.length}. Senarai disembunyikan sehingga carian dibuat.`;
+                tb.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-gray-500 font-bold bg-gray-50">Sila masukkan carian dan tekan CARI. Tekan SEMUA jika perlu paparkan semua senarai kad.</td></tr>';
+                return;
+            }
+            if(mode === 'cari'){
+                const q = query.toLowerCase();
+                senarai = senarai.filter(r => [
+                    platKadV14(r), noKadV14(r), kategoriKadV14(r), r.jenamaStesen, r.jenama, r.jenisMinyak,
+                    r.tarikhLuput, statusKadV14(r), r.ulasanTidakAktif
+                ].join(' ').toLowerCase().includes(q));
+                const limit = parseInt(document.getElementById('rkLimitV14')?.value || '10', 10) || 10;
+                const jumlahPadanan = senarai.length;
+                senarai = senarai.slice(0, limit);
+                if(info) info.innerText = `Carian "${query.toUpperCase()}": papar ${senarai.length} daripada ${jumlahPadanan} padanan. Jumlah semua rekod kad: ${DB_RekodKad.length}.`;
+                if(jumlahPadanan === 0){
+                    tb.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-gray-500 font-bold bg-gray-50">Tiada rekod kad ditemui untuk carian tersebut.</td></tr>';
+                    return;
+                }
+            } else if(mode === 'semua'){
+                if(info) info.innerText = `Paparan SEMUA: ${senarai.length} rekod kad dipaparkan.`;
+            }
+            senarai.forEach(r => {
+                const kategori = kategoriKadV14(r) === 'inden' ? 'Kad Inden' : "Touch 'n Go";
+                const warna = kategoriKadV14(r) === 'inden' ? 'bg-cyan-100 text-cyan-800' : 'bg-emerald-100 text-emerald-800';
+                const stat = statusKadV14(r) || 'aktif';
+                const stClass = kadAktifV14(r) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
+                const luput = statusLuputKad(r.tarikhLuput);
+                tb.innerHTML += `<tr class="border-b hover:bg-gray-50 align-top">
+                    <td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold ${warna}">${kategori}</span></td>
+                    <td class="p-3 font-bold">${teksSelamatV14(noKadV14(r))}</td>
+                    <td class="p-3">${teksSelamatV14(r.jenamaStesen || r.jenama || (kategoriKadV14(r)==='tng' ? "Touch 'n Go" : '-'))}<br><span class="text-xs text-gray-500">${teksSelamatV14(r.jenisMinyak || '-')}</span></td>
+                    <td class="p-3">${teksSelamatV14(r.tarikhLuput || '-')}</td>
+                    <td class="p-3"><span class="px-2 py-1 rounded text-xs font-bold ${stClass}">${teksSelamatV14(stat.toUpperCase())}</span><br><span class="inline-block mt-1 px-2 py-1 rounded text-xs font-bold ${luput.kelas}">${teksSelamatV14(luput.teks)}</span></td>
+                    <td class="p-3 font-black text-blue-700">${teksSelamatV14(platKadV14(r) || '-')}</td>
+                    <td class="p-3 text-xs">${teksSelamatV14(r.ulasanTidakAktif || '-')}</td>
+                    <td class="p-3 text-center"><div class="grid grid-cols-1 gap-1"><button onclick="editRekodKad('${jsSelamatV14(r.id)}')" class="text-xs bg-blue-100 px-3 py-1 rounded font-bold hover:bg-blue-200 shadow">Edit</button><button onclick="padamRekodKadV63('${jsSelamatV14(r.id)}','${jsSelamatV14(noKadV14(r))}')" class="text-xs bg-red-600 text-white px-3 py-1 rounded font-bold hover:bg-red-700 shadow">PADAM</button></div></td>
+                </tr>`;
+            });
+        };
+
+        window.autoIsiMaklumatKadKenderaan = function(){
+            const plat = normPlatKadV14(document.getElementById('k_plat')?.value || '');
+            const info = document.getElementById('infoKadAssignKenderaan');
+            const hInden = document.getElementById('k_inden');
+            const hTng = document.getElementById('k_tng');
+            if(!info) return;
+            if(!plat){
+                if(hInden) hInden.value = '';
+                if(hTng) hTng.value = '';
+                info.className = 'mb-4 p-3 rounded bg-blue-50 border border-blue-200 text-xs text-blue-900';
+                info.innerHTML = 'Masukkan No. Plat untuk paparan semua KAD AKTIF yang direkodkan dalam dashboard REKOD KAD.';
+                return;
+            }
+            const kad = dapatkanKadKenderaanLengkapV14(plat, { hanyaAktif:true });
+            const teksInden = kad.semuaInden.map(noKadV14).filter(Boolean).join(' | ') || '-';
+            const teksTNG = kad.semuaTNG.map(noKadV14).filter(Boolean).join(' | ') || '-';
+            if(hInden) hInden.value = teksInden;
+            if(hTng) hTng.value = teksTNG;
+            const barisInden = kad.semuaInden.length ? kad.semuaInden.map(k => `<li><b>${teksSelamatV14(noKadV14(k))}</b> - ${teksSelamatV14(k.jenamaStesen || k.jenama || '-')} / ${teksSelamatV14(k.jenisMinyak || '-')} <span class="text-xs text-gray-500">(luput: ${teksSelamatV14(k.tarikhLuput || '-')})</span></li>`).join('') : '<li>Tiada kad inden aktif.</li>';
+            const barisTNG = kad.semuaTNG.length ? kad.semuaTNG.map(k => `<li><b>${teksSelamatV14(noKadV14(k))}</b> <span class="text-xs text-gray-500">(luput: ${teksSelamatV14(k.tarikhLuput || '-')})</span></li>`).join('') : '<li>Tiada kad Touch n Go aktif.</li>';
+            info.className = 'mb-4 p-3 rounded bg-blue-50 border border-blue-200 text-xs text-blue-900';
+            info.innerHTML = `<div class="font-bold mb-1">Kad aktif daripada REKOD KAD bagi ${teksSelamatV14(plat)}</div><div class="mb-1 text-cyan-800">Kad Inden (${kad.semuaInden.length}):<ul class="list-disc pl-5">${barisInden}</ul></div><div class="text-emerald-800">Touch 'n Go (${kad.semuaTNG.length}):<ul class="list-disc pl-5">${barisTNG}</ul></div>`;
+        };
+
+        const simpanRekodKadSebelumV14 = window.simpanRekodKad;
+        window.simpanRekodKad = async function(e){
+            e.preventDefault();
+            if(!aksesAdmin()) return alert('Akses REKOD KAD hanya untuk Admin dan Super Admin.');
+            const kategori = document.getElementById('kadKategori').value;
+            const noKad = document.getElementById('kadNo').value.trim();
+            const plat = normPlatKadV14(document.getElementById('kadPlatKenderaan').value);
+            const statusKad = document.getElementById('kadStatus')?.value || 'aktif';
+            const ulasanTidakAktif = statusKad === 'tidak aktif' ? (document.getElementById('kadUlasanTidakAktif').value || '-') : '-';
+            if(!noKad || !plat) return alert('Sila lengkapkan No. Kad dan pilih kenderaan.');
+            if(statusKad === 'tidak aktif' && (!ulasanTidakAktif || ulasanTidakAktif === '-')) return alert('Sila isi ulasan kenapa kad tidak aktif.');
+            const data = {
+                kategori,
+                noKad,
+                plat,
+                statusKad,
+                ulasanTidakAktif,
+                tarikhLuput: document.getElementById('kadTarikhLuput').value || '-',
+                jenamaStesen: kategori === 'inden' ? document.getElementById('kadJenamaStesen').value : "Touch 'n Go",
+                jenisMinyak: kategori === 'inden' ? document.getElementById('kadJenisMinyak').value : '-',
+                updatedAt: new Date().toISOString(),
+                updatedBy: profilSemasa.emel || '-'
+            };
+            const id = `${kategori}_${noKad}`.replace(/[^a-zA-Z0-9_-]/g, '_');
+            try{
+                await setDoc(doc(db, 'rekod_kad', id), data);
+                const sumberSync = DB_RekodKad.filter(x => x.id !== id).concat([{ id, ...data }]);
+                await kemaskiniRingkasanKadPadaKenderaanV14(plat, sumberSync);
+                notif('Rekod kad berjaya disimpan dan ringkasan kad kenderaan telah dikemaskini.');
+                resetRekodKad();
+                window.rekodKadModeV14 = 'kosong';
+                window.rekodKadQueryV14 = '';
+                autoIsiMaklumatKadKenderaan();
+                janaRekodKad();
+                janaSistemKenderaan();
+            } catch(err){
+                console.error('Ralat Simpan Rekod Kad V1.4:', err);
+                if(simpanRekodKadSebelumV14) return simpanRekodKadSebelumV14(e);
+                alert('Gagal menyimpan rekod kad. Sila cuba lagi.');
+            }
+        };
+
+        janaSistemKenderaan = function(){
+            pasangStyleV14();
+            const tbody = document.getElementById('jadualSelenggaraKenderaan');
+            const dl = document.getElementById('senaraiPlatKenderaan');
+            if(dl) dl.innerHTML = DB_Kenderaan.map(k => `<option value="${teksSelamatV14(k.plat)}">${teksSelamatV14(k.jenama || '')}</option>`).join('');
+            if(!tbody) return;
+            tbody.innerHTML = '';
+            if(DB_Kenderaan.length === 0){
+                tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-500 bg-gray-50 font-bold">Tiada rekod kenderaan.</td></tr>';
+                return;
+            }
+            const list = DB_Kenderaan.slice().sort((a,b) => normPlatKadV14(a.plat).localeCompare(normPlatKadV14(b.plat)));
+            list.forEach(k => {
+                const img = k.gambar || 'https://placehold.co/960x540/e2e8f0/64748b?text=Gambar+Kenderaan';
+                const semuaKad = dapatkanKadKenderaanLengkapV14(k.plat, { hanyaAktif:true });
+                const indenList = renderSenaraiKadKenderaanV14(semuaKad.semuaInden, 'inden', k.kadInden);
+                const tngList = renderSenaraiKadKenderaanV14(semuaKad.semuaTNG, 'tng', k.tng);
+                const infoKad = `<div class="mt-3 rounded-xl bg-blue-50 border border-blue-100 p-3">
+                    <div class="text-xs font-black text-blue-800 uppercase">Inden Aktif Daripada Rekod Kad (${semuaKad.semuaInden.length})</div>${indenList}
+                    <div class="text-xs font-black text-emerald-800 uppercase mt-3">Touch 'n Go Aktif Daripada Rekod Kad (${semuaKad.semuaTNG.length})</div>${tngList}
+                </div>`;
+                tbody.innerHTML += `<tr class="border-b hover:bg-gray-50 align-top">
+                    <td class="p-3 align-top"><div class="kotak-gambar-aset-v14"><img src="${teksSelamatV14(img)}" loading="lazy" class="gambar-aset-kenderaan-v14" alt="Gambar ${teksSelamatV14(k.plat || 'kenderaan')}"></div></td>
+                    <td class="p-3 align-top min-w-[320px]"><strong class="text-gray-900 text-base">${teksSelamatV14(k.plat || '-')}</strong><br><span class="text-xs text-gray-500">${teksSelamatV14(k.jenama || '-')}</span>${infoKad}</td>
+                    <td class="p-3 align-top"><span>${teksSelamatV14(k.jenis || '-')}</span><br><span class="text-xs font-bold px-1 rounded bg-gray-100">${teksSelamatV14(k.milikan || '-')}</span></td>
+                    <td class="p-3 align-top">${teksSelamatV14(k.noAset || '-')}</td>
+                    <td class="p-3 align-top text-center"><div class="grid grid-cols-1 gap-1"><button onclick="editKenderaan('${jsSelamatV14(k.plat)}')" class="text-xs bg-blue-100 px-3 py-1 rounded font-bold hover:bg-blue-200 shadow">Edit</button><button onclick="padamKenderaanV63('${jsSelamatV14(k.plat)}')" class="text-xs bg-red-600 text-white px-3 py-1 rounded font-bold hover:bg-red-700 shadow">PADAM</button></div></td>
+                </tr>`;
+            });
+        };
+
+        try{
+            pasangStyleV14();
+            pasangObserverLabelTempahanV14();
+            pasangKawalanRekodKadV14();
+            kunciLabelTempahanV14();
+            window.rekodKadModeV14 = 'kosong';
+            janaRekodKad();
+            janaSistemKenderaan();
+            autoIsiMaklumatKadKenderaan();
+        } catch(err){ console.warn('ESILO Ultimate Patch V1.4 gagal refresh awal:', err); }
+        setTimeout(() => { try{ pasangStyleV14(); pasangObserverLabelTempahanV14(); kunciLabelTempahanV14(); pasangKawalanRekodKadV14(); janaRekodKad(); janaSistemKenderaan(); autoIsiMaklumatKadKenderaan(); } catch(e){} }, 900);
+        setTimeout(() => { try{ kunciLabelTempahanV14(); pasangKawalanRekodKadV14(); janaRekodKad(); janaSistemKenderaan(); } catch(e){} }, 2600);
 
 
     </script>
